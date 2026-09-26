@@ -23,7 +23,7 @@ export function toAgentDto(row: AgentRow, skillCount = 0): Agent {
     strategy: row.strategy as ReviewStrategy,
     ci_fail_on: row.ciFailOn as CiFailOn,
     repo_intel: row.repoIntel,
-    skill_count: skillCount,
+    skills_count: skillCount,
   };
 }
 

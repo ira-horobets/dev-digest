@@ -206,7 +206,7 @@ export const Agent = z.object({
   repo_intel: z.boolean().default(true),
   // Number of skills linked through `agent_skills` (any enabled state). Read
   // model only: links are written via POST /agents/:id/skills.
-  skill_count: z.number().int().default(0),
+  skills_count: z.number().int().default(0),
 });
 export type Agent = z.infer<typeof Agent>;
 

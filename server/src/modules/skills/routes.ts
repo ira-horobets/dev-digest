@@ -52,7 +52,7 @@ const UpdateSkillBody = z.object({
   name: SkillName.optional(),
   description: z.string().optional(),
   type: z.enum(SKILL_TYPES).optional(),
-  body: z.string().min(1).max(MAX_BODY_CHARS).optional(),
+  content: z.string().min(1).max(MAX_BODY_CHARS).optional(),
   enabled: z.boolean().optional(),
 });
 
@@ -79,7 +79,8 @@ export default async function skillsRoutes(appBase: FastifyInstance) {
 
   app.put('/skills/:id', { schema: { params: IdParams, body: UpdateSkillBody } }, async (req) => {
     const { workspaceId } = await getContext(app.container, req);
-    return service.update(workspaceId, req.params.id, req.body);
+    const { content, ...rest } = req.body;
+    return service.update(workspaceId, req.params.id, { ...rest, ...(content !== undefined ? { body: content } : {}) });
   });
 
   app.post(
