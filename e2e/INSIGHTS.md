@@ -40,6 +40,7 @@ _None yet._
 - [2026-09-25] HW1 criteria pass: added 09-findings-severity (pills, Accept/Reject, Warning filter round-trip); hermetic run 9/9 green; docs/runner.md + specs/flows.md written by a subagent and extended for flow 09. Evidence: `e2e/specs/09-findings-severity.flow.json`.
 - [2026-09-25] L02: added 10-skills flow (skills grid → side preview → agent Skills tab); locators had to move to the first visible card and to `find role button --name Skills`; hermetic run 10/10 green. Evidence: `e2e/specs/10-skills.flow.json`.
 - [2026-09-26] HW2: flow 10 extended to the side panel (?skill=) and the /skills/:id Versioning tab; flow 11 covers /conventions on the seeded (uncloned) repo. Evidence: `e2e/specs/flows.md:11-conventions`.
+- [2026-10-06] Intent layer: flow 12-pr-intent reads the seeded pr_intent row for PR #482, so no model call is needed in e2e. Evidence: `e2e/specs/12-pr-intent.flow.json; server/src/db/seed.ts`.
 
 ## Open Questions
 
