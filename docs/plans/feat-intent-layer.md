@@ -319,3 +319,12 @@ Reference: `/home/iryna/Pictures/Screenshots/Screenshot from 2026-10-06 09-10-52
 - **A3:** cross-folder imports in the IntentCard files use the `@/` alias (`@/lib/...`).
 - **V1:** make the integration suite stable under full-suite load. In `server/test/helpers/runs.ts`, `waitForPrRuns` stops silently after 10 s, and tests then read an unfinished run or trace. Give the helper a longer default timeout and make it fail loudly on timeout.
 - **V2:** `agents-stats.it.test.ts` and `skills.it.test.ts` get the same `secrets` / `github` / `llm.openrouter` mock overrides as `reviews.it.test.ts`, so no test makes live calls.
+
+## Amendment 3 (2026-10-06): the five pr-self-review warnings from PR #4
+
+- **W1 (security):** linked GitHub issues and documents are read only from the PR's own repository. Other repositories, same owner included, are recorded as `skipped / cross_repo`. This replaces the "same owner only" decision; issue URLs and `owner/repo#N` that point at this repo still work.
+- **W2:** `GitClient.showFile` checks the blob size with `git cat-file -s <sha>:<path>` before `git show` and rejects anything over the cap without reading it.
+- **W3:** `pr_intent.sources` is typed with the shared `IntentSource` type in the Drizzle schema. The repository validates it on read with the `IntentSource` zod schema; invalid entries are dropped, not cast.
+- **W4:** reviewer-core derives `IntentPart` and the confidence type from `@devdigest/shared` (`Intent`, `IntentConfidence`), types only. It no longer declares its own copies.
+- **W5:** a failed intent refresh is reported once. Follow the client's existing convention for opting a mutation out of the global MutationCache toast (`client/src/lib/providers.tsx`) if one exists; otherwise drop the card's inline alert and rely on the global toast.
+- Tests: extend the existing `intent-helpers`, `adapters`, `intent.repo`/`intent.it`, `reviewer-core prompt` and `IntentCard` tests for each change; no new test files unless needed.

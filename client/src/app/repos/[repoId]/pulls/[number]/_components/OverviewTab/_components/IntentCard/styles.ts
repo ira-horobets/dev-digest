@@ -68,6 +68,5 @@ export const s = {
   sourceRef: { color: "var(--text-primary)", wordBreak: "break-all" } satisfies CSSProperties,
   reason: { fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
   derived: { marginTop: 10, fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
-  error: { marginTop: 10, fontSize: 13, color: "var(--crit)" } satisfies CSSProperties,
   centered: { display: "flex", justifyContent: "center" } satisfies CSSProperties,
 } as const;

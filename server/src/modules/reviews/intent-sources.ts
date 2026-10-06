@@ -135,20 +135,22 @@ export function extractRefs(input: ExtractInput): ExtractedRefs {
   const skipped: SkippedRef[] = [];
   const keys: string[] = [];
 
+  const isSameRepo = (owner: string, repo: string) =>
+    sameOwner(owner, input.owner) && repo.toLowerCase() === input.repo.toLowerCase();
   const addIssue = (owner: string, repo: string, number: number) => {
     if (!Number.isFinite(number) || number <= 0) return;
-    if (sameOwner(owner, input.owner) && repo.toLowerCase() === input.repo.toLowerCase() && number === input.prNumber) return;
-    if (!sameOwner(owner, input.owner)) {
-      pushUnique(skipped, { kind: 'github_issue', ref: `${owner}/${repo}#${number}`, reason: 'cross_owner' }, (s) => s.ref);
+    if (!isSameRepo(owner, repo)) {
+      pushUnique(skipped, { kind: 'github_issue', ref: `${owner}/${repo}#${number}`, reason: 'cross_repo' }, (s) => s.ref);
       return;
     }
-    pushUnique(issues, { owner: input.owner, repo, number }, (i) => `${i.repo.toLowerCase()}#${i.number}`);
+    if (number === input.prNumber) return;
+    pushUnique(issues, { owner: input.owner, repo: input.repo, number }, (i) => `${i.repo.toLowerCase()}#${i.number}`);
   };
   const addDoc = (owner: string, repo: string, rawPath: string, ref: string | null) => {
-    const sameRepo = sameOwner(owner, input.owner) && repo.toLowerCase() === input.repo.toLowerCase();
+    const sameRepo = isSameRepo(owner, repo);
     const display = sameRepo ? rawPath : `${owner}/${repo}:${rawPath}`;
-    if (!sameOwner(owner, input.owner)) {
-      pushUnique(skipped, { kind: 'github_doc', ref: display.slice(0, INTENT_MAX_REF_CHARS), reason: 'cross_owner' }, (s) => s.ref);
+    if (!sameRepo) {
+      pushUnique(skipped, { kind: 'github_doc', ref: display.slice(0, INTENT_MAX_REF_CHARS), reason: 'cross_repo' }, (s) => s.ref);
       return;
     }
     const check = normaliseRepoPath(rawPath);

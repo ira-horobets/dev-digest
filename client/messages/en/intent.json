@@ -40,6 +40,7 @@
     "not_found_or_no_access": "not found or no access",
     "not_found_at_head": "not found at the PR head",
     "cross_owner": "different owner",
+    "cross_repo": "different repository",
     "extension_not_allowed": "file type not allowed",
     "invalid_path": "invalid path",
     "not_imported": "not imported yet",
@@ -47,7 +48,6 @@
   },
   "refresh": "Refresh",
   "refreshing": "Deriving…",
-  "refreshFailed": "Could not derive the intent: {message}",
   "empty": {
     "title": "No intent yet",
     "body": "It is derived when a review runs."

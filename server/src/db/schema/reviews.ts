@@ -1,16 +1,11 @@
 import { sql } from 'drizzle-orm';
+import type { IntentSource } from '@devdigest/shared';
 import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision } from 'drizzle-orm/pg-core';
 import { now } from './_shared';
 import { workspaces } from './core';
 import { pullRequests } from './pulls';
 
-export interface IntentSourceJson {
-  kind: string;
-  ref: string;
-  status: string;
-  reason?: string;
-  chars?: number;
-}
+export type IntentSourceJson = IntentSource;
 
 // ============================================================ Review & findings
 

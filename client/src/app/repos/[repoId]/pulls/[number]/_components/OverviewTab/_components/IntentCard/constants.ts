@@ -24,6 +24,7 @@ export const KNOWN_REASONS: ReadonlySet<string> = new Set([
   "not_found_or_no_access",
   "not_found_at_head",
   "cross_owner",
+  "cross_repo",
   "extension_not_allowed",
   "invalid_path",
   "not_imported",

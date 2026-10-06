@@ -19,7 +19,6 @@ export {
   type PromptParts,
   type AssembledPrompt,
   type IntentPart,
-  type IntentConfidenceLevel,
 } from './prompt.js';
 
 // PR intent derivation (one structured call before review).

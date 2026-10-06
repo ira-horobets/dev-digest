@@ -80,11 +80,6 @@ export function IntentCard({
       {t("title")}
     </span>
   );
-  const refreshError = refresh.isError && (
-    <div role="alert" style={s.error}>
-      {t("refreshFailed", { message: refresh.error.message })}
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -119,7 +114,6 @@ export function IntentCard({
             {refresh.isPending ? t("refreshing") : t("refresh")}
           </Button>
         </div>
-        {refreshError}
       </Card>
     );
   }
@@ -168,7 +162,6 @@ export function IntentCard({
         </div>
       )}
 
-      {refreshError}
 
       <button
         type="button"

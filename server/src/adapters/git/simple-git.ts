@@ -134,8 +134,11 @@ export class SimpleGitClient implements GitClient {
     if (!SHA_RE.test(ref)) throw new Error('showFile: ref must be a hex commit sha');
     if (!isSafeRepoPath(path)) throw new Error('showFile: unsafe path');
     // One argument `<sha>:<path>`; the sha is hex-only so it can never be an option.
-    const out = await this.git(repo).raw(['show', `${ref}:${path}`]);
-    return out.length > SHOW_FILE_MAX_CHARS ? out.slice(0, SHOW_FILE_MAX_CHARS) : out;
+    const size = Number((await this.git(repo).raw(['cat-file', '-s', `${ref}:${path}`])).trim());
+    if (!Number.isFinite(size) || size > SHOW_FILE_MAX_CHARS) {
+      throw new Error('showFile: blob exceeds the size cap');
+    }
+    return this.git(repo).raw(['show', `${ref}:${path}`]);
   }
 }
 

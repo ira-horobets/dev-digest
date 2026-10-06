@@ -249,6 +249,15 @@ d('PR intent (Testcontainers pg)', () => {
     );
     expect(JSON.stringify(body)).not.toContain('Throttle abusive clients'); // content is never stored
 
+    // Rows that no longer match the IntentSource contract are dropped on read, not cast.
+    const stored = await pg.handle.db.select().from(t.prIntent).where(eq(t.prIntent.prId, pr.id));
+    await pg.handle.db
+      .update(t.prIntent)
+      .set({ sources: [...stored[0]!.sources, { kind: 'bogus', ref: 'x', status: 'used' }] as never })
+      .where(eq(t.prIntent.prId, pr.id));
+    const after = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/intent` })).json();
+    expect(after.sources).toHaveLength(body.sources.length);
+
     await pg.handle.db.update(t.pullRequests).set({ headSha: 'deadbeef' }).where(eq(t.pullRequests.id, pr.id));
     expect((await app.inject({ method: 'GET', url: `/pulls/${pr.id}/intent` })).json().stale).toBe(true);
 

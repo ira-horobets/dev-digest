@@ -3,7 +3,7 @@
  * to the workspace through `pull_requests`; maps rows to the port's DTOs.
  */
 import { and, desc, eq } from 'drizzle-orm';
-import type { IntentSource } from '@devdigest/shared';
+import { IntentSource } from '@devdigest/shared';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
 import type {
@@ -15,13 +15,22 @@ import type {
 
 type IntentRow = typeof t.prIntent.$inferSelect;
 
+/** Validate stored sources on read; entries that no longer match the contract are dropped. */
+const parseSources = (raw: unknown): IntentSource[] =>
+  Array.isArray(raw)
+    ? raw.flatMap((e) => {
+        const p = IntentSource.safeParse(e);
+        return p.success ? [p.data] : [];
+      })
+    : [];
+
 const toStored = (r: IntentRow): StoredIntent => ({
   prId: r.prId,
   intent: r.intent,
   inScope: r.inScope,
   outOfScope: r.outOfScope,
   confidence: r.confidence,
-  sources: r.sources as IntentSource[],
+  sources: parseSources(r.sources),
   sourceHash: r.sourceHash,
   headSha: r.headSha,
   provider: r.provider,

@@ -148,6 +148,12 @@ describe('GitClient.showFile (sha-pinned read)', () => {
       await expect(client.showFile(repo, sha, '-x.md')).rejects.toThrow(/unsafe path/);
       await expect(client.showFile(repo, '--output=/tmp/x', 'plan.md')).rejects.toThrow(/hex commit sha/);
       await expect(client.showFile(repo, sha, 'missing.md')).rejects.toThrow();
+
+      await writeFile(join(dir, 'big.md'), 'x'.repeat(200_001));
+      await g.add('big.md');
+      await g.commit('big');
+      const sha2 = (await g.revparse(['HEAD'])).trim();
+      await expect(client.showFile(repo, sha2, 'big.md')).rejects.toThrow(/size cap/);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -107,7 +107,7 @@ describe("IntentCard", () => {
     expect(screen.getByText("Stale")).toBeInTheDocument();
   });
 
-  it("renders an inline empty state on 404 and shows a refresh error inline", async () => {
+  it("renders an inline empty state on 404 and leaves refresh errors to the global toast", async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) =>
       init?.method === "POST"
         ? json({ error: { code: "external_service_error", message: "provider down" } }, 502)
@@ -120,7 +120,8 @@ describe("IntentCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("Could not derive the intent: provider down"),
+      expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST")).toBe(true),
     );
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

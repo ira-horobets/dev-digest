@@ -30,7 +30,8 @@ describe('extractRefs: GitHub issues', () => {
       ...base,
       body: 'Closes #471. Related acme/other#12 and https://github.com/acme/api/issues/99. Self #482.',
     });
-    expect(r.issues.map((i) => `${i.repo}#${i.number}`).sort()).toEqual(['api#471', 'api#99', 'other#12']);
+    expect(r.issues.map((i) => `${i.repo}#${i.number}`).sort()).toEqual(['api#471', 'api#99']);
+    expect(r.skipped.filter((s) => s.reason === 'cross_repo').map((s) => s.ref)).toEqual(['acme/other#12']);
   });
 
   it('merges GitHub closing references and dedupes', () => {
@@ -38,13 +39,19 @@ describe('extractRefs: GitHub issues', () => {
     expect(r.issues.map((i) => i.number)).toEqual([7, 8]);
   });
 
-  it('skips other owners as cross_owner', () => {
+  it('skips other owners as cross_repo', () => {
     const r = extractRefs({ ...base, body: 'see evil/repo#5 and https://github.com/evil/repo/issues/6' });
     expect(r.issues).toHaveLength(0);
-    expect(r.skipped.filter((s) => s.reason === 'cross_owner').map((s) => s.ref).sort()).toEqual([
+    expect(r.skipped.filter((s) => s.reason === 'cross_repo').map((s) => s.ref).sort()).toEqual([
       'evil/repo#5',
       'evil/repo#6',
     ]);
+  });
+
+  it('skips same-owner other repos as cross_repo', () => {
+    const r = extractRefs({ ...base, body: 'see acme/other#5 and https://github.com/acme/other/issues/6' });
+    expect(r.issues).toHaveLength(0);
+    expect(r.skipped.filter((s) => s.reason === 'cross_repo')).toHaveLength(2);
   });
 
   it('caps at 5 issues', () => {
@@ -75,10 +82,10 @@ describe('extractRefs: docs and external URLs', () => {
     expect(r.docs.every((d) => d.ref === null)).toBe(true);
   });
 
-  it('keeps other same-owner repo blob URLs with their ref', () => {
+  it('skips other-repo blob URLs as cross_repo, same owner included', () => {
     const r = extractRefs({ ...base, body: 'https://github.com/acme/wiki/blob/v2/guide.md' });
-    expect(r.docs).toHaveLength(1);
-    expect(r.docs[0]).toMatchObject({ repo: 'wiki', path: 'guide.md', ref: 'v2' });
+    expect(r.docs).toHaveLength(0);
+    expect(r.skipped).toContainEqual({ kind: 'github_doc', ref: 'acme/wiki:guide.md', reason: 'cross_repo' });
   });
 
   it('records external URLs as skipped / external_fetch_disabled without query or fragment', () => {

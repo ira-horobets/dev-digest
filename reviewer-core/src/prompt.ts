@@ -1,4 +1,4 @@
-import type { ChatMessage, PromptAssembly } from '@devdigest/shared';
+import type { ChatMessage, Intent, IntentConfidence, PromptAssembly } from '@devdigest/shared';
 
 /**
  * Prompt assembly + prompt-injection hardening.
@@ -39,23 +39,18 @@ const MAX_PR_DESCRIPTION_CHARS = 4000;
 /** Cap on the rendered intent block (characters). */
 export const MAX_INTENT_CHARS = 2000;
 
-export type IntentConfidenceLevel = 'high' | 'medium' | 'low';
-
 /**
  * A PR intent derived before review (see `deriveIntent`). The confidence note is
  * trusted, fixed text chosen by `confidence`; the body is model output derived
  * from untrusted sources, so it is delimiter-wrapped.
  */
-export interface IntentPart {
-  intent: string;
-  in_scope: string[];
-  out_of_scope: string[];
-  confidence: IntentConfidenceLevel;
+export interface IntentPart extends Intent {
+  confidence: IntentConfidence;
   /** What the intent was derived from, e.g. ["title", "branch", "3 commits"]. */
   basis: string[];
 }
 
-const INTENT_CONFIDENCE_NOTE: Record<IntentConfidenceLevel, string> = {
+const INTENT_CONFIDENCE_NOTE: Record<IntentConfidence, string> = {
   high: 'Derived before review from the linked ticket/spec and the PR text.',
   medium: 'Derived from the PR description only; no ticket or spec was linked.',
   low:
