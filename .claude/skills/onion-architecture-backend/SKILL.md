@@ -49,7 +49,7 @@ in brackets is what a failing check prints.
 2. **Drizzle lives in the driven ring only** [`drizzle-only-in-driven-ring`]: repositories, `db/`, `adapters/`, `platform/jobs.ts`, `app.ts` (health check).
 3. **Services depend on ports, receive explicit deps** [`application-no-container`, `ports-are-pure`]. A module declares `ports.ts` (`XRepositoryPort` plus `XDeps`); `repository.ts` implements the port; `Container` owns the concrete instance; `routes.ts` does `new XService({ repo: app.container.xRepo })`. A service never imports `Container`: that is Service Locator and hides what it really needs (Seemann).
 4. **Row types stay in the driven ring** [`application-no-row-types`]. `$inferSelect` and `db/rows.ts` are persistence types. The repository maps rows to DTOs before they cross the port. Simple structures cross boundaries, never rows or entities (Martin).
-5. **Adapters never import modules** [`adapters-no-modules`]. Constants an adapter needs live in the port file or in the adapter.
+5. **Adapters and `db/` never import modules** [`adapters-no-modules`, `db-not-to-modules`]. Constants an adapter needs live in the port file or in the adapter. A helper that both `db/` (e.g. `seed.ts`) and a module need is a pure leaf in `platform/` (`platform/intent-hash.ts`).
 6. **No module imports another module** [`no-cross-module`]. Share through `@devdigest/shared`, or expose the dependency on `Container` and inject it.
 7. **`@devdigest/shared` is a leaf** [`shared-is-a-leaf`]. It is copied verbatim to the client.
 8. **Framework stops at routes** [`application-no-fastify`]. Services, ports and repositories never import fastify. Request-bound values (`workspaceId`, `userId`) are resolved in `routes.ts` and passed as plain arguments.
