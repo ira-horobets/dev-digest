@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { PrFile, SmartDiffRole } from "@devdigest/shared";
 import prReview from "../../../../../../../../../../messages/en/prReview.json";
@@ -35,10 +36,11 @@ describe("RoleGroup", () => {
     expect(screen.getByText("src/a.ts")).toBeTruthy();
   });
 
-  it.each(["docs", "boilerplate"] as const)("%s starts collapsed and expands on click", (role) => {
+  it.each(["docs", "boilerplate"] as const)("%s starts collapsed and expands on click", async (role) => {
+    const user = userEvent.setup();
     renderGroup(role);
     expect(screen.queryByText("src/a.ts")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    await user.click(screen.getByRole("button", { expanded: false }));
     expect(screen.getByText("src/a.ts")).toBeTruthy();
   });
 

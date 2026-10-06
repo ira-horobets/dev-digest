@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { PrFile, ReviewRecord, SmartDiffResponse } from "@devdigest/shared";
 import prReview from "../../../../../../../../messages/en/prReview.json";
@@ -125,27 +126,30 @@ describe("DiffTab smart diff", () => {
   });
 
   it("hides findings and pills with the comments toggle but keeps the dot", async () => {
+    const user = userEvent.setup();
     renderTab();
     await screen.findByText("Hardcoded key here");
-    fireEvent.click(screen.getByRole("button", { name: /Hide comments/ }));
+    await user.click(screen.getByRole("button", { name: /Hide comments/ }));
     expect(screen.queryByText("Hardcoded key here")).toBeNull();
     expect(screen.queryByText("critical")).toBeNull();
     expect(screen.getByLabelText("Has findings")).toBeTruthy();
   });
 
   it("Original order lists files in pr.files order", async () => {
+    const user = userEvent.setup();
     renderTab();
     await screen.findByText("Core logic");
-    fireEvent.click(screen.getByRole("button", { name: "Original order" }));
+    await user.click(screen.getByRole("button", { name: "Original order" }));
     await waitFor(() => expect(screen.queryByText("Core logic")).toBeNull());
     expect(pathsInOrder()).toEqual(["test/a.test.ts", "src/a.ts", "docs/a.md"]);
     expect(screen.getByText("Hardcoded key here")).toBeTruthy();
   });
 
   it("Accept posts to /findings/:id/accept", async () => {
+    const user = userEvent.setup();
     renderTab();
     await screen.findByText("Hardcoded key here");
-    fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+    await user.click(screen.getByRole("button", { name: "Accept" }));
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
@@ -158,6 +162,7 @@ describe("DiffTab smart diff", () => {
   // Regression: a finding whose line is not in the patch must not vanish (AC13)
   // and must still obey the shared comments toggle (AC14).
   it("renders a finding outside the patch in the 'Findings outside the diff' block, hidden by the toggle", async () => {
+    const user = userEvent.setup();
     const base = (REVIEWS as unknown as { findings: Record<string, unknown>[] }[])[0]!.findings[0]!;
     reviewsBody = [
       { id: "r1", findings: [{ ...base, start_line: 99, end_line: 99, title: "Stale line finding" }] },
@@ -165,7 +170,7 @@ describe("DiffTab smart diff", () => {
     renderTab();
     expect(await screen.findByText("Findings outside the diff")).toBeTruthy();
     expect(screen.getByText("Stale line finding")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Hide comments/ }));
+    await user.click(screen.getByRole("button", { name: /Hide comments/ }));
     expect(screen.queryByText("Stale line finding")).toBeNull();
     expect(screen.queryByText("Findings outside the diff")).toBeNull();
   });

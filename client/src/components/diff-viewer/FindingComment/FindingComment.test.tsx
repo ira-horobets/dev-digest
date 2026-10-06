@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord } from "@devdigest/shared";
 import messages from "../../../../messages/en/prReview.json";
@@ -41,20 +42,22 @@ describe("FindingComment", () => {
     expect(screen.getByText(/line 12 · 98% conf/)).toBeTruthy();
   });
 
-  it("calls onAction with accept and dismiss", () => {
+  it("calls onAction with accept and dismiss", async () => {
+    const user = userEvent.setup();
     const onAction = renderIt(FINDING);
-    fireEvent.click(screen.getByRole("button", { name: "Accept" }));
-    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+    await user.click(screen.getByRole("button", { name: "Reject" }));
     expect(onAction).toHaveBeenNthCalledWith(1, "f1", "accept");
     expect(onAction).toHaveBeenNthCalledWith(2, "f1", "dismiss");
   });
 
-  it("collapses to one line with the close button and re-expands on click", () => {
+  it("collapses to one line with the close button and re-expands on click", async () => {
+    const user = userEvent.setup();
     renderIt(FINDING);
-    fireEvent.click(screen.getByRole("button", { name: "Collapse finding" }));
+    await user.click(screen.getByRole("button", { name: "Collapse finding" }));
     expect(screen.queryByText("The key is committed in plaintext.")).toBeNull();
     expect(screen.getByText("Hardcoded key")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Hardcoded key/ }));
+    await user.click(screen.getByRole("button", { name: /Hardcoded key/ }));
     expect(screen.getByText("The key is committed in plaintext.")).toBeTruthy();
   });
 
