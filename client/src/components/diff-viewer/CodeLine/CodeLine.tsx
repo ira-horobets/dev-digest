@@ -3,9 +3,13 @@
 "use client";
 
 import React from "react";
+import { SEV, Icon, type Severity } from "@devdigest/ui";
+import type { FindingRecord } from "@devdigest/shared";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
+import type { DiffFindingApi } from "../findings";
 import { type Line } from "../helpers";
-import { s, lineRowFor, lineSignFor } from "../styles";
+import { s, lineRowFor, lineSignFor, stripeFor, pillFor } from "../styles";
+import { FindingComment } from "../FindingComment";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 
@@ -14,11 +18,19 @@ export function CodeLine({
   path,
   threads,
   commenting,
+  stripe,
+  pill,
+  findingsAfter,
+  findingApi,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
+  stripe?: Severity;
+  pill?: Severity;
+  findingsAfter?: FindingRecord[];
+  findingApi?: DiffFindingApi;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
@@ -34,6 +46,7 @@ export function CodeLine({
   const sign = ln.kind === "add" ? "+" : ln.kind === "del" ? "−" : "";
   const target = commenting?.canComment ? commentTargetFor(ln) : null;
   const showAdd = hover && !!target && !composing;
+  const showFindings = !!findingApi?.show;
 
   return (
     <div
@@ -41,7 +54,7 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={lineRowFor(ln.kind)}>
+      <div style={{ ...lineRowFor(ln.kind), ...(showFindings && stripe ? stripeFor(SEV[stripe].c) : {}) }}>
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button
@@ -62,12 +75,32 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
+        {showFindings && pill && (
+          <span style={pillFor(SEV[pill].c)}>
+            {(() => {
+              const I = Icon[SEV[pill].icon];
+              return <I size={11} />;
+            })()}
+            {SEV[pill].label.toLowerCase()}
+          </span>
+        )}
       </div>
 
       {commenting &&
         commenting.showComments &&
         threads.map((th) => (
           <CommentThreadView key={th.rootId} thread={th} commenting={commenting} path={path} />
+        ))}
+
+      {showFindings &&
+        findingApi &&
+        findingsAfter?.map((f) => (
+          <FindingComment
+            key={f.id}
+            finding={f}
+            pending={findingApi.pendingId === f.id}
+            onAction={findingApi.onAction}
+          />
         ))}
 
       {commenting && composing && target && (

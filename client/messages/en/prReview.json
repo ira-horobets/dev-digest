@@ -58,7 +58,7 @@
     "blockers": " · {count} blockers"
   },
   "smartDiff": {
-    "coreLabel": "Core",
+    "coreLabel": "Core logic",
     "wiringLabel": "Wiring",
     "boilerplateLabel": "Boilerplate",
     "largeTitle": "This PR is large ({lines} changed lines)",
@@ -66,7 +66,26 @@
     "filesCount": "{count} files",
     "costRuns": "{count, plural, one {# run} other {# runs}}",
     "findingLines": "{count} finding-lines",
-    "groupedByRole": "Smart Diff · grouped by role"
+    "groupedByRole": "Smart Diff · grouped by role",
+    "testsLabel": "Tests",
+    "docsLabel": "Docs",
+    "coreCaption": "The substance of the change — review closely",
+    "testsCaption": "Proves the change works",
+    "wiringCaption": "Hooks the core into the app",
+    "docsCaption": "Explains the change — skim",
+    "boilerplateCaption": "Generated / mechanical — skim",
+    "title": "Reviewer-ordered diff",
+    "summary": "{count} files",
+    "smartOrder": "Smart order",
+    "originalOrder": "Original order",
+    "showComments": "Show comments ({count})",
+    "hideComments": "Hide comments ({count})",
+    "filesWithFindings": "{count, plural, one {# file with findings} other {# files with findings}}",
+    "reviewNotRun": "Review not run yet",
+    "hasFindings": "Has findings",
+    "unanchoredTitle": "Findings outside the diff",
+    "collapseFinding": "Collapse finding",
+    "lineConfidence": "line {line} · {pct}% conf"
   },
   "list": {
     "breadcrumb": "Pull Requests",
