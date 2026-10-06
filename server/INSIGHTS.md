@@ -44,6 +44,7 @@ see it, do not write it.
 - [2026-10-06] Bumping INTENT_PROMPT_VERSION in reviewer-core also needs SEEDED_INTENT_PROMPT_VERSION in server/src/db/seed.ts: db/ may not import reviewer-core or modules, so the seed keeps its own copy, and intent-helpers.test.ts fails on drift. The intent cache hash lives in platform/intent-hash.ts so both db and modules can use it. Evidence: `server/src/platform/intent-hash.ts; server/src/db/seed.ts SEEDED_INTENT_PROMPT_VERSION; server/test/intent-helpers.test.ts`.
 - [2026-10-06] Latest review per agent = selectDistinctOn([reviews.agentId]) ordered by agentId, createdAt desc; Postgres DISTINCT ON groups NULL agent ids together, so the seeded NULL-agent review counts once. Evidence: `server/src/modules/smart-diff/repository.ts:25`.
 - [2026-10-06] Seed changes never reach an existing dev DB: seed.ts inserts PR #482's pr_files only when the PR row is missing, so a new seed file needs a manual idempotent INSERT ... WHERE NOT EXISTS backfill (done for feat/smart-diff); dropping the volume to reseed is forbidden. Evidence: `server/src/db/seed.ts:130`.
+- [2026-10-06] On a long-lived dev DB the Smart Diff can show zero findings for PR #482: the seeded review got an agent id and later real runs by that agent (0 findings) supersede it under latest-review-per-agent. Expected behaviour, not a bug; run a review or start from a fresh DB to see seeded findings inline. Evidence: `server/src/modules/smart-diff/repository.ts:25`.
 
 ## Tool & Library Notes
 
