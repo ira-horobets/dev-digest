@@ -10,6 +10,7 @@ see it, do not write it.
 
 - [2026-09-25] Injecting mock adapters through `ContainerOverrides` keeps every non-`.it.test.ts` test hermetic; no key, network, or Docker needed. Evidence: `server/src/platform/container.ts:40`.
 - [2026-09-25] To get a FAILED run in an `.it.test.ts` without a network, pass `MockLLMProvider` a `structured` fixture that fails the Review schema (e.g. `{ not: 'a review' }`): the mock throws, the executor persists status=failed with cost null. Evidence: `server/test/reviews.it.test.ts:a failed run persists a null cost`.
+- [2026-10-06] [2026-10-06] Resolved: the Smart Diff boilerplate pattern no longer matches a vendor/ segment; only dist/ and build/ do, so the repo's own shared-contract copies fall through to core. Covered by rows in smart-diff-helpers.test.ts. Evidence: `server/src/modules/smart-diff/constants.ts:29`.
 
 ## What Doesn't Work
 

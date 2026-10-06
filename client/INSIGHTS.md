@@ -43,6 +43,7 @@ see it, do not write it.
 - [2026-10-06] The @/ alias maps only to client/src/*, so tests that import message JSON from client/messages/ must keep a relative path; re-count the ../ depth when moving a component folder. Evidence: `client/tsconfig.json paths @/*; OverviewTab/_components/IntentCard/IntentCard.test.tsx`.
 - [2026-10-06] ESLint flat config 'files' entries are globs, so a Next.js segment like [id] or [repoId] is read as a character class and silently matches nothing; escape it as \[id\] in the string (see LEGACY_DEEP_RELATIVE in eslint.config.mjs). Evidence: `client/eslint.config.mjs LEGACY_DEEP_RELATIVE`.
 - [2026-10-06] @testing-library/user-event is not a client dependency; every component test uses fireEvent. The react-testing-library skill and pr-self-review lanes still flag fireEvent as a warning, which the verifier must dismiss; add user-event first if that rule should apply. Evidence: `client/package.json devDependencies`.
+- [2026-10-06] [2026-10-06] @testing-library/user-event is now a client devDependency; the Smart Diff tests use userEvent.setup() + await user.click. Older tests still use fireEvent. Evidence: `client/package.json`.
 
 ## Recurring Errors & Fixes
 
