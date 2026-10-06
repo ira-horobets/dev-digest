@@ -10,6 +10,10 @@ import {
   API_CONTRACT_REVIEWER_PROMPT,
 } from './seed-prompts.js';
 import { SEED_SKILLS, AGENT_SKILL_LINKS } from './seed-skills.js';
+import { sourceHash } from '../platform/intent-hash.js';
+
+/** Prompt version the seeded intent claims; a unit test pins it to reviewer-core's INTENT_PROMPT_VERSION. */
+export const SEEDED_INTENT_PROMPT_VERSION = 1;
 
 /** Default provider/model for the built-in reviewer agents. */
 const DEFAULT_PROVIDER = 'openrouter' as const;
@@ -180,6 +184,52 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       },
     ]);
   }
+
+  // ---- PR intent for #482 (what the Intent card shows before the first review) ----
+  // Idempotent: never overwrites an intent a real review derived. The hash uses the
+  // registry default model so the seeded row is not shown as stale.
+  await db
+    .insert(t.prIntent)
+    .values({
+      prId: pr!.id,
+      intent:
+        'Protect the public API from abuse by unauthenticated clients by adding a token-bucket rate limiter to the public endpoints.',
+      inScope: ['Token-bucket limiter middleware', 'Limits on the public webhook endpoints', 'Rate-limit configuration'],
+      outOfScope: ['Per-user quotas', 'Changes to authentication'],
+      confidence: 'medium',
+      sources: [
+        { kind: 'title', ref: 'title', status: 'used', chars: pr!.title.length },
+        { kind: 'branch', ref: 'branch', status: 'used', chars: pr!.branch.length },
+        { kind: 'body', ref: 'description', status: 'used', chars: (pr!.body ?? '').length },
+        { kind: 'commits', ref: '1 commit(s)', status: 'used', chars: 29 },
+        { kind: 'files', ref: '4 path(s)', status: 'used', chars: 120 },
+        { kind: 'github_issue', ref: '#471', status: 'used', chars: 640 },
+        {
+          kind: 'external_url',
+          ref: 'https://docs.google.com/document/d/rate-limit-design/edit',
+          status: 'skipped',
+          reason: 'external_fetch_disabled',
+        },
+      ],
+      sourceHash: sourceHash({
+        promptVersion: SEEDED_INTENT_PROMPT_VERSION,
+        provider: 'openrouter',
+        model: 'deepseek/deepseek-v4-flash',
+        title: pr!.title,
+        body: pr!.body,
+        branch: pr!.branch,
+        headSha: pr!.headSha,
+      }),
+      headSha: pr!.headSha,
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      tokensIn: 1830,
+      tokensOut: 140,
+      costUsd: 0.0003,
+      durationMs: 2400,
+      derivedAt: new Date(),
+    })
+    .onConflictDoNothing({ target: t.prIntent.prId });
 
   // ---- built-in agents (three starter presets + the two L02 skill-driven ones) ----
   // Prompt bodies live in ./seed-prompts.ts (mirrored in docs/agent-prompts/*.md).

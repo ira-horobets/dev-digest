@@ -5,6 +5,7 @@ import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
 import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
+import type { IntentDeriverPort } from './ports.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
 import { reviewToDto } from './helpers.js';
 
@@ -30,10 +31,10 @@ export class ReviewService {
   private agents: Container['agentsRepo'];
   private executor: ReviewRunExecutor;
 
-  constructor(private container: Container) {
+  constructor(private container: Container, intent?: IntentDeriverPort) {
     this.repo = new ReviewRepository(container.db);
     this.agents = container.agentsRepo;
-    this.executor = new ReviewRunExecutor(container, this.repo, this.agents);
+    this.executor = new ReviewRunExecutor(container, this.repo, this.agents, intent);
   }
 
   // ===========================================================================

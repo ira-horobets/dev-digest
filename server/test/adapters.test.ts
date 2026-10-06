@@ -105,3 +105,51 @@ describe('pricing / cost discipline', () => {
     expect(estimateCost('some-future-model', 1000, 1000)).toBeNull();
   });
 });
+
+describe('GitClient.showFile (sha-pinned read)', () => {
+  const repo = { owner: 'o', name: 'r' };
+
+  it('mock clients serve configured files and throw on a missing one', async () => {
+    const git = new MockGitClient({ files: { 'a.md': 'hello' } });
+    expect(await git.showFile(repo, 'a1b2c3d', 'a.md')).toBe('hello');
+    await expect(git.showFile(repo, 'a1b2c3d', 'missing.md')).rejects.toThrow();
+
+    const hub = new MockGitHubClient({ closingIssues: [3], fileContents: { 'b.md': 'x' } });
+    expect(await hub.getClosingIssues(repo, 1)).toEqual([3]);
+    expect(await hub.getFileContent(repo, 'b.md', 'sha')).toBe('x');
+    await expect(hub.getFileContent(repo, 'nope.md', 'sha')).rejects.toThrow();
+  });
+
+  it('SimpleGitClient reads the committed blob (not the working tree) and rejects unsafe input', async () => {
+    const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { simpleGit } = await import('simple-git');
+    const { SimpleGitClient } = await import('../src/adapters/git/simple-git.js');
+
+    const root = await mkdtemp(join(tmpdir(), 'showfile-'));
+    try {
+      const dir = join(root, 'o', 'r');
+      await mkdir(dir, { recursive: true });
+      const g = simpleGit(dir);
+      await g.init();
+      await g.addConfig('user.email', 't@t.t');
+      await g.addConfig('user.name', 't');
+      await writeFile(join(dir, 'plan.md'), 'committed');
+      await g.add('plan.md');
+      await g.commit('init');
+      const sha = (await g.revparse(['HEAD'])).trim();
+      await writeFile(join(dir, 'plan.md'), 'edited after commit');
+
+      const client = new SimpleGitClient(root);
+      expect(await client.showFile(repo, sha, 'plan.md')).toBe('committed');
+      await expect(client.showFile(repo, sha, '../outside.md')).rejects.toThrow(/unsafe path/);
+      await expect(client.showFile(repo, sha, '/etc/passwd')).rejects.toThrow(/unsafe path/);
+      await expect(client.showFile(repo, sha, '-x.md')).rejects.toThrow(/unsafe path/);
+      await expect(client.showFile(repo, '--output=/tmp/x', 'plan.md')).rejects.toThrow(/hex commit sha/);
+      await expect(client.showFile(repo, sha, 'missing.md')).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});

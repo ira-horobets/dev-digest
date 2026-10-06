@@ -4,6 +4,14 @@ import { now } from './_shared';
 import { workspaces } from './core';
 import { pullRequests } from './pulls';
 
+export interface IntentSourceJson {
+  kind: string;
+  ref: string;
+  status: string;
+  reason?: string;
+  chars?: number;
+}
+
 // ============================================================ Review & findings
 
 export const reviews = pgTable('reviews', {
@@ -52,6 +60,20 @@ export const prIntent = pgTable('pr_intent', {
   intent: text('intent').notNull(),
   inScope: jsonb('in_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   outOfScope: jsonb('out_of_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  /** Computed in code from the sources, never by the model. */
+  confidence: text('confidence', { enum: ['high', 'medium', 'low'] }).notNull().default('low'),
+  /** What was considered ({kind, ref, status, reason?, chars?}); never content. */
+  sources: jsonb('sources').$type<IntentSourceJson[]>().notNull().default(sql`'[]'::jsonb`),
+  /** sha256 over prompt version, provider, model, title, body, branch and head sha. */
+  sourceHash: text('source_hash'),
+  headSha: text('head_sha'),
+  provider: text('provider'),
+  model: text('model'),
+  tokensIn: integer('tokens_in'),
+  tokensOut: integer('tokens_out'),
+  costUsd: doublePrecision('cost_usd'),
+  durationMs: integer('duration_ms'),
+  derivedAt: timestamp('derived_at', { withTimezone: true }),
 });
 
 export const prBrief = pgTable('pr_brief', {

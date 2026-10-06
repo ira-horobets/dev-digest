@@ -8,7 +8,15 @@ import messages from "../../../../../../../../messages/en/runs.json"; // apps/we
 const TRACE: RunTrace = {
   config: { agent: "Security", version: "1", provider: "openai", model: "gpt-4.1", pr: 482, source: "local" },
   stats: { duration_ms: 8200, tokens_in: 12000, tokens_out: 1500, cost_usd: 0.06, findings: 2, grounding: "2/2 passed" },
-  prompt_assembly: { system: "You are a reviewer.", skills: "### skill", memory: null, specs: null, user: "Review PR #482" },
+  prompt_assembly: {
+    system: "You are a reviewer.",
+    skills: "### skill",
+    memory: null,
+    specs: null,
+    intent: "Adds rate limiting.",
+    intent_confidence: "medium",
+    user: "Review PR #482",
+  },
   tool_calls: [{ tool: "review_file", args: "src/config.ts", meta: "single-pass", ms: 1200 }],
   raw_output: '{"verdict":"request_changes"}',
   memory_pulled: [{ pr: 471, text: "rate-limit public endpoints" }],
@@ -48,6 +56,12 @@ describe("A5 Run Trace drawer (smoke)", () => {
     // Run cost badge (L01): the COST stat sits next to TOKENS.
     expect(screen.getByText("COST")).toBeInTheDocument();
     expect(screen.getByText("$0.06")).toBeInTheDocument();
+  });
+
+  it("shows the PR intent block with its confidence in the prompt assembly", () => {
+    renderWithIntl(<RunTraceDrawer runId="r1" agentName="Security" prNumber={482} onClose={() => {}} />);
+    fireEvent.click(screen.getByText("Prompt assembly"));
+    expect(screen.getByText("PR intent (dynamic) · medium confidence")).toBeInTheDocument();
   });
 
   it("switches to the live log tab", () => {

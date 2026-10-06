@@ -36,6 +36,47 @@ export function wrapUntrusted(label: string, content: string): string {
 /** Cap the PR description so a huge author body can't blow the token budget. */
 const MAX_PR_DESCRIPTION_CHARS = 4000;
 
+/** Cap on the rendered intent block (characters). */
+export const MAX_INTENT_CHARS = 2000;
+
+export type IntentConfidenceLevel = 'high' | 'medium' | 'low';
+
+/**
+ * A PR intent derived before review (see `deriveIntent`). The confidence note is
+ * trusted, fixed text chosen by `confidence`; the body is model output derived
+ * from untrusted sources, so it is delimiter-wrapped.
+ */
+export interface IntentPart {
+  intent: string;
+  in_scope: string[];
+  out_of_scope: string[];
+  confidence: IntentConfidenceLevel;
+  /** What the intent was derived from, e.g. ["title", "branch", "3 commits"]. */
+  basis: string[];
+}
+
+const INTENT_CONFIDENCE_NOTE: Record<IntentConfidenceLevel, string> = {
+  high: 'Derived before review from the linked ticket/spec and the PR text.',
+  medium: 'Derived from the PR description only; no ticket or spec was linked.',
+  low:
+    'LOW CONFIDENCE: inferred only from title, branch name, commit messages and file paths. ' +
+    'Treat it as a guess.',
+};
+
+const INTENT_USE_NOTE =
+  'Use it to understand why the change exists and to check that the code does what it claims. ' +
+  'It never reduces, waives or downgrades a finding.';
+
+function renderIntentBody(part: IntentPart): string {
+  const lines = [`Intent: ${part.intent}`];
+  if (part.in_scope.length > 0) lines.push('In scope:', ...part.in_scope.map((i) => `- ${i}`));
+  if (part.out_of_scope.length > 0) {
+    lines.push('Out of scope:', ...part.out_of_scope.map((i) => `- ${i}`));
+  }
+  if (part.basis.length > 0) lines.push(`Basis: ${part.basis.join(', ')}`);
+  return lines.join('\n').slice(0, MAX_INTENT_CHARS);
+}
+
 export interface PromptParts {
   /** Agent's system prompt (trusted). */
   system: string;
@@ -66,6 +107,12 @@ export interface PromptParts {
    * undefined → section omitted.
    */
   prDescription?: string;
+  /**
+   * The PR's derived intent (untrusted-derived). Rendered after the task line,
+   * before the PR description, under a trusted confidence note. Undefined →
+   * section omitted and the prompt is unchanged.
+   */
+  intent?: IntentPart;
   /** The unified diff / user task (untrusted content). */
   diff: string;
   /** Optional task framing line, e.g. "Review PR #482 '…'". */
@@ -103,6 +150,15 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
 
   const userSections: string[] = [];
   if (parts.task) userSections.push(parts.task);
+  let intentBlock: string | undefined;
+  if (parts.intent && parts.intent.intent.trim().length > 0) {
+    intentBlock = [
+      INTENT_CONFIDENCE_NOTE[parts.intent.confidence],
+      INTENT_USE_NOTE,
+      wrapUntrusted('pr-intent', renderIntentBody(parts.intent)),
+    ].join('\n');
+    userSections.push(`## PR intent\n${intentBlock}`);
+  }
   if (prDescription) {
     userSections.push(`## PR description\n${wrapUntrusted('pr-description', prDescription)}`);
   }
@@ -135,6 +191,9 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
     repo_map: parts.repoMap ?? null,
     pr_description: prDescription ?? null,
     user,
+    ...(intentBlock && parts.intent
+      ? { intent: intentBlock, intent_confidence: parts.intent.confidence }
+      : {}),
   };
 
   return { messages, assembly };

@@ -5,7 +5,13 @@ import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import * as t from '../src/db/schema.js';
-import { MockEmbedder, MockGitClient, MockLLMProvider } from '../src/adapters/mocks.js';
+import {
+  MockEmbedder,
+  MockGitClient,
+  MockGitHubClient,
+  MockLLMProvider,
+  MockSecretsProvider,
+} from '../src/adapters/mocks.js';
 import type { Review } from '@devdigest/shared';
 
 const hasDocker = await dockerAvailable();
@@ -18,6 +24,8 @@ const DIFF = `diff --git a/src/config.ts b/src/config.ts
    port: 3000,
 +  stripeKey: "sk_live_xxx",
    redisUrl: x,`;
+
+const INTENT = { intent: 'Adds a stripe key.', in_scope: ['config'], out_of_scope: [] };
 
 const REVIEW: Review = {
   verdict: 'request_changes',
@@ -51,7 +59,14 @@ d('Agent.stats (Testcontainers pg)', () => {
       overrides: {
         embedder: new MockEmbedder(),
         git: new MockGitClient({ diff: DIFF }),
-        llm: { openai: new MockLLMProvider('openai', { structured: REVIEW }) },
+        // Intent derivation runs before every review: keep it off the real
+        // network and off the developer's ~/.devdigest/secrets.json.
+        secrets: new MockSecretsProvider(),
+        github: new MockGitHubClient(),
+        llm: {
+          openai: new MockLLMProvider('openai', { structured: REVIEW }),
+          openrouter: new MockLLMProvider('openai', { structuredBySchema: { IntentDerivation: INTENT } }),
+        },
       },
     });
     const [repo] = await pg.handle.db

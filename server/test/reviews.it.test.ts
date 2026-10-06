@@ -4,7 +4,13 @@ import { waitForPrRuns } from './helpers/runs.js';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
-import { MockLLMProvider, MockEmbedder, MockGitClient } from '../src/adapters/mocks.js';
+import {
+  MockLLMProvider,
+  MockEmbedder,
+  MockGitClient,
+  MockGitHubClient,
+  MockSecretsProvider,
+} from '../src/adapters/mocks.js';
 import * as t from '../src/db/schema.js';
 import { eq } from 'drizzle-orm';
 import type { Review } from '@devdigest/shared';
@@ -58,6 +64,12 @@ const REVIEW_FIXTURE: Review = {
       kind: 'finding',
     },
   ],
+};
+
+const INTENT_FIXTURE = {
+  intent: 'Adds rate limiting to the public API.',
+  in_scope: ['limiter'],
+  out_of_scope: [],
 };
 
 let repoSeq = 0;
@@ -117,8 +129,15 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
       overrides: {
         embedder: new MockEmbedder(),
         git: new MockGitClient({ diff: DIFF }),
+        // Intent derivation runs before every review: keep it off the real
+        // network and off the developer's ~/.devdigest/secrets.json.
+        secrets: new MockSecretsProvider(),
+        github: new MockGitHubClient(),
         llm: {
           [provider]: new MockLLMProvider(provider, { structured }),
+          openrouter: new MockLLMProvider('openai', {
+            structuredBySchema: { IntentDerivation: INTENT_FIXTURE },
+          }),
         },
       },
     });
@@ -212,8 +231,10 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     // Run cost: the mock LLM prices every structured call at $0.001, so the
     // persisted cost is exactly one price per chunk (no extra model call), and
     // the trace + run history carry the same number.
-    const expectedCost = 0.001 * trace.tool_calls.length;
-    expect(run!.tokensIn).toBe(100 * trace.tool_calls.length);
+    // (The intent derivation is a separate call, stored on pr_intent, not here.)
+    const reviewCalls = trace.tool_calls.filter((c: { tool: string }) => c.tool === 'review_file').length;
+    const expectedCost = 0.001 * reviewCalls;
+    expect(run!.tokensIn).toBe(100 * reviewCalls);
     expect(run!.costUsd).toBeCloseTo(expectedCost, 6);
     expect(trace.stats.cost_usd).toBeCloseTo(expectedCost, 6);
     const history = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/runs` })).json();
