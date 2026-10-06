@@ -142,10 +142,47 @@ is running.
 
 ### Tab `diff` ("Files changed", `DiffTab`)
 
-`DiffViewer` over `pr.files`. Comments: `usePrComments` (`GET
-/pulls/:id/comments`) and `useCreatePrComment` (`POST /pulls/:id/comments`);
-posting is allowed only when `pr.status === "open"`. Comments start hidden;
-a "Show comments (n)" button toggles them.
+Server half of the grouping: [`server/specs/smart-diff.md`](../../server/specs/smart-diff.md).
+
+Data: `useSmartDiff` (`GET /pulls/:id/smart-diff`, key `["smart-diff", prId]`),
+`usePrReviews`, `usePrComments` (`GET /pulls/:id/comments`), `useCreatePrComment`
+(`POST /pulls/:id/comments`), `useFindingAction` (`POST /findings/:id/accept|dismiss`).
+Posting is allowed only when `pr.status === "open"`. The client never classifies
+a path; it joins each server group's paths to `pr.files` (patch text) in
+`DiffTab/helpers.ts` `joinGroupFiles`.
+
+- **Toolbar**: "Reviewer-ordered diff" label, `N files · +a −d`, `OrderToggle`
+  (Smart order / Original order, `aria-pressed`, component state, default
+  Smart, not kept in the URL) and the comments toggle.
+- **Smart order**: one `RoleGroup` per non-empty server group, in server order
+  (core, tests, wiring, docs, boilerplate). Header (button, `aria-expanded`,
+  sticky `top: 0`): role label, caption, `● N` (files with open findings) or
+  "Review not run yet" when `has_review` is false, and the file count. Docs and
+  boilerplate start collapsed (`DEFAULT_COLLAPSED`); the body is a `DiffViewer`.
+- **Original order**: plain `DiffViewer` over `pr.files` (GitHub order), inline
+  findings included. Smart order falls back to this while `useSmartDiff`
+  loads or fails.
+- **Inline findings** (`DiffFindingApi`, `components/diff-viewer/findings.ts`):
+  a file with an open finding shows a red dot in its card header (label "Has
+  findings", independent of the comments toggle). Findings anchor to the new
+  side of the patch: a coloured left stripe on each line of the range and a
+  severity pill on the first, both for open findings only; a `FindingComment`
+  (severity, title, category, confidence, rationale, suggested fix) renders
+  after the last line of the range. A finding with no rendered line in the patch
+  renders in an end-of-file block "Findings outside the diff". Accept / Reject
+  call `useFindingAction` (`accept` / `dismiss`); a dismissed finding keeps its
+  comment with a "rejected" tag but loses stripe, pill and dot. The close
+  button collapses a comment to one line. Errors surface through the global
+  mutation toast.
+- **Comments toggle**: one "Hide comments (n) / Show comments (n)" button covers
+  GitHub comments and findings (n = both), shown when n > 0. Comments and
+  findings are **visible by default**; hiding keeps the file dot.
+- **Refresh**: `useFindingAction`, `useDeleteReview`, `useDeleteRun` and
+  `useRunReview` also invalidate `["smart-diff", prId]`; `page.tsx` calls
+  `useRefreshOnRunsSettled(prId, reviewRunning)`, which invalidates `["reviews",
+  prId]` and `["smart-diff", prId]` when a run goes from running to settled, on
+  any tab.
+- Strings: `messages/en/prReview.json` namespace `smartDiff`.
 
 ### Trace drawer (`?trace=<runId>`, `RunTraceDrawer`)
 
