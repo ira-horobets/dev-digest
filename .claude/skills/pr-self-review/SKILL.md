@@ -50,6 +50,10 @@ reviewed by nobody otherwise.
 scripts/precheck.sh [mode] [--no-tests] [--with-it] [--no-toolchain]
 ```
 
+First run `scripts/verify.sh check`. If it is fresh and passing, the agent
+pipeline already ran the toolchain on exactly this code: pass `--no-toolchain`
+and keep the repo-rule checks. Otherwise run the full precheck.
+
 Runs typecheck, lint, `lint:arch`, and unit tests for every touched package,
 then the repo-rule checks from `reference/severity.md`. Exit 1 means at least
 one critical. Do not stop here: continue to the lanes so the author gets the
@@ -177,6 +181,7 @@ on the org repo is the last step and needs an owner there.
 - `scripts/route.sh` — file to lane and skills; `--lanes`, `--json`
 - `scripts/prepare-lanes.sh` — writes per-lane diffs for the subagents
 - `scripts/precheck.sh` — deterministic checks, findings JSON
+- `scripts/verify.sh` — `run` precheck (+ it, + e2e) once and save the result with diff packs; `check` / `show` for everyone else
 - `scripts/tally.sh` — merges precheck + lanes + verdicts; `list`, `apply`, `report`
 - `scripts/stamp.sh` — `write`, `check`, `show`, `clear`
 - `scripts/gate.sh` — the PreToolUse hook

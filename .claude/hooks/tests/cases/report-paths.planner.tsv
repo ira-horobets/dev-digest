@@ -1,0 +1,10 @@
+# hook: report-paths.sh planner
+# tool: Write
+ALLOW	docs/plans/feat-intent-layer.md	plan file
+ALLOW	{ROOT}/docs/plans/fix-token-budget.md	absolute plan path
+BLOCK	docs/plans/sub/feat-x.md	nested
+BLOCK	docs/plans/Feat_X.md	not kebab
+BLOCK	docs/plans/../../server/src/app.ts	traversal
+BLOCK	.pipeline/feat-x/planner.md	planner report is the plan
+BLOCK	server/src/app.ts	source
+BLOCK	/tmp/plan.md	outside repo

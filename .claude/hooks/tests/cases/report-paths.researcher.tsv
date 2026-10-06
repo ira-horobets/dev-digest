@@ -1,0 +1,9 @@
+# hook: report-paths.sh researcher
+# tool: Write
+ALLOW	.pipeline/feat-intent-layer/brief.md	codebase brief
+ALLOW	.pipeline/feat-intent-layer/researcher.md	report
+ALLOW	.pipeline/feat-intent-layer/researcher-ssrf.md	topic report
+BLOCK	.pipeline/feat-intent-layer/planner.md	other agent
+BLOCK	.pipeline/brief.md	no slug
+BLOCK	docs/plans/feat-x.md	plans
+BLOCK	.pipeline/feat-x/../../server/src/app.ts	traversal
