@@ -111,7 +111,7 @@ export const PrHistory = z.object({
 export type PrHistory = z.infer<typeof PrHistory>;
 
 // ---- Smart Diff ----
-export const SmartDiffRole = z.enum(['core', 'wiring', 'boilerplate']);
+export const SmartDiffRole = z.enum(['core', 'tests', 'wiring', 'docs', 'boilerplate']);
 export type SmartDiffRole = z.infer<typeof SmartDiffRole>;
 
 export const SmartDiffFile = z.object({
@@ -119,7 +119,10 @@ export const SmartDiffFile = z.object({
   pseudocode_summary: z.string().nullish(),
   additions: z.number().int(),
   deletions: z.number().int(),
+  /** Sorted distinct start lines of the non-dismissed findings on this path. */
   finding_lines: z.array(z.number().int()),
+  /** Ids of all findings (dismissed included) of the latest review per agent for this path. */
+  finding_ids: z.array(z.string()),
 });
 export type SmartDiffFile = z.infer<typeof SmartDiffFile>;
 
@@ -136,6 +139,8 @@ export const ProposedSplit = z.object({
 export type ProposedSplit = z.infer<typeof ProposedSplit>;
 
 export const SmartDiff = z.object({
+  /** True once at least one review exists for the PR. */
+  has_review: z.boolean(),
   groups: z.array(SmartDiffGroup),
   split_suggestion: z.object({
     too_big: z.boolean(),

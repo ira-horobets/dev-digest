@@ -110,16 +110,31 @@ describe('AI contracts parse fixtures', () => {
   });
 
   it('SmartDiff (data.jsx DIFF)', () => {
+    const file = (path: string) => ({
+      path,
+      additions: 84,
+      deletions: 0,
+      finding_lines: [28, 52],
+      finding_ids: ['f1', 'f2'],
+    });
     const d = SmartDiff.parse({
+      has_review: true,
       groups: [
-        {
-          role: 'core',
-          files: [{ path: 'a.ts', additions: 84, deletions: 0, finding_lines: [28, 52] }],
-        },
+        { role: 'core', files: [file('a.ts')] },
+        { role: 'tests', files: [file('a.test.ts')] },
+        { role: 'docs', files: [] },
       ],
       split_suggestion: { too_big: false, total_lines: 285, proposed_splits: [] },
     });
     expect(d.groups[0]!.role).toBe('core');
+    expect(d.groups.map((g) => g.role)).toEqual(['core', 'tests', 'docs']);
+    expect(() =>
+      SmartDiff.parse({
+        has_review: false,
+        groups: [{ role: 'nope', files: [] }],
+        split_suggestion: { too_big: false, total_lines: 0, proposed_splits: [] },
+      }),
+    ).toThrow();
   });
 
   it('Conformance / Onboarding / EvalRun / MemoryItem', () => {

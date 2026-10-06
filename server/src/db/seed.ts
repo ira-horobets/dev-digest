@@ -130,8 +130,31 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     await db.insert(t.prFiles).values([
       { prId: pr!.id, path: 'src/middleware/ratelimit.ts', additions: 84, deletions: 0 },
       { prId: pr!.id, path: 'src/api/public/webhooks.ts', additions: 31, deletions: 6 },
-      { prId: pr!.id, path: 'src/config.ts', additions: 4, deletions: 0 },
+      {
+        prId: pr!.id,
+        path: 'src/config.ts',
+        additions: 4,
+        deletions: 0,
+        patch: [
+          '@@ -9,6 +9,10 @@ export const config = {',
+          '   port: 3000,',
+          '   host: "0.0.0.0",',
+          '   logLevel: "info",',
+          '+  stripeKey: "STRIPE_KEY_PLACEHOLDER",',
+          '+  rateLimitMax: 100,',
+          '+  rateLimitWindowMs: 60000,',
+          '+  rateLimitEnabled: true,',
+          '   cors: true,',
+          '   trustProxy: true,',
+          '   timeoutMs: 30000,',
+        ].join('\n'),
+      },
       { prId: pr!.id, path: 'src/api/users.ts', additions: 7, deletions: 2 },
+      { prId: pr!.id, path: 'src/server.ts', additions: 8, deletions: 1 },
+      { prId: pr!.id, path: 'package.json', additions: 3, deletions: 1 },
+      { prId: pr!.id, path: 'package-lock.json', additions: 92, deletions: 24 },
+      { prId: pr!.id, path: 'test/ratelimit.test.ts', additions: 6, deletions: 0 },
+      { prId: pr!.id, path: 'docs/rate-limiting.md', additions: 12, deletions: 4 },
     ]);
 
     // pr_commits
