@@ -32,6 +32,7 @@ see it, do not write it.
 - [2026-09-26] A statically rendered page whose client component calls `useSearchParams` must wrap it in `<React.Suspense>` in page.tsx, or `next build` fails with a missing-Suspense error; dynamic routes like /agents/[id] do not need it. Evidence: `client/src/app/skills/page.tsx`.
 - [2026-09-26] The `Modal` primitive pads its header and footer only; the body is the caller's job (`body: { padding: 24 }` in a colocated styles.ts, as CreateAgentModal does). `Drawer` pads its body itself. A modal whose content touches the edges is missing that wrapper. Evidence: `client/src/vendor/ui/kit/Modal.tsx:60`.
 - [2026-10-06] Deep relative imports into src/lib or src/components are an ESLint error (no-restricted-imports regex) since 2026-10-06; 42 older files sit in the frozen LEGACY_DEEP_RELATIVE list. Remove a file from the list when converting it to @/, never add one. Evidence: `client/eslint.config.mjs DEEP_RELATIVE_IMPORT`.
+- [2026-10-06] Every mutation error is already toasted by the global MutationCache.onError in client/src/lib/providers.tsx; a component that also renders its own role=alert for that mutation reports the failure twice. Pick one surface, or opt the mutation out of the toast via meta. Evidence: `client/src/lib/providers.tsx MutationCache; OverviewTab/_components/IntentCard/IntentCard.tsx refreshError`.
 
 ## Tool & Library Notes
 
