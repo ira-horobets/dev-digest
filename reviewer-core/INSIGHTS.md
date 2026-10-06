@@ -37,6 +37,7 @@ _None yet._
 
 - [2026-09-25] Initial capture from a read-through of the engine and the prompt guide. No code changed. Evidence: `reviewer-core/CLAUDE.md`.
 - [2026-09-25] HW1 criteria pass: ESLint added (`npm run lint`), one `no-useless-assignment` fix in `OpenRouterProvider`; docs/pipeline.md + specs/review-contract.md written by a subagent, which flagged that the server's 'map-reduce' integration test actually runs single-pass. Evidence: `reviewer-core/eslint.config.mjs`.
+- [2026-10-06] Intent layer: deriveIntent + INTENT_SYSTEM_PROMPT in src/intent.ts; assemblePrompt intent slot before PR description with a trusted confidence note; INJECTION_GUARD unchanged. Evidence: `reviewer-core/src/intent.ts; reviewer-core/src/prompt.ts`.
 
 ## Open Questions
 

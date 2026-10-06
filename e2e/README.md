@@ -104,3 +104,4 @@ a CI artifact by `.github/workflows/e2e-web.yml`).
 | `09-findings-severity` | PR #482 Agent runs → expanded Review run card: severity pills, Accept / Reject, Warning filter on and off |
 | `10-skills` | `/skills` seeded card → side preview (`?skill=`) → `/skills/:id` Versioning tab → Security Reviewer's Skills tab: «3 of N enabled» and a linked row |
 | `11-conventions` | SKILLS LAB → Conventions: heading with the active repo and the not-cloned state of the seeded repo |
+| `12-pr-intent` | PR #482 Overview → Intent card: seeded intent text, Medium confidence, issue #471 used, external link skipped |

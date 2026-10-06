@@ -7,11 +7,44 @@ import { z } from 'zod';
 
 // ---- Intent ----
 export const Intent = z.object({
-  intent: z.string(),
-  in_scope: z.array(z.string()),
-  out_of_scope: z.array(z.string()),
+  intent: z.string().describe('Why the change exists and what it does, in 1-3 sentences.'),
+  in_scope: z.array(z.string()).describe('Things this PR is meant to change.'),
+  out_of_scope: z
+    .array(z.string())
+    .describe('Things explicitly excluded by the sources; empty unless stated.'),
 });
 export type Intent = z.infer<typeof Intent>;
+
+/** How well-grounded a derived intent is; computed in code, never by the model. */
+export const IntentConfidence = z.enum(['high', 'medium', 'low']);
+export type IntentConfidence = z.infer<typeof IntentConfidence>;
+
+export const IntentSourceKind = z.enum([
+  'title',
+  'body',
+  'branch',
+  'commits',
+  'files',
+  'github_issue',
+  'ticket_key',
+  'repo_doc',
+  'github_doc',
+  'external_url',
+]);
+export type IntentSourceKind = z.infer<typeof IntentSourceKind>;
+
+export const IntentSourceStatus = z.enum(['used', 'truncated', 'skipped', 'failed']);
+export type IntentSourceStatus = z.infer<typeof IntentSourceStatus>;
+
+/** One input considered for intent derivation. Never carries content. */
+export const IntentSource = z.object({
+  kind: IntentSourceKind,
+  ref: z.string(),
+  status: IntentSourceStatus,
+  reason: z.string().optional(),
+  chars: z.number().int().optional(),
+});
+export type IntentSource = z.infer<typeof IntentSource>;
 
 // ---- Blast radius ----
 export const ChangedSymbol = z.object({

@@ -257,3 +257,24 @@ Breaks if: the nav label or the not-cloned copy changes, the seed gains a
 clone path for the demo repo, or the active-repo fallback stops picking the
 first repo.
 
+## 12-pr-intent
+
+Journey: root → PR list → click the PR #482 row → `/pulls/482` (Overview is
+the default tab).
+
+Seeded facts: `db/seed.ts` writes one `pr_intent` row for PR #482 with
+confidence `medium`, the intent «Protect the public API from abuse … token-bucket
+rate limiter …», a used `github_issue` source `#471` and a skipped
+`external_url` source with reason `external_fetch_disabled`. Its source hash
+uses the registry default model, so the card is not shown as stale. No model
+call is made.
+
+Locators: `wait --text` on «Medium confidence» (`intent.confidence.medium` in
+`intent.json`), «token-bucket rate limiter», `#471` and «external links are not
+fetched» (`intent.reason.external_fetch_disabled`).
+
+Breaks if: the seeded intent row, its text or sources change, the
+`review_intent` default model changes without re-seeding (the card would still
+render, only with a Stale badge), the Overview tab stops being the default, or
+the confidence or reason copy changes.
+

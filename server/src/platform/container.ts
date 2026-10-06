@@ -34,6 +34,8 @@ import { AgentsService } from '../modules/agents/service.js';
 import { resolveFeatureModel } from '../modules/settings/feature-models.js';
 import type { FeatureModelId, FeatureModelChoice } from '@devdigest/shared';
 import { ReviewRepository } from '../modules/reviews/repository.js';
+import type { IntentRepositoryPort } from '../modules/reviews/ports.js';
+import { IntentRepository } from '../modules/reviews/repository/intent.repo.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
@@ -64,6 +66,8 @@ export interface ContainerOverrides {
   skillsRepo?: SkillsRepositoryPort;
   /** conventions module port — same idea. */
   conventionsRepo?: ConventionsRepositoryPort;
+  /** reviews intent persistence port — same idea. */
+  intentRepo?: IntentRepositoryPort;
 }
 
 export class Container {
@@ -87,6 +91,7 @@ export class Container {
   private _reviewRepo?: ReviewRepository;
   private _skillsRepo?: SkillsRepositoryPort;
   private _conventionsRepo?: ConventionsRepositoryPort;
+  private _intentRepo?: IntentRepositoryPort;
   private _reposRepo?: RepoRepository;
   private _repoIntel?: RepoIntel;
   private _depgraph?: DepGraph;
@@ -123,6 +128,10 @@ export class Container {
 
   get conventionsRepo(): ConventionsRepositoryPort {
     return (this._conventionsRepo ??= this.overrides.conventionsRepo ?? new ConventionsRepository(this.db));
+  }
+
+  get intentRepo(): IntentRepositoryPort {
+    return (this._intentRepo ??= this.overrides.intentRepo ?? new IntentRepository(this.db));
   }
 
   /** Repo rows for modules that only need to look a repository up (conventions). */

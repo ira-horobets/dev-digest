@@ -95,6 +95,13 @@ module.exports = {
       to: { path: '^src/modules/' },
     },
     {
+      name: 'db-not-to-modules',
+      severity: 'error',
+      comment: 'Rule 14: src/db (schema, migrations, seed) is ring 3a and never imports module code; adapters-no-modules only covered src/adapters. A helper both need (e.g. the intent cache hash) lives in src/platform/ as a pure leaf.',
+      from: { path: DB },
+      to: { path: '^src/modules/' },
+    },
+    {
       name: 'no-cross-module',
       severity: 'error',
       comment: 'Rule 6: modules do not import each other. Share through @devdigest/shared, or expose the dependency on Container and inject it.',

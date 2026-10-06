@@ -17,6 +17,9 @@ import {
   Settings,
   Repo,
   PrDetail,
+  PrIntentRecord,
+  IntentSource,
+  FEATURE_MODELS,
 } from '@devdigest/shared';
 
 /**
@@ -248,5 +251,53 @@ describe('platform DTOs', () => {
         commits: [],
       }),
     ).not.toThrow();
+  });
+});
+
+describe('PR intent contracts', () => {
+  const record = {
+    pr_id: 'p1',
+    intent: 'Adds a limiter.',
+    in_scope: ['limiter'],
+    out_of_scope: [],
+    confidence: 'medium',
+    sources: [
+      { kind: 'github_issue', ref: '#471', status: 'used', chars: 640 },
+      { kind: 'external_url', ref: 'https://x.test/a', status: 'skipped', reason: 'external_fetch_disabled' },
+    ],
+    head_sha: 'abc',
+    provider: 'openrouter',
+    model: 'deepseek/deepseek-v4-flash',
+    tokens_in: 10,
+    tokens_out: 5,
+    cost_usd: 0.0003,
+    duration_ms: 1200,
+    derived_at: '2026-10-06T00:00:00.000Z',
+    stale: false,
+  };
+
+  it('PrIntentRecord round-trips and rejects an unknown confidence or source status', () => {
+    expect(PrIntentRecord.parse(record)).toEqual(record);
+    expect(() => PrIntentRecord.parse({ ...record, confidence: 'certain' })).toThrow();
+    expect(() => IntentSource.parse({ kind: 'title', ref: 'x', status: 'fetched' })).toThrow();
+  });
+
+  it('RunTrace prompt_assembly accepts the optional intent fields', () => {
+    const trace = RunTrace.parse({
+      config: { agent: 'a', model: 'm' },
+      stats: { duration_ms: 1, tokens_in: 1, tokens_out: 1, cost_usd: null, findings: 0, grounding: '0/0' },
+      prompt_assembly: { system: 's', user: 'u', intent: 'block', intent_confidence: 'low' },
+      tool_calls: [],
+      raw_output: '',
+      memory_pulled: [],
+      specs_read: [],
+      log: [],
+    });
+    expect(trace.prompt_assembly.intent_confidence).toBe('low');
+  });
+
+  it('review_intent defaults to a cheap OpenRouter model', () => {
+    const def = FEATURE_MODELS.find((f) => f.id === 'review_intent')!;
+    expect([def.defaultProvider, def.defaultModel]).toEqual(['openrouter', 'deepseek/deepseek-v4-flash']);
   });
 });

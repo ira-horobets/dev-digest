@@ -1,0 +1,6 @@
+# hook: report-paths.sh plan-verifier
+# tool: Write
+ALLOW	.pipeline/feat-intent-layer/plan-verifier.md	report
+ALLOW	.pipeline/feat-intent-layer/plan-verifier.findings.json	findings
+BLOCK	.pipeline/feat-intent-layer/architecture-reviewer.md	other agent
+BLOCK	docs/plans/feat-intent-layer.md	plan

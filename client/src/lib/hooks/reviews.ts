@@ -4,10 +4,11 @@
 
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, API_BASE } from "../api";
+import { api, API_BASE, ApiError } from "../api";
 import { notify } from "../toast";
 import type {
   FindingActionKind,
+  PrIntentRecord,
   PrReviewComment,
   ReviewRecord,
   ReviewRunResponse,
@@ -53,6 +54,27 @@ export function usePrReviews(prId: string | null | undefined) {
     queryKey: ["reviews", prId],
     queryFn: () => api.get<ReviewRecord[]>(`/pulls/${prId}/reviews`),
     enabled: !!prId,
+  });
+}
+
+// ---- Derived PR intent (why the change exists; derived before a review) ----
+/** The PR's stored intent. A 404 means "none derived yet": no retry, the card
+   renders an inline empty state (4xx never toasts). */
+export function usePrIntent(prId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pr-intent", prId],
+    queryFn: () => api.get<PrIntentRecord>(`/pulls/${prId}/intent`),
+    enabled: !!prId,
+    retry: (count, err) => !(err instanceof ApiError && err.status === 404) && count < 2,
+  });
+}
+
+/** Force a re-derivation (one LLM call); the fresh record replaces the cached one. */
+export function useRefreshIntent(prId: string | null | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<PrIntentRecord>(`/pulls/${prId}/intent/refresh`),
+    onSuccess: (record) => qc.setQueryData(["pr-intent", prId], record),
   });
 }
 

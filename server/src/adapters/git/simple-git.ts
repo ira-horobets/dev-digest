@@ -129,6 +129,27 @@ export class SimpleGitClient implements GitClient {
   async readFile(repo: RepoRef, path: string): Promise<string> {
     return readFile(join(this.clonePathFor(repo), path), 'utf8');
   }
+
+  async showFile(repo: RepoRef, ref: string, path: string): Promise<string> {
+    if (!SHA_RE.test(ref)) throw new Error('showFile: ref must be a hex commit sha');
+    if (!isSafeRepoPath(path)) throw new Error('showFile: unsafe path');
+    // One argument `<sha>:<path>`; the sha is hex-only so it can never be an option.
+    const size = Number((await this.git(repo).raw(['cat-file', '-s', `${ref}:${path}`])).trim());
+    if (!Number.isFinite(size) || size > SHOW_FILE_MAX_CHARS) {
+      throw new Error('showFile: blob exceeds the size cap');
+    }
+    return this.git(repo).raw(['show', `${ref}:${path}`]);
+  }
+}
+
+const SHA_RE = /^[0-9a-f]{7,40}$/i;
+const SHOW_FILE_MAX_CHARS = 200_000;
+
+/** Relative, no traversal, no NUL, no leading dash, bounded length. */
+function isSafeRepoPath(path: string): boolean {
+  if (path.length === 0 || path.length > 300) return false;
+  if (path.includes('\0') || path.startsWith('-') || path.startsWith('/')) return false;
+  return !path.split('/').some((seg) => seg === '..' || seg === '');
 }
 
 function parseBlamePorcelain(raw: string): BlameLine[] {

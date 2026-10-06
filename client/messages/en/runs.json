@@ -44,6 +44,8 @@
     },
     "prompt": {
       "system": "System",
+      "intent": "PR intent (dynamic)",
+      "intentConfidence": "{level} confidence",
       "skills": "Skills (dynamic)",
       "memory": "Memory (dynamic)",
       "repoMap": "Repo skeleton — repo-intel (dynamic)",

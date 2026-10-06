@@ -92,6 +92,13 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
             color={PROMPT_COLORS.skills}
           />
         ))}
+        {trace.prompt_assembly.intent != null && (
+          <PromptBlock
+            label={`${t("trace.prompt.intent")}${trace.prompt_assembly.intent_confidence ? ` · ${t("trace.prompt.intentConfidence", { level: trace.prompt_assembly.intent_confidence })}` : ""}`}
+            text={trace.prompt_assembly.intent}
+            color={PROMPT_COLORS.intent}
+          />
+        )}
         {trace.prompt_assembly.memory != null && (
           <PromptBlock label={t("trace.prompt.memory")} text={trace.prompt_assembly.memory} color={PROMPT_COLORS.memory} />
         )}

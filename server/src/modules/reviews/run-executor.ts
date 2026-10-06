@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { skillBlocksForTrace, taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import type { EnsureIntentResult, IntentDeriverPort } from './ports.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -36,21 +37,22 @@ export type RunOutcome = {
 
 /**
  * Owns the background execution of queued agent runs (extracted from
- * ReviewService; behaviour unchanged). Loads the diff + intent once, then
- * map-reduces each agent, streaming events over the runBus and persisting each
- * review. Per-agent failures are isolated.
+ * ReviewService; behaviour unchanged). Loads the diff, ensures the PR intent
+ * once (derived or cached, best-effort), then runs each agent, streaming events
+ * over the runBus and persisting each review. Per-agent failures are isolated.
  */
 export class ReviewRunExecutor {
   constructor(
     private container: Container,
     private repo: ReviewRepository,
     private agents: Container['agentsRepo'],
+    private intent?: IntentDeriverPort,
   ) {}
 
   /**
    * Background execution of the queued agent runs (NOT awaited by the route).
-   * Loads the diff + intent once, then map-reduces each agent, streaming events
-   * over the runBus and persisting each review. Per-agent failures are isolated.
+   * Loads the diff and ensures the intent once, then runs each agent, streaming
+   * events over the runBus and persisting each review. Per-agent failures are isolated.
    */
   async executeRuns(
     workspaceId: string,
@@ -105,6 +107,16 @@ export class ReviewRunExecutor {
     }
     runLog.info(`Diff ready — ${diff.files.length} changed file(s); starting ${jobs.length} agent run(s)`);
 
+    // Shared pre-work: the PR intent, once per request. Best-effort: it never
+    // throws and is deliberately NOT wrapped in runLog.step (a failure there
+    // would emit an `error` event and toast); failure just means no intent.
+    const intent = this.intent
+      ? await this.intent.ensureIntent(workspaceId, pull.id, {
+          changedPaths: diff.files.map((f) => f.path),
+          log: runLog,
+        })
+      : undefined;
+
     for (const { agent, runId } of jobs) {
       const agentStart = Date.now();
       logger?.info(
@@ -112,7 +124,7 @@ export class ReviewRunExecutor {
         `review: agent "${agent.name}" started (${agent.provider}/${agent.model})`,
       );
       try {
-        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog);
+        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog, intent);
         logger?.info(
           {
             runId,
@@ -144,6 +156,7 @@ export class ReviewRunExecutor {
     agent: AgentRow,
     runId: string,
     parentLog: RunLogger,
+    intent?: EnsureIntentResult,
   ): Promise<RunOutcome> {
     const start = Date.now();
     // Narrow the fanned-out pre-work logger to THIS run; the shared diff/intent
@@ -228,6 +241,9 @@ export class ReviewRunExecutor {
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
+        // Derived PR intent (untrusted-derived; wrapped + confidence-labelled in
+        // the prompt). Omitted when derivation failed or is not configured.
+        ...(intent?.status === 'ok' ? { intent: intent.part } : {}),
         task,
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
@@ -299,15 +315,27 @@ export class ReviewRunExecutor {
           ...outcome.assembly,
           ...(skillBlocks.length > 0 ? { skills_tokens: skillsTokens, skill_blocks: skillBlocks } : {}),
         },
-        tool_calls: outcome.chunks.map((c) => ({
-          tool: 'review_file',
-          args: c.label,
-          meta: outcome.mode,
-          ms: Math.round(durationMs / Math.max(outcome.chunks.length, 1)),
-        })),
+        tool_calls: [
+          ...(intent
+            ? [
+                {
+                  tool: 'derive_intent',
+                  args: intent.status === 'ok' ? intent.model : '',
+                  meta: intent.status === 'failed' ? 'failed' : intent.cached ? 'cached' : 'fresh',
+                  ms: intent.ms,
+                },
+              ]
+            : []),
+          ...outcome.chunks.map((c) => ({
+            tool: 'review_file',
+            args: c.label,
+            meta: outcome.mode,
+            ms: Math.round(durationMs / Math.max(outcome.chunks.length, 1)),
+          })),
+        ],
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: intent?.status === 'ok' ? intent.usedRefs : [],
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
