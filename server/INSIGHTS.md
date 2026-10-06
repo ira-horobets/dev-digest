@@ -41,6 +41,8 @@ see it, do not write it.
 - [2026-10-06] pull_requests.body, pr_commits and pr_files are written only by GET /pulls/:id; the list import GET /repos/:id/pulls stores metadata only, so any server feature reading the body or commits of a never-opened PR sees null/empty (intent drops to low confidence). Evidence: `server/src/modules/pulls/routes.ts GET /repos/:id/pulls insert vs GET /pulls/:id`.
 - [2026-10-06] IT tests that POST /pulls/:id/review without MockSecretsProvider/MockGitHubClient overrides read ~/.devdigest/secrets.json, so intent derivation makes live GitHub and OpenRouter calls on a dev machine; override secrets, github and llm.openrouter in buildApp. Evidence: `server/test/agents-stats.it.test.ts buildApp overrides; server/test/skills.it.test.ts`.
 - [2026-10-06] Bumping INTENT_PROMPT_VERSION in reviewer-core also needs SEEDED_INTENT_PROMPT_VERSION in server/src/db/seed.ts: db/ may not import reviewer-core or modules, so the seed keeps its own copy, and intent-helpers.test.ts fails on drift. The intent cache hash lives in platform/intent-hash.ts so both db and modules can use it. Evidence: `server/src/platform/intent-hash.ts; server/src/db/seed.ts SEEDED_INTENT_PROMPT_VERSION; server/test/intent-helpers.test.ts`.
+- [2026-10-06] Latest review per agent = selectDistinctOn([reviews.agentId]) ordered by agentId, createdAt desc; Postgres DISTINCT ON groups NULL agent ids together, so the seeded NULL-agent review counts once. Evidence: `server/src/modules/smart-diff/repository.ts:25`.
+- [2026-10-06] Seed changes never reach an existing dev DB: seed.ts inserts PR #482's pr_files only when the PR row is missing, so a new seed file needs a manual idempotent INSERT ... WHERE NOT EXISTS backfill (done for feat/smart-diff); dropping the volume to reseed is forbidden. Evidence: `server/src/db/seed.ts:130`.
 
 ## Tool & Library Notes
 
@@ -85,3 +87,5 @@ see it, do not write it.
 ## Open Questions
 
 - [2026-09-25] Stale-run reaping assumes one API process per DB. What replaces it if the API is ever scaled horizontally: heartbeats or per-instance run ownership? Evidence: `server/src/app.ts:reapStaleRuns`.
+- [2026-10-06] Should an oversized linked doc get its own intent source reason? GitClient.showFile now throws over the 200k cap, and IntentService records every read failure as failed/not_found_at_head, so a too-large plan looks missing on the Intent card. Evidence: `server/src/adapters/git/simple-git.ts showFile; server/src/modules/reviews/intent-service.ts fetchDoc catch`.
+- [2026-10-06] Should the Smart Diff boilerplate pattern for vendor/ stay unanchored? It also matches this repo's own contracts (server/src/vendor/shared, client/src/vendor), so a contract change lands in the collapsed Boilerplate group instead of core. Evidence: `server/src/modules/smart-diff/constants.ts:36`.
