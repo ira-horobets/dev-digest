@@ -42,7 +42,7 @@ means `core` (`DEFAULT_ROLE`).
 
 | Role | Matches |
 |---|---|
-| boilerplate | `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `go.sum`, `cargo.lock`, `*.lock`, `*.min.js\|css`, `*.generated.*`, `*.snap`, `*.map`, a `dist/`, `build/` or `vendor/` segment, `db/migrations/meta/` |
+| boilerplate | `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `go.sum`, `cargo.lock`, `*.lock`, `*.min.js\|css`, `*.generated.*`, `*.snap`, `*.map`, a `dist/` or `build/` segment, `db/migrations/meta/` |
 | tests | `__tests__/`, `__fixtures__/`, `__mocks__/`, `*.test.*`, `*.spec.*` (so `*.it.test.*` too), `test/`, `tests/`, `e2e/` segments, `*.flow.json` |
 | docs | `*.md`, `*.mdx`, `*.rst`, any `docs/` or `doc/` segment, `LICENSE*`, `CHANGELOG*` |
 | wiring | `package.json`, `tsconfig*.json`, `*.config.js\|cjs\|mjs\|ts`, `.eslintrc*`, `Dockerfile`, `docker-compose*.yml`, `.github/`, `.env.example`, `index.ts\|tsx\|js`, `server\|app\|main\|config\|routes\|container .ts\|js`, root-level `*.json\|yaml\|yml\|toml` |

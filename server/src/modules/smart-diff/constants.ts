@@ -26,7 +26,7 @@ export const ROLE_RULES: readonly RoleRule[] = [
       /\.generated\./,
       /\.snap$/,
       /\.map$/,
-      /(^|\/)(dist|build|vendor)\//,
+      /(^|\/)(dist|build)\//,
       /(^|\/)db\/migrations\/meta\//,
     ],
   },

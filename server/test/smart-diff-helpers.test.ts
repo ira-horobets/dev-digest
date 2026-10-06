@@ -41,6 +41,8 @@ describe('classifyPath', () => {
     ['pnpm-workspace.yaml', 'wiring'],
     ['src/middleware/ratelimit.ts', 'core'],
     ['src/api/users.ts', 'core'],
+    ['server/src/vendor/shared/contracts/brief.ts', 'core'],
+    ['client/src/vendor/shared/contracts/brief.ts', 'core'],
   ] as const)('%s -> %s', (path, role) => {
     expect(classifyPath(path)).toBe(role);
   });
