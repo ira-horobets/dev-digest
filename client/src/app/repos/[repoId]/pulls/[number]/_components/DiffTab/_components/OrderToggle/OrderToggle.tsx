@@ -11,7 +11,7 @@ export function OrderToggle({ value, onChange }: { value: DiffOrder; onChange: (
   return (
     <div role="group" style={s.wrap}>
       <Button
-        kind="ghost"
+        kind="tertiary"
         size="sm"
         active={value === "smart"}
         aria-pressed={value === "smart"}
@@ -20,7 +20,7 @@ export function OrderToggle({ value, onChange }: { value: DiffOrder; onChange: (
         {t("smartDiff.smartOrder")}
       </Button>
       <Button
-        kind="ghost"
+        kind="tertiary"
         size="sm"
         active={value === "original"}
         aria-pressed={value === "original"}

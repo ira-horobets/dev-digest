@@ -11,7 +11,9 @@ export const s = {
     gap: 10,
     width: "100%",
     padding: "8px 4px",
-    background: "var(--bg-surface)",
+    // Page colour, not a surface: reads as no background but still covers
+    // the diff scrolling under the sticky header.
+    background: "var(--bg-primary)",
     border: "none",
     borderBottom: "1px solid var(--border)",
     cursor: "pointer",
