@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Read-only architecture review of the DevDigest change set — server onion rings and the 14 dependency-cruiser rules via pnpm lint:arch against the baseline, client react-frontend-architecture placement and import direction, the shared-contract copy, do-not-touch paths, and the plan's architecture constraints. Returns findings with proofs (file:line, rule, tool output) and a PASS/FAIL verdict. Never edits and reports nothing outside architecture. Use after the implementer (and test-writer), in parallel with the security review and plan-verifier.
+description: Read-only architecture review of the DevDigest change set — server onion rings and the 14 dependency-cruiser rules via pnpm lint:arch against the baseline, client react-frontend-architecture placement and import direction, the shared-contract copy, do-not-touch paths, and the plan's architecture constraints. Returns findings with proofs (file:line, rule, tool output) and a PASS/FAIL verdict. Never edits and reports nothing outside architecture. Use after the implementer (and test-writer), in parallel with security-reviewer and plan-verifier.
 tools: Read, Grep, Glob, Bash, Skill
 model: sonnet
 maxTurns: 40
