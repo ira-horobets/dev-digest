@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
-# PreToolUse guard (Edit|Write) for the read-only agents that write only their
-# own report. Usage in frontmatter:  report-paths.sh <agent>
+# PreToolUse guard (Edit|Write) for the planner, the only read-only agent that
+# writes a file: its plan. Usage in frontmatter:  report-paths.sh planner
 #
 #   planner                docs/plans/<kebab>.md (the plan is its report)
-#   researcher             .pipeline/<slug>/brief.md, .pipeline/<slug>/researcher[-<kebab>].md
-#   architecture-reviewer  .pipeline/<slug>/architecture-reviewer.md|.findings.json
-#   plan-verifier          .pipeline/<slug>/plan-verifier.md|.findings.json
 #
-# <slug> is the plan file name without .md (feat-intent-layer), or a kebab name
-# for work without a plan. .pipeline/ is git-ignored and outside the
-# verification fingerprint, so reports never make a verify result stale.
+# researcher, architecture-reviewer and plan-verifier have no Write tool at all
+# (2026-10-07): they return the report in their final message and the main
+# session saves it to .pipeline/<slug>/. Any other agent name is refused.
 # Paths are normalised (`..`). Exit 2 + stderr = block.
 set -euo pipefail
 
@@ -35,12 +32,8 @@ case "$agent" in
   planner)
     [[ "$rel" =~ ^docs/plans/${slug}\.md$ ]] && exit 0
     deny "the planner writes only docs/plans/<kebab>.md" ;;
-  researcher)
-    [[ "$rel" =~ ^\.pipeline/${slug}/(brief|researcher(-${slug})?)\.md$ ]] && exit 0
-    deny "the researcher writes only .pipeline/<slug>/brief.md or researcher[-<topic>].md" ;;
-  architecture-reviewer | plan-verifier)
-    [[ "$rel" =~ ^\.pipeline/${slug}/${agent}(\.md|\.findings\.json)$ ]] && exit 0
-    deny "the $agent writes only .pipeline/<slug>/$agent.md and .findings.json" ;;
+  researcher | architecture-reviewer | plan-verifier)
+    deny "the $agent is read-only and writes no files; return the report in your final message" ;;
   *)
     deny "report-paths.sh: unknown agent '$agent'" ;;
 esac
