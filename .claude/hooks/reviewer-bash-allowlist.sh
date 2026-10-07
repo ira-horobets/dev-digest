@@ -2,6 +2,7 @@
 # PreToolUse guard (Bash) for the read-only reviewers. Usage in frontmatter:
 #   reviewer-bash-allowlist.sh arch     architecture-reviewer
 #   reviewer-bash-allowlist.sh verify   plan-verifier (adds package checks)
+#   reviewer-bash-allowlist.sh security security-reviewer (adds dependency audits)
 # A strict allowlist. One optional `PATH=<nvm node 22 bin>:$PATH ` prefix is
 # accepted so pnpm runs on Node 22 without chaining. Anything not listed falls
 # through to planner-readonly.sh (read-only git, insight.sh reads).
@@ -13,6 +14,7 @@ profile="${1:-arch}"
 case "$profile" in
   arch) who="architecture-reviewer" ;;
   verify) who="plan-verifier" ;;
+  security) who="security-reviewer" ;;
   *) echo "reviewer-bash-allowlist: unknown profile '$profile'" >&2; exit 2 ;;
 esac
 
@@ -23,6 +25,7 @@ deny() {
   {
     echo "$who: blocked — $1."
     echo "Allowed: [PATH=~/.nvm/versions/node/v22.x/bin:\$PATH] pnpm -C server lint:arch | .claude/skills/onion-architecture-backend/scripts/check-arch.sh [--all] | .claude/skills/pr-self-review/scripts/changed-files.sh [flags] base|list|diff | .claude/skills/pr-self-review/scripts/route.sh [flags] | .claude/skills/pr-self-review/scripts/verify.sh check [--with-it] [--e2e]|show"
+    [[ "$profile" == security ]] && echo "  plus: pnpm -C server|client audit [--prod] | npm --prefix reviewer-core|e2e audit [--omit=dev] (read-only; --fix is refused)"
     [[ "$profile" == verify ]] && echo "  plus: pnpm -C server|client typecheck|lint|test | pnpm -C server|client exec vitest run [args] | npm --prefix reviewer-core test|run typecheck|run lint | npm --prefix e2e run typecheck|lint"
     echo "  plus one plain read-only git command or insight.sh module|list|sections|check. No pipes, redirects or chaining. If Node 22 moved, the PATH pattern in this hook must follow."
   } >&2
@@ -98,6 +101,12 @@ if [[ "$profile" == verify ]]; then
   [[ "$joined" =~ ^pnpm\ -C\ (server|client)\ exec\ vitest\ run(\ .*)?$ ]] && exit 0
   [[ "$joined" =~ ^npm\ --prefix\ reviewer-core\ (test|run\ typecheck|run\ lint)$ ]] && exit 0
   [[ "$joined" =~ ^npm\ --prefix\ e2e\ run\ (typecheck|lint)$ ]] && exit 0
+fi
+
+if [[ "$profile" == security ]]; then
+  # Audits only read the lockfile and query the advisory DB; --fix is refused above.
+  [[ "$joined" =~ ^pnpm\ -C\ (server|client)\ audit(\ --prod)?$ ]] && exit 0
+  [[ "$joined" =~ ^npm\ --prefix\ (reviewer-core|e2e)\ audit(\ --omit=dev)?$ ]] && exit 0
 fi
 
 # The PATH prefix is only for the commands above.
