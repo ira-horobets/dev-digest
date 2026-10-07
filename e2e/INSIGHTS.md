@@ -28,6 +28,7 @@ see it, do not write it.
 ## Tool & Library Notes
 
 - [2026-09-25] This package uses npm (`package-lock.json`), not pnpm. `agent-browser` is a global CLI, installed once with `npm i -g agent-browser && agent-browser install`. Evidence: `e2e/package.json`.
+- [2026-10-06] The pipeline guard hook lets only test-writer edit e2e/specs/flows.md; doc-writer is blocked there and hands the flow section back to the main session. Plan flow-doc updates as a test-writer row, not a doc-writer one. Evidence: `.pipeline/feat-smart-diff/doc-writer.md`.
 
 ## Recurring Errors & Fixes
 

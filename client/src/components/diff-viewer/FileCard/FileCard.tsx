@@ -15,7 +15,9 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
-import { s, chevronFor } from "../styles";
+import { anchorFindings, findingsForPath, hasOpenFindings, type DiffFindingApi } from "../findings";
+import { s, chevronFor, dotStyle, unanchoredStyles } from "../styles";
+import { FindingComment } from "../FindingComment";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
 
@@ -30,10 +32,21 @@ function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): Commen
   return out;
 }
 
-export function FileCard({ file, commenting }: { file: PrFile; commenting?: DiffCommentApi }) {
+export function FileCard({
+  file,
+  commenting,
+  findings,
+  defaultOpen,
+}: {
+  file: PrFile;
+  commenting?: DiffCommentApi;
+  findings?: DiffFindingApi;
+  defaultOpen?: boolean;
+}) {
   const t = useTranslations("shell");
+  const tp = useTranslations("prReview");
   const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
@@ -48,6 +61,12 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
     return partitionThreads(fileThreads, renderedKeys);
   }, [comments, file.path, lines]);
 
+  const fileFindings = React.useMemo(
+    () => (findings ? findingsForPath(findings.findings, file.path) : []),
+    [findings, file.path]
+  );
+  const anchored = React.useMemo(() => anchorFindings(fileFindings, lines), [fileFindings, lines]);
+
   const commentCount = commenting
     ? commenting.comments.filter((c) => c.path === file.path).length
     : 0;
@@ -56,6 +75,9 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
     <div style={s.fileCard}>
       <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
+        {hasOpenFindings(fileFindings) && (
+          <span role="img" aria-label={tp("smartDiff.hasFindings")} style={dotStyle} />
+        )}
         <Icon.FileText size={14} style={s.fileIcon} />
         <span className="mono" style={s.filePath}>
           {file.path}
@@ -85,8 +107,25 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
+                stripe={anchored.stripe.get(i)}
+                pill={anchored.pill.get(i)}
+                findingsAfter={anchored.after.get(i)}
+                findingApi={findings}
               />
             ))
+          )}
+          {findings && findings.show && anchored.unanchored.length > 0 && (
+            <div style={unanchoredStyles.wrap}>
+              <span style={unanchoredStyles.title}>{tp("smartDiff.unanchoredTitle")}</span>
+              {anchored.unanchored.map((f) => (
+                <FindingComment
+                  key={f.id}
+                  finding={f}
+                  pending={findings.pendingId === f.id}
+                  onAction={findings.onAction}
+                />
+              ))}
+            </div>
           )}
           {commenting && commenting.showComments && <OutdatedComments threads={outdated} />}
         </div>

@@ -55,5 +55,6 @@ raw TypeScript source through a path alias.
 - `specs/run-cost-badge.md` — L01 cost and tokens per run; read when changing cost or the PR-list rollup.
 - `specs/skills.md` — L02 skills: API, versioning, import parser, prompt/trace contract, seed; read before touching `modules/skills/`, agent skill links or the skills slot in the executor.
 - `specs/conventions.md` — HW2 conventions extractor: scan job, sample selection, evidence verification, candidate decisions, `repo-conventions` skill; read before touching `modules/conventions/`.
+- `specs/smart-diff.md` — Smart Diff route, role classifier precedence, finding selection; read before touching `modules/smart-diff/` or the `SmartDiff` contract.
 - `INSIGHTS.md` — non-obvious gotchas; read at the start of every task here.
 - `../.claude/skills/onion-architecture-backend/SKILL.md` — ring map, the boundary rules (14 cruiser rules), new-module checklist, fix recipes; read before adding a module, route, service, repository or adapter.

@@ -41,7 +41,7 @@ All from `server/src/db/seed.ts` unless noted.
 |---|---|
 | Repo | `acme/payments-api`, default branch `main`, the only repo |
 | PR | number 482, title `Add rate limiting to public API endpoints`, author `marisa.koch`, 9 files |
-| PR files | `src/middleware/ratelimit.ts`, `src/api/public/webhooks.ts`, `src/config.ts`, `src/api/users.ts` |
+| PR files | 9, at least one per Smart Diff role: core `src/middleware/ratelimit.ts`, `src/api/public/webhooks.ts`, `src/api/users.ts`; wiring `src/config.ts`, `src/server.ts`, `package.json`; tests `test/ratelimit.test.ts`; docs `docs/rate-limiting.md`; boilerplate `package-lock.json`. Only `src/config.ts` has a patch (new line 12 `stripeKey: "STRIPE_KEY_PLACEHOLDER"`) |
 | Review | kind `review`, verdict `request_changes`, score 61, model `seed` |
 | Findings | 2: `Hardcoded Stripe secret key in commit` (CRITICAL, `src/config.ts:12`) and `N+1 query in user list endpoint` (WARNING, `src/api/users.ts:45-52`) |
 | Agent run | status `done`, tokens_in 8190, tokens_out 929, cost_usd 0.0013, duration 8200 ms, linked to the review by `runId` |
@@ -122,15 +122,28 @@ changes in the seed, or the newest run's accordion stops opening by default.
 
 Journey: root redirect, click the PR row, wait for `/pulls/482` and network
 idle, click the `Files changed` tab, wait for `tab=diff`, then the text
-`src/config.ts`.
+`src/config.ts`. Then the Smart Diff: `Smart order`, the five group labels
+`Core logic`, `Tests`, `Wiring`, `Docs`, `Boilerplate`, the inline finding
+`Hardcoded Stripe secret key in commit` (under `src/config.ts` line 12, wiring
+group open by default), and `N+1 query in user list endpoint` in the
+"Findings outside the diff" block of `src/api/users.ts` (core group open).
+Finally click `Original order` and wait for `src/config.ts` again. No Accept
+or Reject click: flows do not write.
 
-Seeded facts: PR 482 first in the list; `src/config.ts` among its `pr_files`.
+Seeded facts: PR 482 first in the list; nine `pr_files` covering every role;
+the patch on `src/config.ts`; the seeded review's two findings. Needs a fresh
+DB: an existing dev DB keeps the old four files (`seed.ts` inserts files only
+when the PR row is missing).
 
 Locators: `find role button click --name "Files changed"` (tab key `diff` in
-`PrDetailHeader.tsx`); `wait --url tab=diff`; `wait --text "src/config.ts"`.
+`PrDetailHeader.tsx`); `wait --url tab=diff`; `wait --text` on the group labels
+and toggle (`smartDiff` keys in `client/messages/en/prReview.json`);
+`find role button click --name "Original order"`.
 
-Breaks if: the tab label or key changes, the seeded file list drops
-`src/config.ts`, or the diff viewer stops rendering file paths as text.
+Breaks if: the tab label or key changes, the seeded files or the
+`src/config.ts` patch change, the `smartDiff` strings in `prReview.json`
+change, `server/src/modules/smart-diff/constants.ts` reclassifies a seeded
+path, or the core/wiring groups stop opening by default.
 
 ## 06-onboarding
 
