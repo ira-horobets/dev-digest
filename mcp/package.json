@@ -7,6 +7,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "tsx src/index.ts",
+    "inspect": "npx @modelcontextprotocol/inspector@2.10.1 node_modules/.bin/tsx src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint ."

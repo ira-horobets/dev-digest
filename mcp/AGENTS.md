@@ -13,6 +13,7 @@ npm test            # vitest, fake fetch + in-memory MCP client, no network
 npm run typecheck   # tsc --noEmit; the package never emits JS
 npm run lint        # eslint .
 npm start           # tsx src/index.ts (.mcp.json runs the tsx binary directly)
+npm run inspect     # MCP Inspector (npx, pinned) against this server over stdio; API must be running
 ```
 
 `verify.sh` and `insight.sh` do not cover this package yet: run the three

@@ -18,6 +18,13 @@ project-scoped `.mcp.json` (the variable exists only in the spawned server's env
 the `:-.` default is needed). It calls `tsx` directly instead of `npm run`, because npm
 banners would pollute stdout. Open Claude Code in the repo root,
 approve the project server, then check that `/mcp` shows `devdigest` connected with 5 tools.
+
+To poke at the server outside Claude Code, run the MCP Inspector against it (the API must
+be up; the Inspector is fetched by `npx` at a pinned version, not installed as a dependency):
+
+```sh
+cd mcp && npm run inspect     # opens the Inspector UI; List Tools → call devdigest_list_agents
+```
 To turn it off, add `devdigest` to `disabledMcpjsonServers` in your local Claude Code settings.
 
 ## Tools
