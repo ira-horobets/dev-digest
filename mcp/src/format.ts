@@ -1,4 +1,4 @@
-import type { Agent, ConventionsView, FindingRecord, RunFindings } from '@devdigest/shared';
+import type { Agent, BlastRadiusResponse, ConventionsView, FindingRecord, RunFindings } from '@devdigest/shared';
 
 import type { ResponseFormat, Severity } from './schemas.js';
 
@@ -12,6 +12,12 @@ const MAX_TEXT_CHARS = 40_000;
 const SUMMARY_MAX = 300;
 const LONG_TEXT_MAX = 800;
 const DESCRIPTION_MAX = 200;
+const BLAST_MAX_SYMBOLS = 60;
+const BLAST_MAX_DOWNSTREAM = 20;
+const BLAST_MAX_CALLERS = 10;
+const BLAST_MAX_HISTORY = 5;
+const BLAST_MAX_OVERLAP = 10;
+const TITLE_MAX = 120;
 
 function clip(s: string | null | undefined, max: number): string | null {
   if (s === null || s === undefined) return null;
@@ -123,4 +129,59 @@ export function shapeConventions(repo: string, view: ConventionsView, filter: Co
     };
   }
   return base;
+}
+
+/**
+ * Blast radius: the contract shape (changed_symbols, downstream, summary) with
+ * caps so a wide map stays within budget, plus degraded reason and prior PRs.
+ * PR titles and notes are untrusted PR content: clipped, kept as data.
+ */
+export function shapeBlastRadius(repo: string, prNumber: number, data: BlastRadiusResponse) {
+  const downstream = data.downstream.slice(0, BLAST_MAX_DOWNSTREAM).map((d) => ({
+    symbol: d.symbol,
+    callers_total: d.callers.length,
+    callers: d.callers.slice(0, BLAST_MAX_CALLERS).map((c) => ({ name: c.name, file: c.file, line: c.line })),
+    endpoints_affected: d.endpoints_affected,
+    crons_affected: d.crons_affected,
+  }));
+  const history = data.history.slice(0, BLAST_MAX_HISTORY).map((h) => ({
+    pr_number: h.pr_number,
+    title: clip(h.title, TITLE_MAX),
+    author: h.author,
+    merged_at: h.merged_at,
+    files_overlap: h.files_overlap.slice(0, BLAST_MAX_OVERLAP),
+    files_overlap_total: h.files_overlap.length,
+    notes: clip(h.notes, DESCRIPTION_MAX),
+  }));
+  const base = {
+    repo,
+    pr_number: prNumber,
+    summary: clip(data.summary, SUMMARY_MAX),
+    degraded: data.degraded,
+    reason: data.reason,
+    changed_symbols: data.changed_symbols.slice(0, BLAST_MAX_SYMBOLS),
+    changed_symbols_total: data.changed_symbols.length,
+    downstream,
+    downstream_total: data.downstream.length,
+    history,
+  };
+  if (data.degraded && data.changed_symbols.length === 0 && data.downstream.length === 0) {
+    return { ...base, note: degradedNote(data.reason) };
+  }
+  return base;
+}
+
+/** What the model can do about an empty, degraded map; a rebuild only helps for index reasons. */
+function degradedNote(reason: BlastRadiusResponse['reason']): string {
+  switch (reason) {
+    case 'flag_off':
+      return 'No impact map: repo intelligence is switched off on the DevDigest API (REPO_INTEL_ENABLED=false); nothing to rebuild until it is enabled.';
+    case 'repo_too_large':
+      return 'No impact map: the repository exceeds the DevDigest index limits; a rebuild will not help.';
+    default:
+      return (
+        'No impact map: the repository is not indexed (reason above). ' +
+        "Use 'Rebuild index' on the PR's Blast radius card in the DevDigest app (POST /repos/:id/resync), then retry."
+      );
+  }
 }

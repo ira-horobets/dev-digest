@@ -14,7 +14,7 @@ export const SERVER_VERSION = '0.0.0';
 
 export const INSTRUCTIONS =
   'DevDigest tools review pull requests that are already imported into the local DevDigest app (API on localhost:3001). ' +
-  'Use them to list reviewer agents, run one agent on a PR and get its grounded findings, read the verdict of a finished run, and read a repository\'s accepted coding conventions. ' +
+  'Use them to list reviewer agents, run one agent on a PR and get its grounded findings, read the verdict of a finished run, read a PR\'s blast radius (changed symbols, callers, endpoints), and read a repository\'s accepted coding conventions. ' +
   'Identify PRs by repo name and PR number; get agent ids from devdigest_list_agents. ' +
   'Only devdigest_run_agent_on_pr starts work and costs money.';
 

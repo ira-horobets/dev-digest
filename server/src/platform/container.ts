@@ -36,6 +36,8 @@ import type { FeatureModelId, FeatureModelChoice } from '@devdigest/shared';
 import { ReviewRepository } from '../modules/reviews/repository.js';
 import type { SmartDiffRepositoryPort } from '../modules/smart-diff/ports.js';
 import { SmartDiffRepository } from '../modules/smart-diff/repository.js';
+import type { BlastRepositoryPort } from '../modules/blast/ports.js';
+import { BlastRepository } from '../modules/blast/repository.js';
 import type { IntentRepositoryPort } from '../modules/reviews/ports.js';
 import { IntentRepository } from '../modules/reviews/repository/intent.repo.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
@@ -72,6 +74,8 @@ export interface ContainerOverrides {
   intentRepo?: IntentRepositoryPort;
   /** smart-diff module port — route tests inject an in-memory fake. */
   smartDiffRepo?: SmartDiffRepositoryPort;
+  /** blast module port — same idea. */
+  blastRepo?: BlastRepositoryPort;
 }
 
 export class Container {
@@ -97,6 +101,7 @@ export class Container {
   private _conventionsRepo?: ConventionsRepositoryPort;
   private _intentRepo?: IntentRepositoryPort;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
+  private _blastRepo?: BlastRepositoryPort;
   private _reposRepo?: RepoRepository;
   private _repoIntel?: RepoIntel;
   private _depgraph?: DepGraph;
@@ -141,6 +146,10 @@ export class Container {
 
   get smartDiffRepo(): SmartDiffRepositoryPort {
     return (this._smartDiffRepo ??= this.overrides.smartDiffRepo ?? new SmartDiffRepository(this.db));
+  }
+
+  get blastRepo(): BlastRepositoryPort {
+    return (this._blastRepo ??= this.overrides.blastRepo ?? new BlastRepository(this.db));
   }
 
   /** Repo rows for modules that only need to look a repository up (conventions). */

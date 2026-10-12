@@ -58,6 +58,10 @@ export const BlastCaller = z.object({
   name: z.string(),
   file: z.string(),
   line: z.number().int(),
+  /** "METHOD /path" routes declared in the caller's file (absent on the ripgrep fallback). */
+  endpoints: z.array(z.string()).optional(),
+  /** Cron / scheduled jobs declared in the caller's file (absent on the ripgrep fallback). */
+  crons: z.array(z.string()).optional(),
 });
 export type BlastCaller = z.infer<typeof BlastCaller>;
 

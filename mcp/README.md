@@ -28,7 +28,7 @@ To turn it off, add `devdigest` to `disabledMcpjsonServers` in your local Claude
 | `devdigest_run_agent_on_pr` | `run_agent_on_pr` | **write** | Runs one agent on a PR, waits, returns verdict + findings. Asks for approval every time |
 | `devdigest_get_findings` | `get_findings` | read | Verdict and findings of a finished run (by `run_id`, or `repo` + `pr_number`) |
 | `devdigest_get_conventions` | `get_conventions` | read | A repo's conventions; accepted rules by default |
-| `devdigest_get_blast_radius` | `get_blast_radius` | read | Draft: always returns an error with the expected shape (homework) |
+| `devdigest_get_blast_radius` | `get_blast_radius` | read | A PR's impact map from the repo index: changed symbols, callers, endpoints, crons, prior PRs on the same files (`repo` + `pr_number`) |
 
 `repo` is a name or `owner/name`; `pr_number` is resolved to the internal id. The findings tools take
 `response_format` (`concise` default, `detailed`) and `min_severity`.

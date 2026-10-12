@@ -291,3 +291,22 @@ Breaks if: the seeded intent row, its text or sources change, the
 render, only with a Stale badge), the Overview tab stops being the default, or
 the confidence or reason copy changes.
 
+
+## 13-pr-blast-radius
+
+Journey: root → PR list → click the PR #482 row → `/pulls/482` (Overview is
+the default tab).
+
+Seeded facts: the seeded repo has no `clone_path` and no `repo_index_state`
+row, so `GET /pulls/:id/blast` answers `degraded: true, reason: "no_data"`
+with no symbols and no callers. The Blast radius card renders its empty state
+instead of the stat row. No model call is made.
+
+Locators: `wait --text` on «No impact map yet» (`blast.empty.title`), «not
+indexed yet» (`blast.empty.no_data`) and «Rebuild index» (`blast.rebuild`). The
+card label «Blast radius» is not a locator: it is rendered through CSS
+`text-transform: uppercase`, which `wait --text` sees as «BLAST RADIUS».
+
+Breaks if: the seed starts cloning or indexing the demo repo (the card would
+show a map instead), the Overview tab stops being the default, or the empty
+state copy changes.
