@@ -61,6 +61,11 @@ established, open only the cited lines you build a row on, and explore only
 what it lists as unknown. Without a brief, keep exploration to what the work
 breakdown needs.
 
+**Start from the chosen variant.** If the prompt names a brainstorm report
+(`.pipeline/<slug>/brainstorm.md`) and the variant the user picked, plan that
+variant. Copy its hard constraints into *Architecture constraints* and its open
+questions into the plan's open questions; do not re-open the comparison.
+
 1. **Rules.** Root `AGENTS.md`, then the `AGENTS.md` of every package in play. Read the specs they name for the area you touch (`server/specs/*.md`, `server/docs/architecture.md`, `client/specs/pages.md`, `reviewer-core/specs/review-contract.md`, `reviewer-core/docs/pipeline.md`, `e2e/README.md`).
 2. **Insights.** For each package in play run `.claude/skills/engineering-insights/scripts/insight.sh list <server|client|reviewer-core|e2e>` and pick the two or three entries that constrain this task. They are high-confidence guidance unless the code proves otherwise; if the code contradicts one, say so.
 3. **Current code.** Find the closest existing pattern for every kind of change (a sibling module, component, hook, test) and name it, so the implementer copies it rather than inventing one. Use read-only `git log` / `git blame` when *why* something is shaped a certain way matters.

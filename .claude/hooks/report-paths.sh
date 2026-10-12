@@ -4,9 +4,10 @@
 #
 #   planner                docs/plans/<kebab>.md (the plan is its report)
 #
-# researcher, architecture-reviewer and plan-verifier have no Write tool at all
-# (2026-10-07): they return the report in their final message and the main
-# session saves it to .pipeline/<slug>/. Any other agent name is refused.
+# researcher, architecture-reviewer, plan-verifier, security-reviewer and
+# brainstorm have no Write tool at all (2026-10-07): they return the report
+# in their final message and the main session saves it to .pipeline/<slug>/.
+# Any other agent name is refused.
 # Paths are normalised (`..`). Exit 2 + stderr = block.
 set -euo pipefail
 
@@ -32,7 +33,7 @@ case "$agent" in
   planner)
     [[ "$rel" =~ ^docs/plans/${slug}\.md$ ]] && exit 0
     deny "the planner writes only docs/plans/<kebab>.md" ;;
-  researcher | architecture-reviewer | plan-verifier)
+  researcher | architecture-reviewer | plan-verifier | security-reviewer | brainstorm)
     deny "the $agent is read-only and writes no files; return the report in your final message" ;;
   *)
     deny "report-paths.sh: unknown agent '$agent'" ;;

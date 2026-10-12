@@ -9,19 +9,21 @@ next session start (or after `/agents`).
 ```
 researcher (haiku, brief mode) ─► .pipeline/<slug>/brief.md
                                           │
+              brainstorm (optional, when the approach is open) ─► .pipeline/<slug>/brainstorm.md
+                                          │                      (user picks a variant)
 planner ─► docs/plans/<slug>.md ─► implementer ─► verify.sh run ─► test-writer (optional coverage pass)
            (written by planner)        ▲          (once; result +       │
                                        │           diff packs reused)   ▼
                                        │ fix loop (resume the same implementer)
-                                       └── architecture-reviewer ∥ security review* ∥ plan-verifier
+                                       └── architecture-reviewer ∥ security-reviewer ∥ plan-verifier
                                                          │ all pass   (read verify.sh check + packs)
                                                          ▼
                                            doc-writer ─► pr-self-review ─► you commit
 
-* no security-reviewer agent yet: use /security-review or the pr-self-review security lane
 Every report lands in .pipeline/<slug>/<agent>.md (git-ignored); agents hand back
-at most 15–20 lines. researcher, architecture-reviewer and plan-verifier write no
-files: they return the report after ---REPORT--- and the main session saves it.
+at most 15–20 lines. researcher, brainstorm, architecture-reviewer,
+security-reviewer and plan-verifier write no files: they return the report after
+---REPORT--- and the main session saves it.
 ```
 
 ## Agents
@@ -29,10 +31,12 @@ files: they return the report after ---REPORT--- and the main session saves it.
 | Agent | Responsibility | Model | Permissions | Input | Output | Sources |
 |---|---|---|---|---|---|---|
 | [`researcher`](researcher.md) | Answer a concrete question with evidence: repository research, external research, or both; or write the codebase brief the planner starts from | sonnet (brief mode: run with `model: haiku`) | Read-only. `Read`, `Grep`, `Glob`, `WebSearch`, `WebFetch`; `Bash` limited to one read-only git command; no `Write` | A concrete question (otherwise returns clarifying questions), or "brief for `<slug>`" + the task | Research report or ≤120-line fact brief; with a slug, a ≤15-line hand-back, then `---REPORT---` and the report, which the main session saves to `.pipeline/<slug>/` | — |
-| [`planner`](planner.md) | Turn a task into a file-level plan bound to modules, onion rings, skills, INSIGHTS entries and architecture limits | opus | Read-only. `Read`, `Grep`, `Glob`, `Skill`; `Write` only `docs/plans/<kebab>.md`; `Bash` limited to read-only git and `insight.sh module\|list\|sections\|check`. Loads the architecture skill of each package in play | A concrete task, optionally the brief path (otherwise returns clarifying questions) | Plan written to `docs/plans/<branch with / → ->.md` + ≤15-line hand-back | [A](#a-planner-and-implementer) |
+| [`brainstorm`](brainstorm.md) | Compare 2–4 genuinely different implementation variants grounded in the repo (constraints, INSIGHTS, existing code), sketch each, one comparison matrix, a recommendation and when the runner-up wins; never plans files or writes code | opus | Read-only. `Read`, `Grep`, `Glob`, `Skill`, `WebSearch`, `WebFetch`; `Bash` limited to one read-only git command; no `Write` | A concrete problem, optionally the brief path and constraints (otherwise returns clarifying questions) | ≤15-line hand-back (variants, recommendation, open questions), then `---REPORT---` + report; the main session saves it to `.pipeline/<slug>/brainstorm.md` for the planner | [F](#f-brainstorm) |
+| [`planner`](planner.md) | Turn a task into a file-level plan bound to modules, onion rings, skills, INSIGHTS entries and architecture limits | opus | Read-only. `Read`, `Grep`, `Glob`, `Skill`; `Write` only `docs/plans/<kebab>.md`; `Bash` limited to read-only git and `insight.sh module\|list\|sections\|check`. Loads the architecture skill of each package in play | A concrete task, optionally the brief and brainstorm paths (otherwise returns clarifying questions) | Plan written to `docs/plans/<branch with / → ->.md` + ≤15-line hand-back | [A](#a-planner-and-implementer) |
 | [`implementer`](implementer.md) | Execute the plan across packages with the skills each row names, run package checks, prove every acceptance criterion | sonnet | `Read`, `Grep`, `Glob`, `Edit`, `Write`, `Bash`, `Skill`. No commit/push/PR, no web, no sub-agents; protected paths blocked by hooks | Path to a plan in `docs/plans/` | Code changes + one `verify.sh run` + report in `.pipeline/<slug>/implementer.md` + ≤20-line hand-back | [A](#a-planner-and-implementer) |
 | [`test-writer`](test-writer.md) | Fresh-context coverage pass: find the test kinds still missing for the plan and add them; never change source | sonnet | `Edit`/`Write` on test paths only; `Bash` for package tests, no shell writes, dependency or `db:*` changes, `-u`, `--fix`, commits. Loads skills per package (`react-testing-library`, onion di-and-testing, `fastify-best-practices`, `zod`) | Plan path + implementer report, or a concrete target | New/extended test files + `verify.sh run` + report in `.pipeline/<slug>/test-writer.md` + hand-back | [B](#b-test-writer) |
 | [`architecture-reviewer`](architecture-reviewer.md) | Verify architecture boundaries of the change set: `lint:arch` + baseline, contract copy, do-not-touch, onion rules the cruiser can't see, client placement and import direction | sonnet | Read-only. `Read`, `Grep`, `Glob`, `Skill`; no `Write`; `Bash` allowlist (`arch`, incl. `verify.sh check\|show`). Loads the architecture skill of each lane present | `verify.sh` result + diff packs, optional plan path | ≤20-line hand-back (verdict, findings one line each), then `---REPORT---` + report and `---FINDINGS---` + JSON; the main session saves both to `.pipeline/<slug>/` | [C](#c-architecture-reviewer) |
+| [`security-reviewer`](security-reviewer.md) | Find exploitable problems only: trace each attacker-controlled source (HTTP input, GitHub PR content, LLM output, cloned files) to a sink, check the controls, write the exploit; grade exploit severity (CRITICAL/HIGH/MEDIUM/LOW), confidence and gate severity (critical/warning/info); vulnerable dependencies via read-only audits | opus | Read-only. `Read`, `Grep`, `Glob`, `Skill`; no `Write`; `Bash` allowlist (`security`: `verify.sh check\|show`, change-set scripts, read-only git, `pnpm\|npm audit` without `--fix`). Loads the `security` skill; never runs an exploit, a request or the app | `verify.sh` result + diff packs, optional plan path; or paths/module for an audit | ≤20-line hand-back (verdict, findings with all three grades), then `---REPORT---` + report and `---FINDINGS---` + JSON; the main session saves both to `.pipeline/<slug>/` | [G](#g-security-reviewer) |
 | [`plan-verifier`](plan-verifier.md) | Check the working tree against every item of the plan and nothing else; no suggestions | haiku | Read-only. `Read`, `Grep`, `Glob`, no `Skill`; no `Write`; `Bash` allowlist (`verify`: adds package typecheck/lint/test for a single targeted re-run) | Plan path; `verify.sh` result + routing pack; implementer and test-writer reports as claims | ≤20-line hand-back, then `---REPORT---` + report and `---FINDINGS---` + JSON; the main session saves both to `.pipeline/<slug>/` | [D](#d-plan-verifier) |
 | [`doc-writer`](doc-writer.md) | Document the implemented, verified feature in the right place (specs, docs with Mermaid, READMEs, index lines) | sonnet | `Edit`/`Write` on documentation `.md` only; `Bash` read-only (reuses `planner-readonly.sh`). Preloads `mermaid-diagram` | Plan path + plan-verifier PASS | Documentation files + report in `.pipeline/<slug>/doc-writer.md` + hand-back | [E](#e-doc-writer) |
 
@@ -48,14 +52,14 @@ Scripts live in [`../hooks/`](../hooks/); run their tests with
 
 | Hook | Agent | Enforces |
 |---|---|---|
-| `researcher-git-readonly.sh` | researcher; delegated from planner and the reviewers | One plain `git log\|blame\|show\|diff\|shortlog\|grep\|ls-files\|rev-parse`; no operators, `-c`, or file-writing flags |
+| `researcher-git-readonly.sh [agent]` | researcher, brainstorm (`brainstorm` arg names it in messages); delegated from planner and the reviewers | One plain `git log\|blame\|show\|diff\|shortlog\|grep\|ls-files\|rev-parse`; no operators, `-c`, or file-writing flags |
 | `planner-readonly.sh` | planner, doc-writer; delegated from the reviewers | Read-only git (delegates to the above) or `insight.sh` read subcommands |
 | `implementer-protected-paths.sh` | implementer | Edits refused on root `AGENTS.md` "Do not touch" paths, `.claude/`, `INSIGHTS.md`, `docs/plans/`, the lint:arch baseline, `.env*`; `client/src/vendor/ui/` only with `Design-system task: yes` in the plan; paths normalised (`..`) |
 | `implementer-bash-guard.sh` | implementer; delegated from test-writer | No git writes/history rewrites, no `gh`, no `docker compose down`, no baseline regeneration; no shell writes into protected paths; client contracts change only via `cp` from the server copy |
 | `test-writer-paths.sh` | test-writer | Allowlist: `client/src/**/*.test.ts(x)`, `client/src/test/`, `server/test/`, `reviewer-core/test/`, `e2e/specs/NN-kebab.flow.json`, `e2e/specs/flows.md`, `e2e/README.md`; paths normalised |
 | `test-writer-bash-guard.sh` | test-writer | Implementer guard, plus: no shell file writes, no dependency changes (`npm ci` / `--frozen-lockfile` only), no `db:*`, no `-u`/`--fix`; `insight.sh` only as a lone command |
-| `reviewer-bash-allowlist.sh arch\|verify` | architecture-reviewer (`arch`), plan-verifier (`verify`) | Strict allowlist: `pnpm -C server lint:arch`, `check-arch.sh [--all]`, `changed-files.sh base\|list\|diff`, `route.sh`; `verify` adds package typecheck/lint/test. One optional `PATH=<nvm node22>/bin:$PATH` prefix, no chaining; the rest goes to `planner-readonly.sh` |
-| `report-paths.sh planner` | planner | `Write` only `docs/plans/<kebab>.md`; paths normalised. Refuses researcher, architecture-reviewer and plan-verifier outright (they have no `Write` since 2026-10-07; the test cases keep their old report paths as BLOCK rows) |
+| `reviewer-bash-allowlist.sh arch\|verify\|security` | architecture-reviewer (`arch`), plan-verifier (`verify`), security-reviewer (`security`: adds `pnpm -C server\|client audit [--prod]`, `npm --prefix reviewer-core\|e2e audit [--omit=dev]`) | Strict allowlist: `pnpm -C server lint:arch`, `check-arch.sh [--all]`, `changed-files.sh base\|list\|diff`, `route.sh`; `verify` adds package typecheck/lint/test. One optional `PATH=<nvm node22>/bin:$PATH` prefix, no chaining; the rest goes to `planner-readonly.sh` |
+| `report-paths.sh planner` | planner | `Write` only `docs/plans/<kebab>.md`; paths normalised. Refuses researcher, brainstorm, architecture-reviewer, security-reviewer and plan-verifier outright (they have no `Write` since 2026-10-07; the test cases keep their old report paths as BLOCK rows) |
 | `doc-writer-paths.sh` | doc-writer | Allowlist: `.md` under `<pkg>/docs/`, `<pkg>/specs/`, package and module READMEs, root `README.md` and `docs/` (not `docs/plans/`, `docs/skills/examples/`); never `AGENTS.md`, `CLAUDE.md`, `INSIGHTS.md`, `TESTING.md`, `e2e/specs/` |
 
 The project-wide hooks in `../settings.json` (`pr-self-review` push gate,
@@ -71,7 +75,7 @@ The rules below remove the repetition without dropping a check.
 1. **Checks run once.** The implementer (or test-writer) ends with `verify.sh run [--with-it] [--e2e]`. Reviewers, the plan-verifier and the main session run `verify.sh check` and re-run nothing that is fresh. Markdown edits (INSIGHTS, plans, reports) keep the result fresh; any code change makes it stale.
 2. **The diff is built once.** `verify.sh run` writes `.git/pr-self-review/routing.json` and `lanes/<package>.diff`. Reviewers read those and open whole files only when a hunk is not enough.
 3. **Brief, then plan.** For a task that needs repo exploration, run `researcher` with `model: haiku` and "brief for `<slug>`" first. Pass the brief path to the planner.
-4. **Files, not messages.** The planner writes the plan file; the implementer, test-writer and doc-writer write their reports to `.pipeline/<slug>/`. The read-only agents (researcher, architecture-reviewer, plan-verifier) write nothing: the main session saves everything after `---REPORT---` to `.pipeline/<slug>/<agent>.md` and the `---FINDINGS---` JSON to `<agent>.findings.json`, without echoing it to the user. Every agent hands back ≤20 lines. Open a report only to show findings to the user; merge `*.findings.json` with `precheck.json` via `jq`.
+4. **Files, not messages.** The planner writes the plan file; the implementer, test-writer and doc-writer write their reports to `.pipeline/<slug>/`. The read-only agents (researcher, brainstorm, architecture-reviewer, security-reviewer, plan-verifier) write nothing: the main session saves everything after `---REPORT---` to `.pipeline/<slug>/<agent>.md` and the `---FINDINGS---` JSON to `<agent>.findings.json`, without echoing it to the user. Every agent hands back ≤20 lines. Open a report only to show findings to the user; merge `*.findings.json` with `precheck.json` via `jq`.
 5. **Resume for fix rounds.** Send review fixes, including small test-only fixes, to the implementer that built the feature (`SendMessage` resumes it with its cached context). A fresh agent re-reads everything. Use `test-writer` for designing new tests, not for a three-line fix.
 6. **Fewer skill loads.**
    - Plans keep `security` / `typescript-expert` only on rows that need them; the review applies both everywhere.
@@ -146,8 +150,30 @@ parent permission mode overriding the agent's, so hooks do the enforcing).
 | [C4 model](https://c4model.com/) | Diagram levels; diagrams as code |
 | [GitHub: Creating diagrams](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams) | Mermaid renders in Markdown on GitHub |
 
+### F. brainstorm
+
+Cited from known references on 2026-10-07, not re-fetched.
+
+| Source | Used for |
+|---|---|
+| [M. Nygard: Documenting architecture decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) (2011) | Options with consequences; the "when the runner-up wins" line records the rejected alternative |
+| [Claude Code: Subagents](https://code.claude.com/docs/en/sub-agents) | Read-only tool set, no `AskUserQuestion` (questions come back in the report) |
+| [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) | A separate, fresh-context step that explores options before the plan is fixed |
+
+### G. security-reviewer
+
+Cited from known references on 2026-10-07, not re-fetched. The rules
+themselves come from the vendored `security` skill (`.claude/skills/security/`).
+
+| Source | Used for |
+|---|---|
+| [OWASP Top 10](https://owasp.org/Top10/) | Category ids in `rule` (`security › A05`) |
+| [OWASP Top 10 for LLM Applications](https://genai.owasp.org/llm-top-10/) | Prompt injection through PR content and untrusted model output |
+| [FIRST: CVSS v4.0 specification](https://www.first.org/cvss/v4.0/specification-document) | Separating exploitability (who, what conditions) from impact when grading |
+| [npm audit](https://docs.npmjs.com/cli/commands/npm-audit), [pnpm audit](https://pnpm.io/cli/audit) | Read-only dependency audits; `--fix` writes the lockfile, so the hook refuses it |
+
 ### Local decisions (not sourced)
 
-- Models: opus for the planner (judgement over the whole task). Sonnet for the architecture-reviewer: since 2026-10-06 the tool facts come from `verify.sh` and the cruiser/ESLint rules, which leaves only placement judgement. Haiku for the plan-verifier (matching plan items to evidence that is already collected) and for the researcher's brief mode. Sonnet for the edit-heavy agents.
+- Models: opus for the planner (judgement over the whole task), the brainstorm (design trade-offs) and the security-reviewer (multi-hop source → sink tracing, where a miss is the costly error). Sonnet for the architecture-reviewer: since 2026-10-06 the tool facts come from `verify.sh` and the cruiser/ESLint rules, which leaves only placement judgement. Haiku for the plan-verifier (matching plan items to evidence that is already collected) and for the researcher's brief mode. Sonnet for the edit-heavy agents.
 - The implementer reports plan contradictions instead of resolving them; test-writer reports source defects instead of fixing them.
 - Where each kind of documentation goes is taken from the repo's existing `docs/` and `specs/` READMEs, not from an external source.
