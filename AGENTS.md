@@ -35,6 +35,7 @@ code is shared through tsconfig path aliases, not published modules.
 | `client/` | `@devdigest/web` | Next.js 15 studio UI, `:3000` | `client/AGENTS.md` |
 | `reviewer-core/` | `@devdigest/reviewer-core` | Pure review engine: diff → prompt → LLM → grounded findings | `reviewer-core/AGENTS.md` |
 | `e2e/` | `@devdigest/e2e` | Deterministic browser flows (agent-browser) | `e2e/AGENTS.md` |
+| `mcp/` | `@devdigest/mcp` | Local stdio MCP server, HTTP client of the API (L04) | `mcp/AGENTS.md` |
 | `server/src/vendor/shared/` | `@devdigest/shared` | Zod contracts + adapter interfaces (canonical copy) | see `server/AGENTS.md` |
 
 ## Commands
@@ -45,13 +46,13 @@ code is shared through tsconfig path aliases, not published modules.
 ```
 
 Checks, per package (`pnpm` in `server/` and `client/`, `npm run` in
-`reviewer-core/` and `e2e/`): `typecheck` · `test` · `lint` (ESLint flat
+`reviewer-core/`, `e2e/` and `mcp/`): `typecheck` · `test` · `lint` (ESLint flat
 config, `eslint.config.mjs`). Full per-package script list in each
 package's `AGENTS.md`.
 
 ## Rules that apply everywhere
 
-- Package managers: `pnpm` in `server/` and `client/`; `npm` in `reviewer-core/` and `e2e/`.
+- Package managers: `pnpm` in `server/` and `client/`; `npm` in `reviewer-core/`, `e2e/` and `mcp/`.
 - Contracts live in `server/src/vendor/shared`. Change them there, then copy to `client/src/vendor/shared`. The two copies must match.
 - Secrets never go in git, the DB, or `AppConfig`. They flow through `SecretsProvider` (`~/.devdigest/secrets.json`, env fallback).
 - Migrations do not run on boot. Run `cd server && pnpm db:migrate`.
@@ -61,7 +62,7 @@ package's `AGENTS.md`.
 
 ## Naming conventions
 
-- **Packages:** `@devdigest/<folder>` (`api`, `web`, `reviewer-core`, `e2e`, `shared`). Folders are kebab-case.
+- **Packages:** `@devdigest/<folder>` (`api`, `web`, `reviewer-core`, `e2e`, `mcp`, `shared`). Folders are kebab-case.
 - **Server modules:** `server/src/modules/<kebab-name>/` with the fixed trio `routes.ts` · `service.ts` · `repository.ts`, plus `helpers.ts` / `constants.ts` when needed. Classes are PascalCase and suffixed by role (`ReviewService`, `ReviewRepository`, `ReviewRunExecutor`); adapters implement a `@devdigest/shared` interface and are named by vendor (`SimpleGitClient`, `OpenRouterProvider`).
 - **Database:** tables are snake_case plural (`agent_runs`, `pull_requests`), columns snake_case (`cost_usd`); the Drizzle property is the camelCase twin (`costUsd`). Migrations keep the drizzle-kit name (`0010_huge_marten_broadcloak.sql`) and are never renamed.
 - **API JSON:** snake_case fields end to end (`tokens_in`, `cost_usd`, `run_id`), matching the Zod contracts. A route path is plural resource then id: `/pulls/:id/runs`, `/runs/:id/trace`.
@@ -76,7 +77,7 @@ package's `AGENTS.md`.
 
 Never edit these by hand. Change them only through the tool that owns them, or not at all.
 
-- **Lockfiles:** `server/pnpm-lock.yaml`, `client/pnpm-lock.yaml`, `reviewer-core/package-lock.json`, `e2e/package-lock.json`. Only the package manager writes them.
+- **Lockfiles:** `server/pnpm-lock.yaml`, `client/pnpm-lock.yaml`, `reviewer-core/package-lock.json`, `e2e/package-lock.json`, `mcp/package-lock.json`. Only the package manager writes them.
 - **Vendored skills:** `.claude/skills/` and `skills-lock.json`. They are pinned by hash to upstream sources; re-vendor instead of editing.
 - **Contract copy:** `client/src/vendor/shared/`. Edit `server/src/vendor/shared/` and copy the result over. Never edit the client copy directly.
 - **Design system:** `client/src/vendor/ui/`. Change it only when the task is explicitly about the design system, and add any new component to `/showcase`.

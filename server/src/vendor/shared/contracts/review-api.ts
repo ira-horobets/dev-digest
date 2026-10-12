@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Finding, Verdict } from './findings.js';
 import { Intent, IntentConfidence, IntentSource, SmartDiff } from './brief.js';
+import { RunSummary } from './trace.js';
 
 /**
  * A2 — Review-Core API surface contracts. These extend the core
@@ -77,3 +78,16 @@ export type PrIntentRecord = z.infer<typeof PrIntentRecord>;
 /** Smart-diff response for a PR (the SmartDiff). */
 export const SmartDiffResponse = SmartDiff;
 export type SmartDiffResponse = z.infer<typeof SmartDiffResponse>;
+
+/**
+ * Response of `GET /runs/:id/findings`: one run's summary (status included, so
+ * callers can poll it), the review it produced (null while running or when the
+ * run failed before persisting one) and that review's findings.
+ */
+export const RunFindings = z.object({
+  run: RunSummary,
+  // Derived from ReviewRecord so the two cannot drift.
+  review: ReviewRecord.pick({ id: true, verdict: true, summary: true, score: true }).nullable(),
+  findings: z.array(FindingRecord),
+});
+export type RunFindings = z.infer<typeof RunFindings>;

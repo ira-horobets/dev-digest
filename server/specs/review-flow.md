@@ -20,7 +20,7 @@ POST /pulls/:id/review ──► agent_runs rows (status=running) ──► HTTP
           ONE run_traces doc ─► runBus.complete
                                    │
         GET /runs/:id/events (SSE) ◄┘ live + replay
-        GET /pulls/:id/runs · /pulls/:id/runs/active · /runs/:id/trace · /pulls/:id/reviews
+        GET /pulls/:id/runs · /pulls/:id/runs/active · /runs/:id/trace · /runs/:id/findings · /pulls/:id/reviews
 ```
 
 ## Invariants
@@ -164,6 +164,14 @@ POST /pulls/:id/review ──► agent_runs rows (status=running) ──► HTTP
     agent name joined. Enforced by `activeRunsForPull`.
 26. `GET /runs/:id/trace` returns the single `run_traces` document or 404
     `not_found` (`'Run trace not found'`). Enforced by the route and `getRunTrace`.
+26a. `GET /runs/:id/findings` returns `RunFindings` (`run` summary, the newest
+    `review` for that run or `null`, and its `findings`). It is scoped to the
+    workspace on both `agent_runs` and `reviews` (unlike `/runs/:id/trace`):
+    an unknown or foreign run is 404 `not_found` (`'Run not found'`), a non-uuid
+    id is 422. `review` is `null` while the run is `running` and when it failed
+    before persisting one; the review and findings are written before the run
+    turns `done`. Enforced by `ReviewService.findingsForRun` and `run.repo.ts`
+    `findingsForRun`.
 27. `GET /pulls/:id/reviews` 404s when the PR is not in the workspace, then
     returns reviews newest first, each with its findings and `agent_name`.
     Enforced by `ReviewService.reviewsForPull` and `review.repo.ts` `reviewsForPull`.

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { RunRequest } from '@devdigest/shared';
+import { RunFindings, RunRequest } from '@devdigest/shared';
 import type { RunEvent } from '@devdigest/shared';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
@@ -13,6 +13,7 @@ import { IntentService } from './intent-service.js';
  *   POST   /pulls/:id/review  {agentId} | {all:true}  → run review(s); returns runs
  *   GET    /runs/:id/events                            → SSE stream of RunEvent (replay-first)
  *   GET    /runs/:id/trace                             → the single-document RunTrace
+ *   GET    /runs/:id/findings                          → run summary + review verdict + findings
  *   GET    /pulls/:id/reviews                          → persisted reviews + findings for a PR
  *   GET    /pulls/:id/intent                           → derived PR intent (+ stale flag)
  *   POST   /pulls/:id/intent/refresh                   → force re-derive the intent
@@ -135,6 +136,16 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
     if (!trace) throw new NotFoundError('Run trace not found');
     return trace;
   });
+
+  // ---- Run findings (workspace-scoped; polled by the MCP server) ----------
+  app.get(
+    '/runs/:id/findings',
+    { schema: { params: IdParams, response: { 200: RunFindings } } },
+    async (req) => {
+      const { workspaceId } = await getContext(container, req);
+      return service.findingsForRun(workspaceId, req.params.id);
+    },
+  );
 
   // ---- Reads --------------------------------------------------------------
   app.get('/pulls/:id/reviews', { schema: { params: IdParams } }, async (req) => {

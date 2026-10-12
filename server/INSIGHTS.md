@@ -45,6 +45,7 @@ see it, do not write it.
 - [2026-10-06] Latest review per agent = selectDistinctOn([reviews.agentId]) ordered by agentId, createdAt desc; Postgres DISTINCT ON groups NULL agent ids together, so the seeded NULL-agent review counts once. Evidence: `server/src/modules/smart-diff/repository.ts:25`.
 - [2026-10-06] Seed changes never reach an existing dev DB: seed.ts inserts PR #482's pr_files only when the PR row is missing, so a new seed file needs a manual idempotent INSERT ... WHERE NOT EXISTS backfill (done for feat/smart-diff); dropping the volume to reseed is forbidden. Evidence: `server/src/db/seed.ts:130`.
 - [2026-10-06] On a long-lived dev DB the Smart Diff can show zero findings for PR #482: the seeded review got an agent id and later real runs by that agent (0 findings) supersede it under latest-review-per-agent. Expected behaviour, not a bug; run a review or start from a fresh DB to see seeded findings inline. Evidence: `server/src/modules/smart-diff/repository.ts:25`.
+- [2026-10-12] A repository file may import the module's helpers.ts for row-to-DTO mapping even though the onion skill's ring table lists helpers.ts in ring 2: the cruiser rule repositories-stay-below-services only forbids service|routes|run-executor, rule 4's comment places DTO mapping in helpers.ts (precedent agents/repository.ts), and no-circular ignores the type-only helpers.ts <-> repository.ts cycle. Don't move mapping into the repository to satisfy the table. Evidence: `server/src/modules/reviews/repository/run.repo.ts findingsForRun; server/.dependency-cruiser.cjs:14,25`.
 
 ## Tool & Library Notes
 
@@ -60,6 +61,7 @@ see it, do not write it.
 - [2026-10-06] lint:arch does not catch src/db importing modules/**: adapters-no-modules only matches ^src/adapters/, so a db/seed.ts → modules import passes the cruiser although db is ring 3a; check it by hand in review. Evidence: `server/.dependency-cruiser.cjs ADAPTERS / adapters-no-modules`.
 - [2026-10-06] Run the integration suite with 'pnpm exec vitest run it.test' (13 files); 'vitest run --dir test .it.test.ts' matches nothing and exits 1 with 'No test files found'. Evidence: `server/package.json test script; server/test/*.it.test.ts`.
 - [2026-10-06] Supersedes the 2026-10-06 note that lint:arch misses src/db importing modules: cruiser rule 14 db-not-to-modules now fails it. Evidence: `server/.dependency-cruiser.cjs db-not-to-modules`.
+- [2026-10-12] pr-self-review tally.sh merges every .git/pr-self-review/findings/<lane>.jsonl that exists, including stale lanes left by an earlier run on a different change set (client.jsonl and reviewer-core.jsonl from 2026-10-06 polluted the 2026-10-12 review); before tally.sh list, delete the jsonl of every lane that did not run this time. Also: the lane and precheck base defaults to upstream/main (whole fork); pass --base origin/main to review one feature branch. Evidence: `.claude/skills/pr-self-review/scripts/tally.sh; .claude/skills/pr-self-review/scripts/changed-files.sh resolve_base`.
 
 ## Recurring Errors & Fixes
 
@@ -85,6 +87,7 @@ see it, do not write it.
 - [2026-09-26] HW2: skills versions/diff/restore + agent_count, per-skill trace blocks with tokenizer counts, four API Contract skills (one imported), conventions extractor module (scan job, evidence verification, repo-conventions skill), migration 0011, AGENTS.md migration; unit + integration suites green, lint:arch clean. Evidence: `server/specs/conventions.md`.
 - [2026-10-06] Intent layer: review_intent derivation (cheap model, cached by source_hash) feeds a ## PR intent prompt section; pr_intent gained confidence/sources/cost columns (0013); GET/POST /pulls/:id/intent[/refresh]. Evidence: `docs/plans/feat-intent-layer.md`.
 - [2026-10-06] Review fixes: the intent cache hash moved to platform/intent-hash.ts (db no longer imports modules); IT tests mock secrets/github/openrouter; waitForPrRuns waits for the trace, 60s, and throws on timeout. Evidence: `docs/plans/feat-intent-layer.md Amendment 2`.
+- [2026-10-12] feat/mcp-server: added GET /runs/:id/findings (RunFindings contract, workspace-scoped on agent_runs and reviews, unlike /runs/:id/trace) as the single server change for the L04 MCP server; the rest lives in the new mcp/ package, which insight.sh, verify.sh and the test-writer path hook do not know yet. Evidence: `server/src/modules/reviews/routes.ts GET /runs/:id/findings; server/specs/review-flow.md invariant 26a`.
 
 ## Open Questions
 
