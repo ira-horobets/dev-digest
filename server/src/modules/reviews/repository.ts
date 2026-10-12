@@ -1,6 +1,6 @@
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
-import type { Finding, RunSummary, RunTrace } from '@devdigest/shared';
+import type { Finding, RunFindings, RunSummary, RunTrace } from '@devdigest/shared';
 
 /**
  * A2 — review data-access. The ONLY layer touching the DB for the review
@@ -80,6 +80,11 @@ export class ReviewRepository {
   /** All runs for a PR (any status), newest first — the PR run history. */
   listRunsForPull(workspaceId: string, prId: string): Promise<RunSummary[]> {
     return runRepo.listRunsForPull(this.db, workspaceId, prId);
+  }
+
+  /** One run + its newest review + findings; undefined when not in the workspace. */
+  findingsForRun(workspaceId: string, runId: string): Promise<RunFindings | undefined> {
+    return runRepo.findingsForRun(this.db, workspaceId, runId);
   }
 
   /** Delete one agent run (+ its trace via FK cascade). Workspace-scoped. */

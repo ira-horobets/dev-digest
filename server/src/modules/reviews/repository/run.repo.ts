@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
-import type { RunSummary, RunTrace } from '@devdigest/shared';
+import type { RunFindings, RunSummary, RunTrace, Verdict } from '@devdigest/shared';
+import { findingRowToDto } from '../helpers.js';
 
 // ---- in-flight / history --------------------------------------------------
 
@@ -66,6 +67,63 @@ export async function listRunsForPull(
     score: run.score,
     blockers: run.blockers,
   }));
+}
+
+/**
+ * One run (summary + agent name), the newest review it produced and that
+ * review's findings. Workspace-scoped on both `agent_runs` and `reviews`.
+ * Undefined when the run is not in the workspace.
+ */
+export async function findingsForRun(
+  db: Db,
+  workspaceId: string,
+  runId: string,
+): Promise<RunFindings | undefined> {
+  const [row] = await db
+    .select({ run: t.agentRuns, agentName: t.agents.name })
+    .from(t.agentRuns)
+    .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
+    .where(and(eq(t.agentRuns.id, runId), eq(t.agentRuns.workspaceId, workspaceId)));
+  if (!row) return undefined;
+  const { run, agentName } = row;
+  const [review] = await db
+    .select()
+    .from(t.reviews)
+    .where(and(eq(t.reviews.runId, runId), eq(t.reviews.workspaceId, workspaceId)))
+    .orderBy(desc(t.reviews.createdAt))
+    .limit(1);
+  const findingRows = review
+    ? await db.select().from(t.findings).where(eq(t.findings.reviewId, review.id))
+    : [];
+  return {
+    run: {
+      run_id: run.id,
+      agent_id: run.agentId,
+      agent_name: agentName ?? null,
+      provider: run.provider,
+      model: run.model,
+      status: run.status,
+      error: run.error,
+      duration_ms: run.durationMs,
+      tokens_in: run.tokensIn,
+      tokens_out: run.tokensOut,
+      cost_usd: run.costUsd,
+      findings_count: run.findingsCount,
+      grounding: run.grounding,
+      ran_at: run.ranAt ? run.ranAt.toISOString() : null,
+      score: run.score,
+      blockers: run.blockers,
+    },
+    review: review
+      ? {
+          id: review.id,
+          verdict: review.verdict as Verdict | null,
+          summary: review.summary,
+          score: review.score,
+        }
+      : null,
+    findings: findingRows.map(findingRowToDto),
+  };
 }
 
 /** Per-PR cost rollup for the PR list: what the PR's completed runs cost. */
