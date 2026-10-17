@@ -10,7 +10,7 @@ this file are relative to `client/` unless they start with `../`.
 | `/` | redirect to the first repo's PR list | `useRepos` | none | `01-app-boot` (and 02, 04, 05, 08 start here) |
 | `/onboarding` | add a repository by URL | `useAddRepo` | none | `06-onboarding` |
 | `/repos/[repoId]/pulls` | PR list with filters | `usePulls`, `useRefreshRepo` | `?status` | `01`, `02`, `08` |
-| `/repos/[repoId]/pulls/[number]` | PR detail: Overview, Agent runs, Files changed | `usePulls`, `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns` | `?tab`, `?trace` | `02`, `04`, `05`, `08` |
+| `/repos/[repoId]/pulls/[number]` | PR detail: Overview, Agent runs, Files changed | `usePulls`, `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns`, `usePrIntent`, `useBlastRadius` | `?tab`, `?trace` | `02`, `04`, `05`, `08`, `12`, `13` |
 | `/agents` | agent cards, create modal | `useAgents`, `useUpdateAgent`, `useCreateAgent`, `useDeleteAgent` | none | `03-agents` |
 | `/agents/[id]` | agent editor: Config, Skills | `useAgents`, `useAgent`, `useUpdateAgent`, `useProviderModels`, `useSkills`, `useAgentSkills`, `useSetAgentSkills` | `?tab` | `10-skills` |
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
@@ -99,8 +99,31 @@ Clicking a row pushes `/repos/<repoId>/pulls/<number>`.
 
 ### Tab `overview` (`OverviewTab`)
 
-Renders the PR body as plain text under a "Description" label; renders
-nothing when `pr.body` is empty.
+A "PR brief" grid with two cards, then the PR body as plain text under a
+"Description" label (nothing when `pr.body` is empty).
+
+- **Intent** (`IntentCard`, `usePrIntent` / `useRefreshIntent`): the derived
+  intent, confidence badge, in/out of scope, collapsed Sources disclosure.
+- **Blast radius** (`_components/BlastRadiusCard`, `useBlastRadius` → `GET /pulls/:id/blast`,
+  server spec `server/specs/blast-radius.md`): stat row (symbols · callers ·
+  endpoints · crons, distinct across symbols), a Tree / Graph toggle
+  (`aria-pressed` buttons), and the "Prior PRs touching these files"
+  disclosure (collapsed, count badge). Tree: one expandable row per changed
+  symbol with callers (first row open); a caller is `file:line` linked to
+  GitHub at `head_sha` (`githubBlobUrl`), because caller files are not in the
+  diff; endpoint chips (`--info`) and cron chips (`--warn`) follow. Graph: an
+  SVG with three columns, changed symbols → callers → endpoints and crons,
+  capped at 6 / 10 / 8 nodes per column with a "+N more" node, plus a legend.
+  Prior PRs: `#number`, title linked to the PR on GitHub, author avatar, date
+  (`merged_at` as `YYYY-MM-DD`), files in common, the note. States: skeleton
+  while loading; `degraded` with data shows an "Approximate" badge; `degraded`
+  with no symbols and no callers shows an empty state with the reason
+  (`blast.empty.<reason>`) and a "Rebuild index" action
+  (`useResyncRepoIntel` → `POST /repos/:id/resync`), after which the card polls
+  `useRepoIntelStatus` until the index row's `updatedAt` advances and then
+  refetches the map; a map with symbols but no
+  callers shows "N changed symbols, no downstream callers found." Strings:
+  `messages/en/blast.json`. Covered by e2e flow `13`.
 
 ### Tab `findings` ("Agent runs", `FindingsTab`)
 

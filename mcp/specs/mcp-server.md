@@ -47,7 +47,8 @@ tool sets `anthropic/alwaysLoad`.
 | | `response_format`, `min_severity` | as above | `concise`, `SUGGESTION` |
 | `get_conventions` | `repo` | string, min 1 | required |
 | | `status` | `accepted` · `candidate` · `rejected` · `all` | `accepted` |
-| `get_blast_radius` | none | | |
+| `get_blast_radius` | `repo` | string, min 1 | required |
+| | `pr_number` | positive integer | required |
 
 ### Outputs
 
@@ -60,7 +61,7 @@ Failures are `isError: true` with a plain-text message (see Error mapping).
 | `run_agent_on_pr` | Finished run: the findings payload below. Still running after the max wait: `{ run_id, agent_name, status: 'running', elapsed_s, next }`. |
 | `get_findings` | Finished run: the findings payload. Run still `running`: `{ run_id, status: 'running', next }`. |
 | `get_conventions` | `{ repo, scan: { status, finished_at, model } or null, rules: [{ category, rule, evidence: 'path:line', confidence }], counts_by_status }`, plus a `note` when `status` is `accepted` and there are no accepted rules. |
-| `get_blast_radius` | Always an error (draft stub, see Out of scope). |
+| `get_blast_radius` | `{ repo, pr_number, summary (max 300 chars), degraded, reason, changed_symbols (max 60), changed_symbols_total, downstream (max 20): [{ symbol, callers_total, callers (max 10): [{ name, file, line }], endpoints_affected, crons_affected }], downstream_total, history (max 5): [{ pr_number, title (max 120 chars), author, merged_at, files_overlap (max 10), files_overlap_total, notes (max 200 chars) }] }`, plus a reason-specific `note` when the map is degraded and empty (rebuild advice for index reasons; `flag_off` and `repo_too_large` say a rebuild will not help). Served by `GET /pulls/:id/blast` (`BlastRadiusResponse`); never a model call. |
 
 Findings payload (`format.ts` `shapeFindings`): `{ run_id, agent_name, status,
 verdict, score, summary (max 300 chars), counts { critical, warning, suggestion },
@@ -196,10 +197,9 @@ package keeps it small. Checked by `test/tools-list.test.ts`.
 
 ## Out of scope
 
-- `devdigest_get_blast_radius` is a draft stub: it always returns an error
-  `"... is not implemented yet (homework, L04). Expected result shape:
-  { changed_symbols: [...], downstream: [...], summary: string }"`, and its
-  description says so.
+- Rebuilding the repo index from the MCP server. A degraded blast radius says
+  so in `reason` and `note`; the resync lives in the DevDigest UI
+  (`POST /repos/:id/resync`).
 - No HTTP or SSE transport; stdio only.
 - No authentication and no multi-workspace support: the API has no auth in
   local mode.

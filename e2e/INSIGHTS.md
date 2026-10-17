@@ -29,6 +29,7 @@ see it, do not write it.
 
 - [2026-09-25] This package uses npm (`package-lock.json`), not pnpm. `agent-browser` is a global CLI, installed once with `npm i -g agent-browser && agent-browser install`. Evidence: `e2e/package.json`.
 - [2026-10-06] The pipeline guard hook lets only test-writer edit e2e/specs/flows.md; doc-writer is blocked there and hands the flow section back to the main session. Plan flow-doc updates as a test-writer row, not a doc-writer one. Evidence: `.pipeline/feat-smart-diff/doc-writer.md`.
+- [2026-10-12] agent-browser wait --text matches the rendered text, so a label styled with CSS text-transform: uppercase (card labels such as INTENT / BLAST RADIUS) never matches its source-case string; wait on a plain-case string of the same card instead. Evidence: e2e/specs/13-pr-blast-radius.flow.json Evidence: `e2e/specs/13-pr-blast-radius.flow.json`.
 
 ## Recurring Errors & Fixes
 
@@ -42,6 +43,7 @@ _None yet._
 - [2026-09-25] L02: added 10-skills flow (skills grid → side preview → agent Skills tab); locators had to move to the first visible card and to `find role button --name Skills`; hermetic run 10/10 green. Evidence: `e2e/specs/10-skills.flow.json`.
 - [2026-09-26] HW2: flow 10 extended to the side panel (?skill=) and the /skills/:id Versioning tab; flow 11 covers /conventions on the seeded (uncloned) repo. Evidence: `e2e/specs/flows.md:11-conventions`.
 - [2026-10-06] Intent layer: flow 12-pr-intent reads the seeded pr_intent row for PR #482, so no model call is needed in e2e. Evidence: `e2e/specs/12-pr-intent.flow.json; server/src/db/seed.ts`.
+- [2026-10-12] Blast radius: flow 13 asserts the card's degraded empty state on the seeded PR #482 (no clone, no index); first run failed only on the uppercase label locator, removed. Evidence: e2e/specs/flows.md:13-pr-blast-radius Evidence: `e2e/specs/flows.md`.
 
 ## Open Questions
 

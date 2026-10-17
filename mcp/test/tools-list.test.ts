@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { connect, textOf } from './connect.js';
+import { connect } from './connect.js';
 
 const NAMES = [
   'devdigest_list_agents',
@@ -55,11 +55,10 @@ describe('tools/list', () => {
     expect(sentences(ins)).toBeLessThanOrEqual(4);
   });
 
-  it('blast radius returns isError with the expected shape', async () => {
+  it('blast radius rejects a call without a target at the protocol layer', async () => {
     const { client } = await connect(() => undefined);
-    const res = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: {} });
-    expect(res.isError).toBe(true);
-    expect(textOf(res)).toContain('not implemented yet (homework');
-    expect(textOf(res)).toContain('changed_symbols');
+    const res = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: {} }).catch((e) => e);
+    const isErr = res instanceof Error || (res as { isError?: boolean }).isError === true;
+    expect(isErr).toBe(true);
   });
 });

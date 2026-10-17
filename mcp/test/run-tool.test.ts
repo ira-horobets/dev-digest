@@ -138,4 +138,75 @@ describe('other tools through the server', () => {
     expect(res.isError).toBe(true);
     expect(textOf(res)).toContain('devdigest_run_agent_on_pr');
   });
+
+  it('get_blast_radius resolves the PR, calls /pulls/:id/blast and returns the capped map', async () => {
+    const blast = {
+      changed_symbols: [{ name: 'rateLimit', file: 'src/mw.ts', kind: 'function' }],
+      downstream: [
+        {
+          symbol: 'rateLimit',
+          callers: Array.from({ length: 12 }, (_, i) => ({ name: `c${i}`, file: `src/c${i}.ts`, line: i + 1, endpoints: [], crons: [] })),
+          endpoints_affected: ['GET /api/items'],
+          crons_affected: [],
+        },
+      ],
+      summary: '1 changed symbol reaches 12 callers in 12 files, 1 endpoint and 0 cron jobs.',
+      degraded: false,
+      reason: null,
+      head_sha: 'abc',
+      history: [{ pr_number: 401, title: 'T'.repeat(300), merged_at: '2026-03-18T00:00:00.000Z', author: 'd', files_overlap: ['src/mw.ts'], notes: 'n' }],
+    };
+    const h: Handler = (m, p) => {
+      if (p === '/repos') return { body: [REPO] };
+      if (p === `/repos/${REPO.id}/pulls`) return { body: [{ id: PR_ID, number: 482, title: 'Add rate limiting' }] };
+      if (p === `/pulls/${PR_ID}/blast`) return { body: blast };
+      return undefined;
+    };
+    const { client, calls } = await connect(h);
+    const res = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: { repo: 'payments-api', pr_number: 482 } });
+    expect(res.isError).toBeUndefined();
+    const out = JSON.parse(textOf(res));
+    expect(calls.map((c) => c.path)).toEqual(['/repos', `/repos/${REPO.id}/pulls`, `/pulls/${PR_ID}/blast`]);
+    expect(out).toMatchObject({ repo: REPO.full_name, pr_number: 482, degraded: false, reason: null, downstream_total: 1 });
+    expect(out.downstream[0].callers).toHaveLength(10);
+    expect(out.downstream[0].callers_total).toBe(12);
+    expect(out.downstream[0].callers[0]).toEqual({ name: 'c0', file: 'src/c0.ts', line: 1 });
+    expect(out.history[0].title.length).toBeLessThanOrEqual(120);
+    expect(out.history[0].files_overlap_total).toBe(1);
+    expect(out.note).toBeUndefined();
+
+    const missing = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: { repo: 'payments-api', pr_number: 9 } });
+    expect(missing.isError).toBe(true);
+    expect(textOf(missing)).toContain('PR #9 was not found');
+  });
+
+  it('get_blast_radius on an unindexed repo returns the degraded reason and a note', async () => {
+    const h: Handler = (_m, p) => {
+      if (p === '/repos') return { body: [REPO] };
+      if (p === `/repos/${REPO.id}/pulls`) return { body: [{ id: PR_ID, number: 482, title: 'x' }] };
+      if (p === `/pulls/${PR_ID}/blast`) return { body: { changed_symbols: [], downstream: [], summary: 'No symbols declared in the changed files were found in the index.', degraded: true, reason: 'no_data', head_sha: 'abc', history: [] } };
+      return undefined;
+    };
+    const { client } = await connect(h);
+    const res = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: { repo: 'acme/payments-api', pr_number: 482 } });
+    expect(res.isError).toBeUndefined();
+    const out = JSON.parse(textOf(res));
+    expect(out.reason).toBe('no_data');
+    expect(out.note).toContain('not indexed');
+    expect(out.note).toContain('Rebuild index');
+  });
+
+  it('get_blast_radius with the flag off says a rebuild will not help', async () => {
+    const h: Handler = (_m, p) => {
+      if (p === '/repos') return { body: [REPO] };
+      if (p === `/repos/${REPO.id}/pulls`) return { body: [{ id: PR_ID, number: 482, title: 'x' }] };
+      if (p === `/pulls/${PR_ID}/blast`) return { body: { changed_symbols: [], downstream: [], summary: 's', degraded: true, reason: 'flag_off', head_sha: 'abc', history: [] } };
+      return undefined;
+    };
+    const { client } = await connect(h);
+    const res = await client.callTool({ name: 'devdigest_get_blast_radius', arguments: { repo: 'acme/payments-api', pr_number: 482 } });
+    const out = JSON.parse(textOf(res));
+    expect(out.note).toContain('REPO_INTEL_ENABLED');
+    expect(out.note).not.toContain('Rebuild index');
+  });
 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Finding, Verdict } from './findings.js';
-import { Intent, IntentConfidence, IntentSource, SmartDiff } from './brief.js';
+import { BlastRadius, Intent, IntentConfidence, IntentSource, PrHistoryItem, SmartDiff } from './brief.js';
 import { RunSummary } from './trace.js';
 
 /**
@@ -78,6 +78,29 @@ export type PrIntentRecord = z.infer<typeof PrIntentRecord>;
 /** Smart-diff response for a PR (the SmartDiff). */
 export const SmartDiffResponse = SmartDiff;
 export type SmartDiffResponse = z.infer<typeof SmartDiffResponse>;
+
+/** Why a blast radius is incomplete (mirrors repo-intel's DegradedReason). */
+export const BlastDegradedReason = z.enum([
+  'flag_off',
+  'index_failed',
+  'index_partial',
+  'repo_too_large',
+  'no_data',
+]);
+export type BlastDegradedReason = z.infer<typeof BlastDegradedReason>;
+
+/**
+ * Response of `GET /pulls/:id/blast`: the BlastRadius computed from the repo
+ * index at read time (no model call), its degraded flag, the PR head to deep-link
+ * caller lines, and the prior PRs of the repo that touched the same files.
+ */
+export const BlastRadiusResponse = BlastRadius.extend({
+  degraded: z.boolean(),
+  reason: BlastDegradedReason.nullable(),
+  head_sha: z.string(),
+  history: z.array(PrHistoryItem),
+});
+export type BlastRadiusResponse = z.infer<typeof BlastRadiusResponse>;
 
 /**
  * Response of `GET /runs/:id/findings`: one run's summary (status included, so

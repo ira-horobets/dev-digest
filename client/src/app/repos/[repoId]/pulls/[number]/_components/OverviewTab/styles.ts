@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 export const s = {
-  /* Two columns on wide screens (Intent left, right column kept free for Blast radius); one when narrow. auto-fill keeps the empty track so the card stays half width. */
+  /* Two columns on wide screens (Intent left, Blast radius right); one when narrow. */
   briefGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
