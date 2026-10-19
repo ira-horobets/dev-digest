@@ -16,17 +16,17 @@ feature spec anywhere else.
   `draft` only. A human sets `approved`. `implemented` is set when the feature
   ships and the package spec exists.
 - `Supersedes` links the spec this one replaces, otherwise `—`.
-- The body language follows the request; the headings below are fixed.
+- English only, whatever language the request or the design came in. The headings below are fixed.
 
 ## Body
 
 ```markdown
-# Spec: <назва фічі>
+# Spec: <feature name>
 Spec ID: SPEC-NN
 Status: draft | approved | implemented
-Supersedes: <посилання, якщо нова спека замінює попереднє рішення>
+Supersedes: <link, when this spec replaces an earlier decision>
 
-## Проблема й користувач
+## Problem and user
 ## Goals / Non-goals
 ## User stories
 ## Acceptance criteria (EARS)

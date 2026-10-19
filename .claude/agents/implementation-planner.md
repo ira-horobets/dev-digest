@@ -257,6 +257,7 @@ Single-agent mode (the main session runs these itself, in order):
 
 Rules for the plan:
 
+- English only, whatever language the request, the spec or the answers came in.
 - Every file the implementer will touch is a row. A file not in the table is out of scope.
 - With a spec, the plan's acceptance criteria are the spec's `AC-n`, verbatim and complete, each with its verification; the plan adds only `TC-n`. Without a spec, every `AC<n>` names the `R<n>` it satisfies. Every requirement row is covered by a criterion and rows, or appears under *Out of scope* with a reason. Every row with behaviour has a test or says why not (tests are typological, not exhaustive).
 - The *Skills to apply* column is what `routing.md` gives for that path, minus `security` / `typescript-expert` where §1.5 drops them, plus any skill you loaded to plan the row.

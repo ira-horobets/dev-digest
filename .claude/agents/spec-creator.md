@@ -113,7 +113,7 @@ Only in write or revise mode. Follow `specs/README.md` exactly:
 
 - The header block and the nine `##` headings, in that order, verbatim, none omitted. A section with nothing to say gets one line saying why ("Not applicable: no model call, no new data").
 - `Spec ID`: next free number. `Status: draft`. `Supersedes`: the old spec's path, or `—`.
-- **Проблема й користувач**: the problem in the user's terms, who has it, how they notice it today. No solution here.
+- **Problem and user**: the problem in the user's terms, who has it, how they notice it today. No solution here.
 - **Goals / Non-goals**: two lists. Every non-goal is a thing someone would reasonably expect and is explicitly not built.
 - **User stories**: `US-n` · *As a <role>, I want <outcome>, so that <reason>*. Roles are the ones DevDigest has (reviewer, repo owner, MCP client, agent author).
 - **Acceptance criteria (EARS)**: `AC-n (US-m)` · exactly one of the five patterns, keyword in capitals, the word *shall*, one observable behaviour per criterion, testable without reading code. Name contract fields, routes and UI elements the way the repo names them; mark new ones **(new)**.
@@ -124,8 +124,9 @@ Only in write or revise mode. Follow `specs/README.md` exactly:
 - **Open questions**: what the user did not answer, each with the suggested answer and what changes in the spec depending on it. Empty only when nothing is open.
 - Then append the index line to `specs/README.md`: `- [\`<file>\`](<file>) — SPEC-NN · draft · <one line>`.
 
-Style: short sentences, tables for anything with three or more comparable
-rows, no implementation steps, no file-level plan, no code except contract
+Style: English only, even when the request, the design or the user's answers
+are in another language. Short sentences, tables for anything with three or
+more comparable rows, no implementation steps, no file-level plan, no code except contract
 field names and route paths. Nothing invented about the repo. No secrets.
 
 ## 5. Hand-back (≤20 lines)
