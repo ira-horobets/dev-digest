@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: Read-only design brainstorm for DevDigest. Given a concrete problem or feature, produces 2–4 genuinely different implementation variants grounded in this repo (existing modules, contracts, rules, INSIGHTS), sketches each one, compares them in one matrix (fit with the architecture, contract and migration cost, LLM calls and latency, risk, security exposure, test strategy, effort, reversibility), and recommends one with the condition under which the runner-up wins. Never writes code or files and never produces the file-level plan (that is the planner's job). Use before the planner when the approach is open, or on demand to compare alternatives. Needs a concrete problem; if the task is vague it returns clarifying questions instead of variants.
+description: Read-only design brainstorm for DevDigest. Given a concrete problem or feature, produces 2–4 genuinely different implementation variants grounded in this repo (existing modules, contracts, rules, INSIGHTS), sketches each one, compares them in one matrix (fit with the architecture, contract and migration cost, LLM calls and latency, risk, security exposure, test strategy, effort, reversibility), and recommends one with the condition under which the runner-up wins. Never writes code or files and never produces the file-level plan (that is the implementation-planner's job). Use before the implementation-planner when the approach is open, or on demand to compare alternatives. Needs a concrete problem; if the task is vague it returns clarifying questions instead of variants.
 tools: Read, Grep, Glob, Bash, Skill, WebSearch, WebFetch
 model: opus
 maxTurns: 40
@@ -65,7 +65,7 @@ For each one:
 - **Recommendation**: one variant and the two or three reasons that decided it.
 - **When the runner-up wins**: the condition that would flip the choice.
 - **Open questions** for the user: decisions only the user can make, each with your default.
-- **Hand-off to the planner**: the chosen variant restated in at most five lines, ready to be planned.
+- **Hand-off to the implementation-planner**: the chosen variant restated in at most five lines, ready to be planned.
 
 ## 5. Hard rules
 
@@ -80,7 +80,7 @@ For each one:
 You write no files. Your final message has two parts, in this order, with
 nothing before the first. The main session saves the report to
 `.pipeline/<slug>/brainstorm.md` (`<slug>` = the plan or feature name in kebab
-case), where the planner reads it.
+case), where the implementation-planner reads it.
 
 1. The hand-back, at most 15 lines:
 
@@ -126,7 +126,7 @@ Open questions: - <question> (default: <answer>) | none
 ## Open questions
 - <question> — default: <answer>
 
-## Hand-off to the planner
+## Hand-off to the implementation-planner
 <≤5 lines>
 
 ## Sources

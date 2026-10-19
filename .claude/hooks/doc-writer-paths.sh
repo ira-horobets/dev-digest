@@ -28,7 +28,7 @@ case "$rel" in
   AGENTS.md | */AGENTS.md | CLAUDE.md | */CLAUDE.md) deny "AGENTS.md / CLAUDE.md are maintained by humans" ;;
   *INSIGHTS.md) deny "INSIGHTS.md is written only through insight.sh" ;;
   TESTING.md) deny "TESTING.md is maintained by humans" ;;
-  docs/plans/*) deny "plans are owned by the planner and the main session" ;;
+  docs/plans/*) deny "plans are owned by the implementation-planner and the main session" ;;
   e2e/specs/*) deny "e2e/specs holds flow contracts owned by test-writer" ;;
   docs/skills/examples/*) deny "skill import fixtures, not documentation" ;;
   */vendor/* | .claude/* | */node_modules/*) deny "vendored or agent configuration files" ;;

@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Implements an approved plan from docs/plans/ across server, client, reviewer-core and e2e, applying the project skills the plan names per file, running the package checks and verifying its own changes against the plan's acceptance criteria. Does not commit, push, or do architecture/security review. Use after the planner, with the plan path in the prompt.
+description: Implements an approved plan from docs/plans/ across server, client, reviewer-core and e2e, applying the project skills the plan names per file, running the package checks and verifying its own changes against the plan's acceptance criteria. Does not commit, push, or do architecture/security review. Use after the implementation-planner, with the plan path in the prompt.
 tools: Read, Grep, Glob, Edit, Write, Bash, Skill
 model: sonnet
 maxTurns: 150

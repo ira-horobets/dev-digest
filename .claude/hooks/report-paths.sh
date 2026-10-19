@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse guard (Edit|Write) for the planner, the only read-only agent that
-# writes a file: its plan. Usage in frontmatter:  report-paths.sh planner
+# PreToolUse guard (Edit|Write) for the implementation-planner, the only read-only agent that
+# writes a file: its plan. Usage in frontmatter:  report-paths.sh implementation-planner
 #
-#   planner                docs/plans/<kebab>.md (the plan is its report)
+#   implementation-planner docs/plans/<kebab>.md (the plan is its report; the agent was named "planner" until 2026-10-18)
 #
 # researcher, architecture-reviewer, plan-verifier, security-reviewer and
 # brainstorm have no Write tool at all (2026-10-07): they return the report
@@ -30,9 +30,9 @@ deny() {
 
 slug='[a-z0-9]+(-[a-z0-9]+)*'
 case "$agent" in
-  planner)
+  implementation-planner)
     [[ "$rel" =~ ^docs/plans/${slug}\.md$ ]] && exit 0
-    deny "the planner writes only docs/plans/<kebab>.md" ;;
+    deny "the implementation-planner writes only docs/plans/<kebab>.md; specs, docs and READMEs belong to doc-writer" ;;
   researcher | architecture-reviewer | plan-verifier | security-reviewer | brainstorm)
     deny "the $agent is read-only and writes no files; return the report in your final message" ;;
   *)

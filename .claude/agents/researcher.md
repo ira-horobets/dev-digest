@@ -164,10 +164,10 @@ possible. Do not bundle a partial answer with the questions.
 ## Suggested next steps (optional)
 ```
 
-## 3b. Codebase brief (before the planner)
+## 3b. Codebase brief (before the implementation-planner)
 
-When the prompt asks for a **brief for `<slug>`**, your output is the planner's
-starting point. The point is to move exploration off the planner's more
+When the prompt asks for a **brief for `<slug>`**, your output is the implementation-planner's
+starting point. The point is to move exploration off the implementation-planner's more
 expensive model. The main session usually runs this mode on `haiku`. Answer
 these, from the curated docs first and then the code:
 
@@ -175,7 +175,7 @@ these, from the curated docs first and then the code:
 2. What already exists for the feature (tables, contracts, routes, settings, UI) and whether it is wired or dead code.
 3. The files the task will most likely touch, with their package and onion ring or client layer.
 4. INSIGHTS entries that bear on the task (`insight.sh list <pkg>` is not available to you; read the package `INSIGHTS.md`).
-5. Unknowns the planner must resolve itself.
+5. Unknowns the implementation-planner must resolve itself.
 
 Return it as your report (see the output rules in §5). Use facts only, each a single line with
 `path:line`. No prose, no recommendations, no plan. Stay under 120 lines and

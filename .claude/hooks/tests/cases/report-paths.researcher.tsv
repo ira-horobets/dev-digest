@@ -3,7 +3,7 @@
 BLOCK	.pipeline/feat-intent-layer/brief.md	codebase brief (read-only since 2026-10-07)
 BLOCK	.pipeline/feat-intent-layer/researcher.md	report (read-only since 2026-10-07)
 BLOCK	.pipeline/feat-intent-layer/researcher-ssrf.md	topic report (read-only since 2026-10-07)
-BLOCK	.pipeline/feat-intent-layer/planner.md	other agent
+BLOCK	.pipeline/feat-intent-layer/implementation-planner.md	other agent
 BLOCK	.pipeline/brief.md	no slug
 BLOCK	docs/plans/feat-x.md	plans
 BLOCK	.pipeline/feat-x/../../server/src/app.ts	traversal
