@@ -13,8 +13,9 @@ feature spec anywhere else.
 - `Spec ID: SPEC-NN` is global across this folder. The next ID is the highest
   existing number plus one, two digits.
 - `Status` moves `draft` → `approved` → `implemented`. `spec-creator` writes
-  `draft` only. A human sets `approved`. `implemented` is set when the feature
-  ships and the package spec exists.
+  `draft` only. A human sets `approved`. `doc-writer` sets `implemented` at the
+  end of the pipeline, once the package specs exist, changing only the
+  `Status:` line here and the status word in the index below.
 - `Supersedes` links the spec this one replaces, otherwise `—`.
 - English only, whatever language the request or the design came in. The headings below are fixed.
 

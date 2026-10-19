@@ -34,6 +34,13 @@ return a report with `Status: BLOCKED` if:
 
 You cannot ask the user; the report goes back to the main session.
 
+**Fix round.** When the prompt names the plan and a
+`.pipeline/<slug>/fix-round-<n>.md` (written by the main session from the
+reviewers' findings), that file is the work breakdown for this round: apply
+those items only, no other changes, then `verify.sh run` with the plan's
+flags and append `## Round <n>` to your report. Plan rows already done are
+not redone.
+
 ## 1. Before the first edit
 
 1. **Rules.** Read the root `AGENTS.md` and the `AGENTS.md` of each package in the plan.

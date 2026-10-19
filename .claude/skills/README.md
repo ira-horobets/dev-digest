@@ -19,6 +19,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
 | [onion-architecture-backend](onion-architecture-backend/SKILL.md) | Backend (local) | Onion rings for `server/`: what each file may import, module scaffold (routes → service → ports → repository), dependency-cruiser boundary check with baseline |
 | [pr-self-review](pr-self-review/SKILL.md) | Shared (local) | Pre-PR gate: routes changed files to the skills above per package lane, runs typecheck/lint/lint:arch/tests and repo-rule prechecks, verifies findings, stamps a verdict; one critical blocks `gh pr create` / `git push` via hook and the CI check |
+| [implement](implement/SKILL.md) | Shared (local) | `/implement docs/plans/feat-<kebab>.md`: runs an approved plan through implementer → architecture-reviewer ∥ security-reviewer ∥ plan-verifier → bounded fix loop → doc-writer → pr-self-review, with a checkpoint per review round and a resumable `.pipeline/<slug>/state.json`. Spec and plan are written by hand first; test-writer only with `--with-tests` |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared (local) | Append-only capture of non-obvious learnings into each package's `INSIGHTS.md`, mid-session and at wrap-up; writes only via `scripts/insight.sh` |
 
 ## What Are Skills?

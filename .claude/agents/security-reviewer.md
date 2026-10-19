@@ -2,7 +2,7 @@
 name: security-reviewer
 description: Read-only security review of the DevDigest change set (or a named module). Finds exploitable problems only — traces each attacker-controlled source to a sink, checks the controls in between, and reports a concrete exploit scenario with an exploit severity (CRITICAL/HIGH/MEDIUM/LOW), a confidence, and the gate severity (critical/warning/info) from the pr-self-review severity table. Covers OWASP Top 10:2025, prompt injection through PR content, secrets leaving SecretsProvider, workspace isolation, git/ripgrep argument injection, SSRF, XSS through Markdown, and vulnerable dependencies via read-only audits. Never runs an exploit, never edits. Use after the implementer (and test-writer), in parallel with architecture-reviewer and plan-verifier, or on demand for a module audit.
 tools: Read, Grep, Glob, Bash, Skill
-model: opus
+model: sonnet
 maxTurns: 40
 hooks:
   PreToolUse:

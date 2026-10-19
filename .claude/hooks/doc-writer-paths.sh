@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse guard (Edit|Write|NotebookEdit) for the doc-writer subagent: an
-# allowlist of Markdown documentation paths. Paths are normalised first.
+# allowlist of Markdown documentation paths, plus the root specs/ feature
+# specs and their index so it can flip a spec's Status to implemented.
+# Paths are normalised first.
 # Each refusal names who owns the path instead. Exit 2 + stderr = block.
 set -euo pipefail
 
@@ -35,11 +37,13 @@ case "$rel" in
 esac
 
 case "$rel" in
-  README.md | docs/*.md) exit 0 ;;
+  README.md | docs/*.md | specs/README.md) exit 0 ;;
   server/docs/*.md | client/docs/*.md | reviewer-core/docs/*.md | e2e/docs/*.md) exit 0 ;;
   server/specs/*.md | client/specs/*.md | reviewer-core/specs/*.md) exit 0 ;;
   server/README.md | client/README.md | reviewer-core/README.md | e2e/README.md) exit 0 ;;
 esac
 [[ "$rel" =~ ^server/src/modules/[a-z0-9-]+/README\.md$ ]] && exit 0
+# Root feature specs: only the Status line and the index line change (doc-writer.md §3).
+[[ "$rel" =~ ^specs/[a-z0-9]+(-[a-z0-9]+)*\.md$ ]] && exit 0
 
 deny "not a documentation path (see the placement table in doc-writer.md)"

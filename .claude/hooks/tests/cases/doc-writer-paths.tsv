@@ -10,6 +10,10 @@ ALLOW	server/src/modules/repo-intel/README.md	module readme
 ALLOW	README.md	root readme
 ALLOW	docs/agent-prompts/README.md	root docs
 ALLOW	{ROOT}/reviewer-core/specs/review-contract.md	absolute path
+ALLOW	specs/blast-radius.md	root feature spec (Status flip)
+ALLOW	specs/README.md	root spec index
+BLOCK	specs/drafts/blast-radius.md	no subfolders under specs/
+BLOCK	specs/Blast_Radius.md	not kebab-case
 BLOCK	server/AGENTS.md	agents (D3)
 BLOCK	CLAUDE.md	claude
 BLOCK	client/INSIGHTS.md	insights
