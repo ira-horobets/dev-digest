@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# PreToolUse guard for the planner subagent: its Bash may run only read-only
+# PreToolUse guard for the implementation-planner subagent (and, by delegation, doc-writer
+# and the reviewers): its Bash may run only read-only
 # git (delegated to the researcher guard) or insight.sh read subcommands.
 # Anything else is blocked (exit 2, reason on stderr).
 set -euo pipefail
