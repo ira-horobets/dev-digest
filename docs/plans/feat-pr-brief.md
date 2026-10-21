@@ -294,3 +294,14 @@ Reviewer: `deepseek/deepseek-v4-flash` via OpenRouter, 2026-10-21 (plan author: 
 | 1 | critical | `agent_runs.pr_id` delete rule contradicts spec EC-18 | Rejected: pre-existing `set null` FK; spec EC-18 revised to match D4 |
 | 2 | warning | Regenerate tooltip could name a stale model | Accepted: D5 and row 31 now use the workspace feature model |
 | 3 | info | Transport retries vs "exactly one call" | Accepted: D1 and spec AC-21 reworded; transport retries allowed, no reprompt |
+
+## Amendments (main session, 2026-10-21, after two live runs)
+
+Two live generations on the seeded PR with `deepseek/deepseek-v4-flash`: the second succeeded (one `generate_brief` call, 1,311→1,833 tokens, $0.00018, 12/12 refs kept, trace and log lines stored); the first failed with "The model returned an invalid brief" and the trace carried no raw output, no token counts and no reason, because the adapter throws before the service sees the text. Rows 45–46 add diagnosability and tolerance without a reprompt (AC-21 unchanged).
+
+| # | Package | Ring / layer | File | Change | Skills to apply | Depends on |
+|---|---|---|---|---|---|---|
+| 45 | reviewer-core | llm adapter | `reviewer-core/src/llm/openrouter.ts` (+ `reviewer-core/test/…` existing structured tests) | When the last attempt fails `parseWithRepair`, throw an error whose message keeps the word "schema" and appends the parse issues (`parsed.error`, capped at 400 chars), never the raw text. Same for the "not valid JSON" case. Review runs are unaffected except for a more informative message after their retries are exhausted. | typescript-expert | — |
+| 46 | server | 2 (application) | `server/src/modules/pr-brief/helpers.ts`, `service.ts`, `constants.ts`, `server/test/pr-brief-helpers.test.ts`, `pr-brief-service.test.ts` | (a) Send the model a loose draft schema defined in `helpers.ts` (`PrBriefDraftLoose`: `kind` and `severity` as `z.string()`, `line` as number, numeric string or null, `file_refs` strings) and normalise in code with `normaliseDraft()` before the strict `PrBriefDraft.safeParse`: trim + lowercase `kind`, unknown → `other`; trim + lowercase `severity`, unknown → `medium`; `line` numeric string → integer, anything else → null; drop refs that are not strings. (b) The stored run error becomes `INVALID_BRIEF_ERROR + ': ' + cause message` (so the Zod issues from row 45 land in `agent_runs.error`, capped by `runErrorText`). (c) The trace's `raw_output` stays empty on failure (the adapter does not return it); log one `error` line with the issues. Tests: normalisation table (case, numeric string line, unknown kind/severity); a failing call stores the issues in the run error. | zod, typescript-expert | 45 |
+
+Acceptance: AC-21 still holds (one call, `maxRetries: 0`); AC-32 and AC-41 are strengthened (an unknown kind no longer fails the run; it is stored as `other`). Verification unchanged: `verify.sh run --with-it --e2e`.
