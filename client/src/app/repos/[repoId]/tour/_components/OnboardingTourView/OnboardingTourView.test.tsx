@@ -172,6 +172,25 @@ describe("OnboardingTourView", () => {
     await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/resync"))).toBe(true));
   });
 
+  it("Share link copies the page URL and toasts only when the write succeeded (AC-22)", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    toastSuccess.mockReset();
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderView();
+    await user.click(await screen.findByRole("button", { name: /Share link/ }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Link copied"));
+    expect(writeText).toHaveBeenCalledWith(window.location.href);
+
+    // a rejected clipboard write must not claim success
+    toastSuccess.mockReset();
+    writeText.mockRejectedValue(new Error("denied"));
+    await user.click(screen.getByRole("button", { name: /Share link/ }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
   it("no clone and no tour: the not-cloned state has no generate button (AC-47)", async () => {
     repoCtx.activeRepo = { id: "r1", full_name: "acme/payments-api", default_branch: "main", clone_path: null };
     view = { tour: null, run: null, stale: false };
