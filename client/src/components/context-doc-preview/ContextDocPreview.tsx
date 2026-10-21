@@ -29,13 +29,11 @@ export function ContextDocPreview({ repoId, path, onClose }: { repoId: string; p
         </Button>
       }
     >
-      {file.isLoading && <Skeleton height={160} />}
-      {file.isError && <ErrorState body={t("page.previewError")} onRetry={() => void file.refetch()} />}
-      {file.data && (
-        <div style={s.body} data-testid="context-doc-preview">
-          <Markdown>{file.data.text}</Markdown>
-        </div>
-      )}
+      <div style={s.body} data-testid="context-doc-preview">
+        {file.isLoading && <Skeleton height={160} />}
+        {file.isError && <ErrorState body={t("page.previewError")} onRetry={() => void file.refetch()} />}
+        {file.data && <Markdown>{file.data.text}</Markdown>}
+      </div>
     </Modal>
   );
 }
