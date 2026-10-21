@@ -100,8 +100,7 @@ describe("PrBriefCard", () => {
     const { onOpenTrace } = renderCard();
 
     expect(await screen.findByText("Request changes")).toBeInTheDocument();
-    expect(screen.getByText("2 findings")).toBeInTheDocument();
-    expect(screen.getByText("1 blocker")).toBeInTheDocument();
+    expect(screen.getByText("2 findings · 1 blocker")).toBeInTheDocument();
     expect(screen.getByText("61")).toBeInTheDocument();
     expect(screen.getByText("Adds a limiter. <b>not html</b>")).toBeInTheDocument();
     expect(screen.getByText("Based on 4 of 9 files")).toBeInTheDocument();
@@ -116,6 +115,13 @@ describe("PrBriefCard", () => {
     await user.click(screen.getByRole("button", { name: "About this verdict" }));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("General Reviewer");
     expect(screen.getByRole("tooltip")).toHaveTextContent("openrouter/deepseek/deepseek-v4-flash");
+  });
+
+  it("omits the blocker part of the counts badge when the review has no blockers", async () => {
+    serve({ view: view({ review: { ...REVIEW, findings_count: 1, blockers: 0 } as PrBriefView["review"] }) });
+    renderCard();
+    expect(await screen.findByText("1 finding")).toBeInTheDocument();
+    expect(screen.queryByText(/blocker/)).not.toBeInTheDocument();
   });
 
   it("shows a neutral tile with no ring or badge when never reviewed, and an Out of date badge when stale", async () => {

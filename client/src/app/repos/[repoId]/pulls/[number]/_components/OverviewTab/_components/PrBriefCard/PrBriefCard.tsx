@@ -1,7 +1,8 @@
-/* PrBriefCard — the first card of the Overview tab: the review's verdict tile,
-   the model's summary, the score ring and the cost of the one call that wrote it.
-   Verdict, score and counts come from the newest review at read time, never
-   from the brief model. Model text is rendered as plain text. */
+/* PrBriefCard — the first card of the Overview tab, laid out like VerdictBanner:
+   the review's verdict tile, the counts badge, the model's summary, and on the
+   right the regenerate control, the score ring and the cost of the one call
+   that wrote the brief. Verdict, score and counts come from the newest review
+   at read time, never from the brief model. Model text is rendered as plain text. */
 "use client";
 
 import React from "react";
@@ -13,8 +14,8 @@ import { featureModelFor } from "@/lib/feature-models";
 import { VERDICT_META } from "@/app/repos/[repoId]/pulls/[number]/constants";
 import { InfoPopover } from "./_components/InfoPopover";
 import {
-  BLOCKER_BADGE,
   COUNT_BADGE_COLOR,
+  NEUTRAL_TILE,
   REGENERATE_ICON_SIZE,
   SCORE_SIZE,
   SCORE_STROKE,
@@ -40,20 +41,10 @@ export function PrBriefCard({
   const choice = featureModelFor(settings, "risk_brief");
   const currentModel = modelLabel(choice);
 
-  const label = (
-    <span style={s.label}>
-      <Icon.Sparkles size={14} />
-      {t("title")}
-    </span>
-  );
-
   if (isLoading) {
     return (
       <Card>
-        <div style={s.headRow}>{label}</div>
-        <div style={{ marginTop: 12 }}>
-          <Skeleton height={SKELETON_HEIGHT} />
-        </div>
+        <Skeleton height={SKELETON_HEIGHT} />
       </Card>
     );
   }
@@ -61,7 +52,6 @@ export function PrBriefCard({
   if (isError || !data) {
     return (
       <Card>
-        <div style={s.headRow}>{label}</div>
         <ErrorState title={t("loadFailed")} onRetry={() => refetch()} />
       </Card>
     );
@@ -78,7 +68,6 @@ export function PrBriefCard({
     return (
       <Card>
         <div aria-busy={running}>
-          <div style={s.headRow}>{label}</div>
           <div style={s.center}>
             <Button
               kind="primary"
@@ -104,67 +93,65 @@ export function PrBriefCard({
 
   const meta = review?.verdict ? (VERDICT_META[review.verdict] ?? VERDICT_META.comment) : null;
   const VIcon = meta ? Icon[meta.icon] : Icon.Clock;
+  const tile = meta ? { color: meta.c, bg: meta.bg } : NEUTRAL_TILE;
   const storedModel = storedModelLabel(brief);
   const traceRunId = brief.run_id ?? run?.run_id ?? null;
   const line = costLine(brief);
+  const costText = (
+    <>
+      <Icon.DollarSign size={12} />
+      <span className="mono tnum">{line.cost}</span>
+      <span className="mono tnum">{line.tokens}</span>
+    </>
+  );
 
   return (
     <Card>
-      <div aria-busy={running}>
-        <div style={s.headRow}>
-          {label}
-          <InfoPopover review={review} model={storedModel} />
-          {stale && (
-            <span title={t("staleHint")}>
+      <div aria-busy={running} style={s.wrap}>
+        <div style={s.iconBox(tile.bg, tile.color)}>
+          <VIcon size={VERDICT_ICON_SIZE} />
+        </div>
+
+        <div style={s.main}>
+          <div style={s.titleRow}>
+            <span style={s.label(tile.color)}>{meta ? tv(`verdict.${meta.labelKey}`) : t("notReviewed")}</span>
+            {review && (
+              <Badge color={COUNT_BADGE_COLOR}>
+                {t("counts", { findings: review.findings_count, blockers: review.blockers })}
+              </Badge>
+            )}
+            <InfoPopover review={review} model={storedModel} />
+            {stale && (
               <Badge color={STALE_BADGE.color} bg={STALE_BADGE.bg} icon="AlertTriangle">
                 {t("outOfDate")}
               </Badge>
-            </span>
+            )}
+          </div>
+          <p style={s.summary}>{brief.summary}</p>
+          {!review && <p style={s.hint}>{t("notReviewedHint")}</p>}
+          {stale && <p style={s.hint}>{t("staleHint")}</p>}
+          {brief.files_included < brief.files_total && (
+            <p style={s.hint}>{t("basedOn", { included: brief.files_included, total: brief.files_total })}</p>
           )}
-          <span style={s.spacer} />
+          {failedText && (
+            <p role="alert" style={s.error}>
+              {failedText}
+            </p>
+          )}
+        </div>
+
+        <div style={s.side}>
           {running ? (
             <Badge icon="RefreshCw">{t("generating")}</Badge>
           ) : (
             <IconBtn icon="RefreshCw" label={t("regenerate", { model: currentModel })} size={REGENERATE_ICON_SIZE} onClick={start} />
           )}
-        </div>
-
-        <div style={s.body}>
-          {meta ? (
-            <span style={s.tile(meta.c, meta.bg)}>
-              <VIcon size={VERDICT_ICON_SIZE} />
-              {tv(`verdict.${meta.labelKey}`)}
-            </span>
-          ) : (
-            <span style={s.tileNeutral}>
-              <VIcon size={VERDICT_ICON_SIZE} />
-              {t("notReviewed")}
-            </span>
-          )}
-          <div style={s.main}>
-            {review && (
-              <div style={s.badges}>
-                <Badge color={COUNT_BADGE_COLOR}>{t("findingsBadge", { count: review.findings_count })}</Badge>
-                {review.blockers > 0 && (
-                  <Badge color={BLOCKER_BADGE.color} bg={BLOCKER_BADGE.bg}>
-                    {t("blockers", { count: review.blockers })}
-                  </Badge>
-                )}
-              </div>
-            )}
-            <p style={s.summary}>{brief.summary}</p>
-            {!review && <p style={s.hint}>{t("notReviewedHint")}</p>}
-            {stale && <p style={s.hint}>{t("staleHint")}</p>}
-          </div>
           {review?.score != null && (
             <div style={s.scoreCol}>
               <CircularScore score={review.score} size={SCORE_SIZE} stroke={SCORE_STROKE} />
               <span style={s.scoreLabel}>{t("score")}</span>
             </div>
           )}
-        </div>
-
-        <div style={s.footer}>
           {traceRunId ? (
             <button
               type="button"
@@ -172,20 +159,12 @@ export function PrBriefCard({
               aria-label={t("costLine", { cost: line.cost, tokens: line.tokens, model: storedModel })}
               onClick={() => onOpenTrace(traceRunId)}
             >
-              {line.text}
+              {costText}
             </button>
           ) : (
-            <span>{line.text}</span>
-          )}
-          {brief.files_included < brief.files_total && (
-            <span>{t("basedOn", { included: brief.files_included, total: brief.files_total })}</span>
+            <span style={s.cost}>{costText}</span>
           )}
         </div>
-        {failedText && (
-          <p role="alert" style={s.error}>
-            {failedText}
-          </p>
-        )}
       </div>
     </Card>
   );
