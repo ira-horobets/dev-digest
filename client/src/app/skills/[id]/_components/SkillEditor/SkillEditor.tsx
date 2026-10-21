@@ -13,6 +13,7 @@ import { useSkill } from "../../../../../lib/hooks/skills";
 import { ApiError } from "../../../../../lib/api";
 import { needsVetting } from "../../../helpers";
 import { ConfigTab } from "./_components/ConfigTab";
+import { ContextTab } from "./_components/ContextTab";
 import { PreviewTab } from "./_components/PreviewTab";
 import { VersioningTab } from "./_components/VersioningTab";
 import { SKILL_TABS, VALID_SKILL_TABS, type SkillTabKey } from "./constants";
@@ -87,6 +88,7 @@ export function SkillEditor({ id }: { id: string }) {
           <div style={s.body}>
             {tab === "config" && <ConfigTab key={`${skill.id}:${skill.version}`} skill={skill} />}
             {tab === "preview" && <PreviewTab skill={skill} />}
+            {tab === "context" && <ContextTab skill={skill} />}
             {tab === "versioning" && <VersioningTab skill={skill} />}
           </div>
         </div>

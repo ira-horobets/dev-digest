@@ -27,8 +27,11 @@ const TRACE: RunTrace = {
   ],
 };
 
+// the trace the mocked hook serves; a test swaps it
+const served: { trace: RunTrace } = { trace: TRACE };
+
 vi.mock("../../../../../../../lib/hooks/trace", () => ({
-  useRunTrace: () => ({ data: TRACE, isLoading: false }),
+  useRunTrace: () => ({ data: served.trace, isLoading: false }),
 }));
 vi.mock("../../../../../../../lib/hooks/reviews", () => ({
   useRunEvents: () => ({ events: [], running: false }),
@@ -36,7 +39,10 @@ vi.mock("../../../../../../../lib/hooks/reviews", () => ({
 
 import RunTraceDrawer from "./RunTraceDrawer";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  served.trace = TRACE;
+});
 
 function renderWithIntl(ui: React.ReactElement) {
   return render(
@@ -69,5 +75,48 @@ describe("A5 Run Trace drawer (smoke)", () => {
     fireEvent.click(screen.getByText("log"));
     // LiveLogStream renders its filter input
     expect(screen.getByPlaceholderText("Filter log…")).toBeInTheDocument();
+  });
+
+  it("shows the project context block and one sub-block per document (AC-42, AC-43)", () => {
+    served.trace = {
+      ...TRACE,
+      prompt_assembly: {
+        ...TRACE.prompt_assembly,
+        specs: '<untrusted source="docs/a.md">\nA text\n</untrusted>',
+        context_tokens: 30,
+        context_blocks: [
+          { path: "docs/a.md", tokens: 10, text: "A text", truncated: false, source: "agent" },
+          { path: "specs/b.md", tokens: 20, text: "B text", truncated: true, source: "skill:secret-gate", modified: true },
+          { path: "docs/c.md", tokens: 5, text: "C text", truncated: false, source: "agent", modified: false },
+          { path: "docs/d.md", tokens: 6, text: "D text", truncated: false, source: "agent", modified: null },
+        ],
+      },
+      specs_read: ["Linked ticket #4", "docs/a.md", "specs/b.md"],
+    };
+    renderWithIntl(<RunTraceDrawer runId="r1" agentName="Security" prNumber={482} onClose={() => {}} />);
+    // Configuration: attached documents with their tokens, intent refs as before
+    expect(screen.getByText("docs/a.md · 10 tokens")).toBeInTheDocument();
+    expect(screen.getByText("specs/b.md · 20 tokens")).toBeInTheDocument();
+    expect(screen.getByText("Linked ticket #4")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Prompt assembly"));
+    expect(screen.getByText("Project context — attached specs (untrusted) · 30 tokens")).toBeInTheDocument();
+    expect(screen.getByText("↳ docs/a.md · 10 tokens · agent")).toBeInTheDocument();
+    // AC-58: the label only when modified is true; old traces (absent or null) and false have none
+    expect(screen.getByText("↳ specs/b.md · 20 tokens · skill:secret-gate · truncated · Modified locally")).toBeInTheDocument();
+    expect(screen.getByText("↳ docs/c.md · 5 tokens · agent")).toBeInTheDocument();
+    expect(screen.getByText("↳ docs/d.md · 6 tokens · agent")).toBeInTheDocument();
+    // the generic specs block is replaced, not duplicated
+    expect(screen.queryByText("Project context (dynamic)")).not.toBeInTheDocument();
+    // a sub-block opens to the full text sent to the model
+    fireEvent.click(screen.getByText("↳ docs/a.md · 10 tokens · agent"));
+    expect(screen.getByText("A text")).toBeInTheDocument();
+  });
+
+  it("without context blocks there are no sub-blocks and Specs read shows the refs or none (AC-44)", () => {
+    renderWithIntl(<RunTraceDrawer runId="r1" agentName="Security" prNumber={482} onClose={() => {}} />);
+    expect(screen.getByText("none")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Prompt assembly"));
+    expect(screen.queryByText(/Project context — attached specs/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^↳ /)).not.toBeInTheDocument();
   });
 });

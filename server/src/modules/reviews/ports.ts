@@ -111,3 +111,29 @@ export interface IntentDeriverPort {
     opts: { changedPaths?: string[]; log: IntentLog },
   ): Promise<EnsureIntentResult>;
 }
+
+/** One attached project document resolved for a run (SPEC-01). */
+export interface ProjectContextBlockDto {
+  path: string;
+  text: string;
+  tokens: number;
+  truncated: boolean;
+  /** 'agent' or 'skill:<name>'. */
+  source: string;
+  /** The text came from a local override. */
+  modified: boolean;
+}
+
+/** What the run executor calls to resolve project context. Never throws. */
+export interface ProjectContextResolverPort {
+  resolveForRun(
+    workspaceId: string,
+    input: {
+      repoId: string;
+      baseBranch: string;
+      agentId: string;
+      skills: { id: string; name: string }[];
+      log: (message: string) => void;
+    },
+  ): Promise<{ blocks: ProjectContextBlockDto[]; totalTokens: number }>;
+}

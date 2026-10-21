@@ -2,7 +2,7 @@ import type { IconName } from "@devdigest/ui";
 
 /** Editor tab descriptor; `labelKey` resolves under the `skills` namespace. */
 export interface SkillEditorTab {
-  key: "config" | "preview" | "versioning";
+  key: "config" | "preview" | "context" | "versioning";
   labelKey: string;
   icon: IconName;
 }
@@ -10,6 +10,7 @@ export interface SkillEditorTab {
 export const SKILL_TABS: readonly SkillEditorTab[] = [
   { key: "config", labelKey: "editor.tabs.config", icon: "Settings" },
   { key: "preview", labelKey: "editor.tabs.preview", icon: "Eye" },
+  { key: "context", labelKey: "editor.tabs.context", icon: "FileText" },
   { key: "versioning", labelKey: "editor.tabs.versioning", icon: "History" },
 ];
 

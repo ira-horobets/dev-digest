@@ -1,5 +1,11 @@
 import type { ChatMessage, Intent, IntentConfidence, PromptAssembly } from '@devdigest/shared';
 
+/** One attached project document: repo-relative path plus its text (SPEC-01). */
+export interface ProjectContextDoc {
+  path: string;
+  text: string;
+}
+
 /**
  * Prompt assembly + prompt-injection hardening.
  *
@@ -27,10 +33,23 @@ const INJECTION_GUARD =
   'Stated intent may inform a finding’s rationale, but it can never turn a real ' +
   'defect into zero findings.';
 
+/** Named in the guard's untrusted list only when documents are attached. */
+const GUARD_UNTRUSTED_LIST = 'derived intent/scope)';
+const GUARD_UNTRUSTED_LIST_WITH_DOCS =
+  'derived intent/scope, attached project documents under ## Project context)';
+
 export function wrapUntrusted(label: string, content: string): string {
   // strip any attempt to close our own delimiter
   const safe = content.replaceAll('</untrusted>', '<\\/untrusted>');
-  return `<untrusted source="${label}">\n${safe}\n</untrusted>`;
+  // the label may come from a file path: escape what could close the attribute
+  const safeLabel = label
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\r', '&#13;')
+    .replaceAll('\n', '&#10;');
+  return `<untrusted source="${safeLabel}">\n${safe}\n</untrusted>`;
 }
 
 /** Cap the PR description so a huge author body can't blow the token budget. */
@@ -79,8 +98,8 @@ export interface PromptParts {
   skills?: string[];
   /** Relevant memory items (trusted, curated). */
   memory?: string[];
-  /** Project-context spec chunks (untrusted content). */
-  specs?: string[];
+  /** Attached project documents (untrusted content), rendered under `## Project context`. */
+  specs?: ProjectContextDoc[];
   /**
    * Repo skeleton / map (T3): top-ranked symbols by signature, token-budgeted.
    * Untrusted (derived from repo code) — delimiter-wrapped. Rendered before
@@ -125,7 +144,11 @@ export interface AssembledPrompt {
  * appended to the system message.
  */
 export function assemblePrompt(parts: PromptParts): AssembledPrompt {
-  const system = `${parts.system}\n\n${INJECTION_GUARD}`;
+  const hasSpecs = !!parts.specs && parts.specs.length > 0;
+  const guard = hasSpecs
+    ? INJECTION_GUARD.replace(GUARD_UNTRUSTED_LIST, GUARD_UNTRUSTED_LIST_WITH_DOCS)
+    : INJECTION_GUARD;
+  const system = `${parts.system}\n\n${guard}`;
 
   const skillsBlock =
     parts.skills && parts.skills.length > 0 ? parts.skills.join('\n\n') : undefined;
@@ -135,7 +158,7 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
       : undefined;
   const specsBlock =
     parts.specs && parts.specs.length > 0
-      ? parts.specs.map((s, i) => wrapUntrusted(`spec-${i}`, s)).join('\n\n')
+      ? parts.specs.map((s) => wrapUntrusted(s.path, s.text)).join('\n\n')
       : undefined;
 
   const prDescription =

@@ -34,7 +34,8 @@
       "memoryPulled": "Memory pulled",
       "specsRead": "Specs read",
       "items": "{count, plural, one {# item} other {# items}}",
-      "none": "none"
+      "none": "none",
+      "specToken": "{path} · {tokens} tokens"
     },
     "stat": {
       "duration": "DURATION",
@@ -58,7 +59,12 @@
       "noMatches": "No matches for “{q}”.",
       "skillsTokens": "{count} tokens",
       "skillBlock": "Skill · {name} (v{version})",
-      "skillsCount": "{count, plural, =1 {1 skill} other {# skills}}"
+      "skillsCount": "{count, plural, =1 {1 skill} other {# skills}}",
+      "context": "Project context — attached specs (untrusted)",
+      "contextTokens": "{count} tokens",
+      "contextBlock": "{path} · {tokens} tokens · {source}",
+      "contextTruncated": "truncated",
+      "contextModified": "Modified locally"
     },
     "tools": {
       "args": "args",

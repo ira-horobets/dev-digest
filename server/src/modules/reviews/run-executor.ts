@@ -8,7 +8,11 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { skillBlocksForTrace, taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
-import type { EnsureIntentResult, IntentDeriverPort } from './ports.js';
+import type {
+  EnsureIntentResult,
+  IntentDeriverPort,
+  ProjectContextResolverPort,
+} from './ports.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -47,6 +51,7 @@ export class ReviewRunExecutor {
     private repo: ReviewRepository,
     private agents: Container['agentsRepo'],
     private intent?: IntentDeriverPort,
+    private projectContext?: ProjectContextResolverPort,
   ) {}
 
   /**
@@ -219,6 +224,26 @@ export class ReviewRunExecutor {
           : `No skills attached to the prompt${disabledCount > 0 ? ` (${disabledCount} linked skill(s) disabled and left out)` : ''}`,
       );
 
+      // SPEC-01 — project context: documents attached to the agent and to its
+      // enabled skills, read at the PR's base branch. Best-effort and never a
+      // runLog.step (a throw there toasts); failures are logged by the resolver
+      // and the run carries on without the documents.
+      const contextResolved = this.projectContext
+        ? await this.projectContext
+            .resolveForRun(workspaceId, {
+              repoId: pull.repoId,
+              baseBranch: pull.base,
+              agentId: agent.id,
+              skills: linked.filter((s) => s.enabled).map((s) => ({ id: s.id, name: s.name })),
+              log: (m) => runLog.info(m),
+            })
+            .catch((err: Error) => {
+              runLog.info(`Context skipped: ${err.message}`);
+              return { blocks: [], totalTokens: 0 };
+            })
+        : { blocks: [], totalTokens: 0 };
+      const contextBlocks = contextResolved.blocks;
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -233,6 +258,10 @@ export class ReviewRunExecutor {
         strategy: agent.strategy ?? REVIEW_STRATEGY,
         // L02 — linked skill bodies; the section is omitted when the list is empty.
         ...(skills.length > 0 ? { skills } : {}),
+        // SPEC-01 — attached project documents; omitted (prompt unchanged) when none.
+        ...(contextBlocks.length > 0
+          ? { specs: contextBlocks.map((b) => ({ path: b.path, text: b.text })) }
+          : {}),
         // T1.3 — pass the callers digest only when we built one. assemblePrompt
         // omits the section when this is empty/undefined.
         ...(callersDigest ? { callers: callersDigest } : {}),
@@ -314,6 +343,12 @@ export class ReviewRunExecutor {
         prompt_assembly: {
           ...outcome.assembly,
           ...(skillBlocks.length > 0 ? { skills_tokens: skillsTokens, skill_blocks: skillBlocks } : {}),
+          ...(contextBlocks.length > 0 && outcome.assembly.specs
+            ? {
+                context_tokens: this.container.tokenizer.count(outcome.assembly.specs),
+                context_blocks: contextBlocks,
+              }
+            : {}),
         },
         tool_calls: [
           ...(intent
@@ -335,7 +370,10 @@ export class ReviewRunExecutor {
         ],
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: intent?.status === 'ok' ? intent.usedRefs : [],
+        specs_read: [
+          ...(intent?.status === 'ok' ? intent.usedRefs : []),
+          ...contextBlocks.map((b) => b.path),
+        ],
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),

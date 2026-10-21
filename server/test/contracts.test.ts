@@ -20,6 +20,12 @@ import {
   PrIntentRecord,
   IntentSource,
   FEATURE_MODELS,
+  SpecFile,
+  ContextAttachment,
+  ContextAttachmentsUpdate,
+  ContextFileContent,
+  ContextFileUpdate,
+  PromptAssembly,
 } from '@devdigest/shared';
 
 /**
@@ -314,5 +320,59 @@ describe('PR intent contracts', () => {
   it('review_intent defaults to a cheap OpenRouter model', () => {
     const def = FEATURE_MODELS.find((f) => f.id === 'review_intent')!;
     expect([def.defaultProvider, def.defaultModel]).toEqual(['openrouter', 'deepseek/deepseek-v4-flash']);
+  });
+
+  it('SpecFile keeps the old shape valid and accepts the project-context fields', () => {
+    expect(SpecFile.parse({ path: 'docs/a.md' }).path).toBe('docs/a.md');
+    const f = SpecFile.parse({
+      path: 'specs/a.md',
+      kind: 'specs',
+      tokens: 12,
+      too_large: false,
+      agent_count: 1,
+      skill_count: 0,
+    });
+    expect(f.kind).toBe('specs');
+    expect(() => SpecFile.parse({ path: 'a.md', kind: 'other' })).toThrow();
+  });
+
+  it('context attachment contracts', () => {
+    expect(ContextAttachment.parse({ path: 'a.md', order: 0, missing: false, too_large: false }).order).toBe(0);
+    const repo_id = '33333333-3333-4333-8333-333333333333';
+    expect(ContextAttachmentsUpdate.parse({ repo_id, paths: ['a.md'] }).paths).toEqual(['a.md']);
+    expect(() => ContextAttachmentsUpdate.parse({ repo_id: 'x', paths: [] })).toThrow();
+    expect(() => ContextAttachmentsUpdate.parse({ repo_id, paths: Array(201).fill('a.md') })).toThrow();
+    expect(ContextFileContent.parse({ path: 'a.md', sha: 'abc', text: 't', modified: false }).sha).toBe('abc');
+    expect(() => ContextFileContent.parse({ path: 'a.md', sha: 'abc', text: 't' })).toThrow();
+    expect(ContextFileUpdate.parse({ path: 'a.md', text: '' }).text).toBe('');
+    expect(() => ContextFileUpdate.parse({ path: 'a.md', text: 'x'.repeat(200_001) })).toThrow();
+    expect(SpecFile.parse({ path: 'a.md' }).modified).toBeUndefined();
+  });
+
+  it('PromptAssembly context fields are optional and source is agent or skill:<name>', () => {
+    expect(PromptAssembly.parse({ system: 's', user: 'u' }).context_blocks).toBeUndefined();
+    const block = { path: 'a.md', tokens: 3, text: 't', truncated: false };
+    const ok = PromptAssembly.parse({
+      system: 's',
+      user: 'u',
+      context_tokens: 3,
+      context_blocks: [
+        { ...block, source: 'agent' },
+        { ...block, source: 'skill:secret-gate' },
+      ],
+    });
+    expect(ok.context_blocks).toHaveLength(2);
+    // traces written before the increment carry no `modified`
+    expect(ok.context_blocks![0]!.modified).toBeUndefined();
+    expect(
+      PromptAssembly.parse({
+        system: 's',
+        user: 'u',
+        context_blocks: [{ ...block, source: 'agent', modified: true }, { ...block, source: 'agent', modified: null }],
+      }).context_blocks![0]!.modified,
+    ).toBe(true);
+    expect(() =>
+      PromptAssembly.parse({ system: 's', user: 'u', context_blocks: [{ ...block, source: 'other' }] }),
+    ).toThrow();
   });
 });

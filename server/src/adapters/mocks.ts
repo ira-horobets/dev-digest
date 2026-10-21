@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { z } from 'zod';
 import type {
   LLMProvider,
@@ -313,11 +314,34 @@ export class MockGitClient implements GitClient {
   async readFile(_repo: RepoRef, path: string): Promise<string> {
     return this.opts.files?.[path] ?? '';
   }
-  async showFile(_repo: RepoRef, _ref: string, path: string): Promise<string> {
+  /** Calls recorded for assertions: `(ref, pathspecs)` and `(ref, path)`. */
+  public listCalls: { ref: string; pathspecs: string[] }[] = [];
+  public showCalls: { ref: string; path: string }[] = [];
+  async listFiles(
+    _repo: RepoRef,
+    ref: string,
+    pathspecs: string[],
+  ): Promise<{ sha: string; files: { path: string; size: number; blob: string }[] }> {
+    this.listCalls.push({ ref, pathspecs });
+    const files = Object.entries(this.opts.files ?? {}).map(([path, text]) => ({
+      path,
+      size: Buffer.byteLength(text, 'utf8'),
+      blob: gitBlobSha(text),
+    }));
+    return { sha: this.opts.head ?? 'a1b2c3d4', files };
+  }
+  async showFile(_repo: RepoRef, ref: string, path: string): Promise<string> {
+    this.showCalls.push({ ref, path });
     const content = this.opts.files?.[path];
     if (content === undefined) throw new Error('mock: path not found at ref');
     return content;
   }
+}
+
+/** Git blob object id of `text` (`sha1("blob <bytes>\0" + text)`), as `ls-tree` reports it. */
+function gitBlobSha(text: string): string {
+  const body = Buffer.from(text, 'utf8');
+  return createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
 }
 
 // ---------- Mock CodeIndex ----------

@@ -156,6 +156,7 @@ export class AgentsRepository {
     skills?: string[],
   ): Promise<void> {
     skills ??= await this.skillIdsForAgent(row.id, exec);
+    const context = await this.contextByRepo(row.id, exec);
     await exec
       .insert(t.agentVersions)
       .values({
@@ -170,6 +171,7 @@ export class AgentsRepository {
           ci_fail_on: row.ciFailOn,
           repo_intel: row.repoIntel,
           skills,
+          context,
         },
       })
       .onConflictDoNothing();
@@ -206,6 +208,37 @@ export class AgentsRepository {
       .where(eq(t.agentSkills.agentId, agentId))
       .orderBy(asc(t.agentSkills.order));
     return rows.map((r) => ({ skill: r.skill, order: r.order }));
+  }
+
+  /** Attached project-context paths per repo for an agent (all repos), ordered. */
+  private async contextByRepo(
+    agentId: string,
+    exec: Db | Tx = this.db,
+  ): Promise<Record<string, string[]>> {
+    const rows = await exec
+      .select({ repoId: t.agentContextDocs.repoId, path: t.agentContextDocs.path })
+      .from(t.agentContextDocs)
+      .where(eq(t.agentContextDocs.agentId, agentId))
+      .orderBy(asc(t.agentContextDocs.repoId), asc(t.agentContextDocs.order));
+    const out: Record<string, string[]> = {};
+    for (const r of rows) (out[r.repoId] ??= []).push(r.path);
+    return out;
+  }
+
+  /** Attached project-context paths of an agent for one repo, in stored order. */
+  async contextPaths(workspaceId: string, agentId: string, repoId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ path: t.agentContextDocs.path })
+      .from(t.agentContextDocs)
+      .where(
+        and(
+          eq(t.agentContextDocs.workspaceId, workspaceId),
+          eq(t.agentContextDocs.agentId, agentId),
+          eq(t.agentContextDocs.repoId, repoId),
+        ),
+      )
+      .orderBy(asc(t.agentContextDocs.order));
+    return rows.map((r) => r.path);
   }
 
   async skillIdsForAgent(agentId: string, exec: Db | Tx = this.db): Promise<string[]> {
@@ -334,6 +367,53 @@ export class AgentsRepository {
         .returning();
       await this.snapshotVersion(row!, row!.version, tx, skillIds);
       return row!;
+    });
+  }
+
+  /**
+   * Replace the attached project-context paths of an agent for one repo. Like
+   * `setSkills`, a changed list (content or order) bumps `agents.version` and
+   * snapshots the config in the same transaction; an identical list is a no-op.
+   * Returns `false` when the agent does not exist in the workspace.
+   */
+  async setContext(
+    workspaceId: string,
+    agentId: string,
+    repoId: string,
+    paths: string[],
+  ): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(t.agents)
+        .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.id, agentId)));
+      if (!existing) return false;
+
+      const currentRows = await tx
+        .select({ path: t.agentContextDocs.path })
+        .from(t.agentContextDocs)
+        .where(
+          and(eq(t.agentContextDocs.agentId, agentId), eq(t.agentContextDocs.repoId, repoId)),
+        )
+        .orderBy(asc(t.agentContextDocs.order));
+      const current = currentRows.map((r) => r.path);
+      if (current.length === paths.length && current.every((p, i) => p === paths[i])) return true;
+
+      await tx
+        .delete(t.agentContextDocs)
+        .where(and(eq(t.agentContextDocs.agentId, agentId), eq(t.agentContextDocs.repoId, repoId)));
+      if (paths.length > 0) {
+        await tx
+          .insert(t.agentContextDocs)
+          .values(paths.map((path, i) => ({ workspaceId, agentId, repoId, path, order: i })));
+      }
+      const [row] = await tx
+        .update(t.agents)
+        .set({ version: sql`${t.agents.version} + 1` })
+        .where(eq(t.agents.id, agentId))
+        .returning();
+      await this.snapshotVersion(row!, row!.version, tx);
+      return true;
     });
   }
 }

@@ -45,6 +45,9 @@ import {
 } from "@devdigest/ui";
 import { RunCostBadge } from "@/components/run-cost-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ContextDocumentRow } from "@/components/context-document-row";
+import { TokenBadge } from "@/components/token-badge";
+import { ModifiedLocallyBadge } from "@/components/modified-locally-badge";
 import { s } from "./styles";
 import { SEVERITIES, CATEGORIES, MODEL_OPTIONS } from "./constants";
 
@@ -108,6 +111,34 @@ export function Gallery() {
         <RunCostBadge variant="full" costUsd={0.0013} tokensIn={8190} tokensOut={929} />
         <RunCostBadge variant="full" costUsd={null} tokensIn={100} tokensOut={50} />
         <RunCostBadge variant="compact" costUsd={0} />
+      </Group>
+
+      <Group title="Project context (document rows: attached · missing · too large · modified locally · read-only · token badge)">
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, width: 560 }}>
+          <ContextDocumentRow
+            path="docs/architecture.md"
+            kind="docs"
+            tokens={1240}
+            attach={{ checked: true, onToggle: () => {}, draggable: true, dragging: false, onDragStart: () => {}, onDragOver: () => {}, onDrop: () => {}, onDragEnd: () => {}, onMoveUp: () => {}, onMoveDown: () => {} }}
+            onPreview={() => {}}
+          />
+          <ContextDocumentRow
+            path="specs/old-spec.md"
+            kind="specs"
+            missing
+            attach={{ checked: true, onToggle: () => {}, draggable: true, dragging: false, onDragStart: () => {}, onDragOver: () => {}, onDrop: () => {}, onDragEnd: () => {}, onMoveUp: () => {}, onMoveDown: () => {} }}
+          />
+          <ContextDocumentRow
+            path="docs/huge-dump.md"
+            kind="docs"
+            tooLarge
+            attach={{ checked: false, onToggle: () => {}, draggable: false, dragging: false, onDragStart: () => {}, onDragOver: () => {}, onDrop: () => {}, onDragEnd: () => {} }}
+          />
+          <ContextDocumentRow path="insights/gotchas.md" kind="insights" tokens={380} usage={{ agents: 2, skills: 1 }} onSelect={() => {}} />
+          <ContextDocumentRow path="docs/edited-locally.md" kind="docs" tokens={410} usage={{ agents: 1, skills: 0 }} modified onSelect={() => {}} />
+          <ModifiedLocallyBadge updatedAt="2026-10-21T10:00:00Z" />
+          <TokenBadge count={24000} />
+        </div>
       </Group>
 
       <Group title="Confirm dialog (destructive action)">

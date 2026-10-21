@@ -237,6 +237,16 @@ export interface GitClient {
    * the object is missing.
    */
   showFile(repo: RepoRef, ref: string, path: string): Promise<string>;
+  /**
+   * Blob paths (with byte size and git blob sha) under `ref` matching the globs (`**`, `*`, `?`), read
+   * from the object database only. `ref` is a branch name (remote-tracking
+   * first, then local); `sha` is the commit it resolved to. Rejects unsafe refs.
+   */
+  listFiles(
+    repo: RepoRef,
+    ref: string,
+    globs: string[],
+  ): Promise<{ sha: string; files: { path: string; size: number; blob: string }[] }>;
   clonePathFor(repo: RepoRef): string;
 }
 

@@ -120,7 +120,8 @@
     "tabs": {
       "config": "Config",
       "preview": "Preview",
-      "versioning": "Versioning"
+      "versioning": "Versioning",
+      "context": "Context"
     },
     "config": {
       "title": "Configuration",
@@ -151,5 +152,12 @@
       "cancel": "Cancel",
       "empty": "No versions yet."
     }
+  },
+  "context": {
+    "title": "Project context to use",
+    "badge": "{attached} attached",
+    "hint": "Agents that use this skill inherit these documents. Changing them does not create a new skill version.",
+    "blockTitle": "Serialised block",
+    "blockHint": "Read-only: the skill text itself is not changed."
   }
 }

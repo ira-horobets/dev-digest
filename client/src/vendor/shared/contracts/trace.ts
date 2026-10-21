@@ -46,6 +46,19 @@ export const PromptSkillBlock = z.object({
 });
 export type PromptSkillBlock = z.infer<typeof PromptSkillBlock>;
 
+// One attached project document as it went into the prompt (SPEC-01).
+export const PromptContextBlock = z.object({
+  path: z.string(),
+  tokens: z.number().int(),
+  text: z.string(),
+  truncated: z.boolean(),
+  /** 'agent' or 'skill:<name>' (first owner of the path). */
+  source: z.string().regex(/^(agent|skill:.+)$/),
+  /** The block text came from a local override; absent in traces written before it existed. */
+  modified: z.boolean().nullish(),
+});
+export type PromptContextBlock = z.infer<typeof PromptContextBlock>;
+
 export const PromptAssembly = z.object({
   system: z.string(),
   skills: z.string().nullish(),
@@ -55,6 +68,10 @@ export const PromptAssembly = z.object({
   skill_blocks: z.array(PromptSkillBlock).nullish(),
   memory: z.string().nullish(),
   specs: z.string().nullish(),
+  /** Tokens of the whole `## Project context` block; null when absent. */
+  context_tokens: z.number().int().nullish(),
+  /** Per-document blocks in prompt order; absent when no document was attached. */
+  context_blocks: z.array(PromptContextBlock).nullish(),
   /** Callers-of-changed-symbols digest (T1.3); null when absent. */
   callers: z.string().nullish(),
   /** Repo skeleton / map (T3); null when absent. Enables per-slot token

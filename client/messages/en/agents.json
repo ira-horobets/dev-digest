@@ -58,7 +58,8 @@
       "skills": "Skills",
       "evals": "Evals",
       "stats": "Stats",
-      "ci": "CI"
+      "ci": "CI",
+      "context": "Context"
     }
   },
   "config": {
@@ -117,5 +118,10 @@
   },
   "mount": {
     "body": "Mount point for {owner}. The Agent Editor shell + tab routing are wired by A2 — {owner} renders this tab."
+  },
+  "context": {
+    "title": "Project context",
+    "badge": "{attached} of {total} attached",
+    "hint": "Attached documents are sent to the model with every review by this agent, in this order. Changing them creates a new agent version."
   }
 }
