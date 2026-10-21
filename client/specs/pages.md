@@ -220,26 +220,30 @@ Project context blocks and the Specs read tokens: `specs/project-context.md`.
 
 ## `/agents` (`src/app/agents/page.tsx` → `AgentsListView`)
 
-- `useAgents` (`GET /agents`); enable toggle on a card calls `useUpdateAgent`
-  (`PUT /agents/:id`); trash icon opens `ConfirmDialog`, then `useDeleteAgent`
-  (`DELETE /agents/:id`).
-- `AgentCard` footer (`Agent.stats`, computed server-side per workspace):
-  `N runs` (completed runs), `P% accept` (accepted share of decided findings,
-  «— accept» until one finding is accepted or dismissed) and `$X avg`
-  (`formatCost` of the mean cost of completed runs with a known cost, «— avg»
-  until one exists).
-- Local search filters name + description (`filterAgents`). "Add agent"
-  dropdown opens `CreateAgentModal` (`useCreateAgent`, `POST /agents`), then
-  navigates to `/agents/<id>?tab=config`. The template entries in that
-  dropdown also just open the modal.
-- Loading: three card skeletons. Error: `ErrorState` with retry. Empty:
-  `EmptyState` with a create CTA. Clicking a card opens
-  `/agents/<id>?tab=config`.
+- Master-detail like `/skills` (design "Agent Editor · Context", applied
+  2026-10-21): the agents column and the editor live on `/agents/[id]`, so this
+  view opens the first agent (`router.replace` to `/agents/<id>?tab=config`)
+  once `useAgents` (`GET /agents`) answers. Loading: a skeleton. Error:
+  `ErrorState` with retry. Empty: `EmptyState` with a create CTA that opens
+  `CreateAgentModal` (`useCreateAgent`, `POST /agents`, then
+  `/agents/<id>?tab=config`).
 
 ## `/agents/[id]` (`src/app/agents/[id]/page.tsx`)
 
-- Left column lists all agents (`useAgents`, `AgentCard`); right side is
-  `AgentEditor` for `useAgent(id)` (`GET /agents/:id`).
+- Left column (`aside` «Agents»): the heading, the **Add Agent** dropdown
+  (*Create from scratch* and the template entries all open
+  `CreateAgentModal`), a search box (`filterAgents` over name + description)
+  and one `AgentCard` per agent (`useAgents`): accent icon chip, name, enabled
+  `Toggle` (`useUpdateAgent`, `PUT /agents/:id`), trash icon → `ConfirmDialog`
+  → `useDeleteAgent` (`DELETE /agents/:id`), one-line description, model chip,
+  `N skills`, and the stats footer (`Agent.stats`, computed server-side per
+  workspace): `N runs` (completed runs), `P% accept` (accepted share of
+  decided findings, «— accept» until one finding is accepted or dismissed) and
+  `$X avg` (`formatCost` of the mean cost of completed runs with a known cost,
+  «— avg» until one exists). Clicking a card keeps the current `?tab=`.
+- Right side: header (icon chip, name, `provider/model` badge, disabled badge,
+  **Run Review** → `/`) over `AgentEditor` for `useAgent(id)`
+  (`GET /agents/:id`).
 - URL: `?tab=config|skills|context` (`VALID_TABS`); `config` is the fallback.
   `AgentEditor` `TABS` has Config, Skills and Context (the Context tab attaches
   project documents; contract in `specs/project-context.md`).

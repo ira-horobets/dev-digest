@@ -3,9 +3,11 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import type { Agent } from "@devdigest/shared";
 import { ContextAttachPanel } from "@/components/context-attach-panel";
 
 export function ContextTab({ agent }: { agent: Agent }) {
-  return <ContextAttachPanel owner={{ kind: "agent", id: agent.id, name: agent.name }} />;
+  const t = useTranslations("agents");
+  return <ContextAttachPanel owner={{ kind: "agent", id: agent.id, name: agent.name }} footerNote={t("context.footerNote")} />;
 }

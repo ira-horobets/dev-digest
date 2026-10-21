@@ -80,7 +80,7 @@ describe("ContextAttachPanel (agent)", () => {
     expect(within(rows[1]!).getByText("missing")).toBeInTheDocument();
     expect(within(rows[4]!).getByText("too large")).toBeInTheDocument();
     // total of the checked, listed documents only (the missing path adds nothing)
-    expect(screen.getByText("≈ 100 tokens attached")).toBeInTheDocument();
+    expect(within(screen.getByTestId("context-panel-total")).getByText("≈ 100 tokens")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

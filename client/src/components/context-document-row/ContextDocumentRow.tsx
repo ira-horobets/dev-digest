@@ -7,7 +7,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Checkbox, Icon, IconBtn } from "@devdigest/ui";
+import { Badge, Button, Checkbox, Icon, IconBtn } from "@devdigest/ui";
 import type { SpecKind } from "@devdigest/shared";
 import { TokenBadge } from "@/components/token-badge";
 import { KIND_COLOR, splitPath } from "./constants";
@@ -117,7 +117,11 @@ export function ContextDocumentRow({ path, kind, tokens, missing, tooLarge, modi
       {flags}
       {typeof tokens === "number" && <TokenBadge count={tokens} />}
       {kindBadge}
-      {onPreview && <IconBtn icon="Eye" size={26} label={t("row.previewLabel", { path })} onClick={onPreview} />}
+      {onPreview && (
+        <Button kind="ghost" size="sm" icon="Eye" onClick={onPreview} aria-label={t("row.previewLabel", { path })}>
+          {t("row.preview")}
+        </Button>
+      )}
       {attach.checked && (
         <span style={s.arrows}>
           <IconBtn icon="ArrowUp" size={24} label={t("row.moveUp", { path })} onClick={attach.onMoveUp} />

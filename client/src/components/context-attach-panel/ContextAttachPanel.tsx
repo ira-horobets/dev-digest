@@ -32,7 +32,7 @@ export interface ContextOwner {
   name: string;
 }
 
-export function ContextAttachPanel({ owner }: { owner: ContextOwner }) {
+export function ContextAttachPanel({ owner, footerNote }: { owner: ContextOwner; footerNote?: string }) {
   const tc = useTranslations("context");
   const to = useTranslations(OWNER_NAMESPACE[owner.kind]);
   const toast = useToast();
@@ -125,9 +125,9 @@ export function ContextAttachPanel({ owner }: { owner: ContextOwner }) {
             {tc("panel.overCap", { total, cap: PROJECT_CONTEXT_RUN_MAX_TOKENS })}
           </div>
         )}
-        <div style={s.footer}>
+        <div style={s.footer} data-testid="context-panel-total">
           <TokenBadge count={total} />
-          <span>{tc("panel.totalTokens", { count: total })}</span>
+          {footerNote && <span style={s.footerNote}>{footerNote}</span>}
         </div>
         {owner.kind === "skill" && (
           <div style={s.blockWrap}>

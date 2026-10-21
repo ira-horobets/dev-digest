@@ -17,7 +17,6 @@
     "breadcrumbLab": "Skills Lab",
     "breadcrumb": "Agents",
     "title": "Agents",
-    "subtitle": "User-created reviewers. Each = provider + model + system prompt + linked skills.",
     "searchPlaceholder": "Search agents…",
     "addAgent": "Add Agent",
     "createFromScratch": "Create from scratch",
@@ -52,7 +51,7 @@
     "add": "Add",
     "createFromScratch": "Create from scratch",
     "disabled": "disabled",
-    "runOnPr": "Run on a PR…",
+    "runOnPr": "Run Review",
     "tabs": {
       "config": "Config",
       "skills": "Skills",
@@ -122,6 +121,7 @@
   "context": {
     "title": "Project context",
     "badge": "{attached} of {total} attached",
-    "hint": "Attached documents are sent to the model with every review by this agent, in this order. Changing them creates a new agent version."
+    "hint": "Order matters — earlier documents appear earlier in the assembled ## Project context block. Toggle to attach. Changing the set creates a new agent version.",
+    "footerNote": "Injected as an untrusted block (## Project context) into every run."
   }
 }

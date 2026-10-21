@@ -97,7 +97,6 @@
     "notCloned": "This repository is not cloned yet, so its documents cannot be listed.",
     "empty": "No documents found under {roots}.",
     "loadError": "Couldn’t load the documents",
-    "totalTokens": "≈ {count} tokens attached",
     "overCap": "The attached documents total ≈ {total} tokens, above the {cap}-token limit for one prompt. Later documents will be skipped at run time.",
     "saved": "Context saved",
     "previewTitle": "Preview"

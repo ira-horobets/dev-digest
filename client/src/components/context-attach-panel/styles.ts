@@ -39,7 +39,17 @@ export const s = {
     color: "var(--warn)",
     fontSize: 13,
   } satisfies CSSProperties,
-  footer: { display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,
+  footer: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTop: "1px solid var(--border)",
+    fontSize: 13,
+    color: "var(--text-secondary)",
+  } satisfies CSSProperties,
+  footerNote: { marginLeft: "auto", fontSize: 12, color: "var(--text-muted)", textAlign: "right" } satisfies CSSProperties,
   blockWrap: { marginTop: 22 } satisfies CSSProperties,
   blockHint: { fontSize: 12, color: "var(--text-muted)", marginTop: 6 } satisfies CSSProperties,
   block: {
