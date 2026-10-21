@@ -299,3 +299,24 @@ card label «Blast radius» is not a locator: it is rendered through CSS
 Breaks if: the seed starts cloning or indexing the demo repo (the card would
 show a map instead), the Overview tab stops being the default, or the empty
 state copy changes.
+
+
+## 15-onboarding-tour
+
+Journey: `/agents` → sidebar «Onboarding Tour» → `/repos/<id>/tour`.
+
+Seeded facts: `db/seed.ts` stores one five-section tour for `acme/payments-api`
+(commands `pnpm install`, `docker compose up -d postgres redis`, `pnpm dev`).
+The repo has no `clone_path`, so with a stored tour the page shows the tour and
+the «Repository not cloned yet» note in place of the Regenerate button. The
+flow makes no model call and writes nothing.
+
+Locators: `find text "Onboarding Tour"` for the sidebar item (`find role link`
+does not match sidebar items); `wait --text` on «Onboarding for»,
+«Architecture overview», «How to run locally», «First tasks», «pnpm dev» and
+«Repository not cloned yet». «ON THIS PAGE» is not a locator: it is rendered
+through CSS `text-transform: uppercase`.
+
+Breaks if: the seeded onboarding row or its commands change, the seeded repo
+gets a clone (the Regenerate button would replace the note), the sidebar label
+changes, or the section title copy in `messages/en/onboarding.json` changes.

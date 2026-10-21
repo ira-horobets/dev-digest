@@ -254,6 +254,81 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     })
     .onConflictDoNothing({ target: t.prIntent.prId });
 
+  // ---- onboarding tour for the demo repo (valid five-section shape; the seed bypasses AC-29 verification) ----
+  await db
+    .insert(t.onboarding)
+    .values({
+      repoId,
+      json: {
+        sections: [
+          {
+            kind: 'architecture',
+            title: 'Architecture overview',
+            body: '**payments-api** is a Node + TypeScript service fronting Stripe. Requests enter through `src/server.ts`, pass middleware (auth, rate-limit), and route to `src/api/*`. Persistence is Postgres via a thin `db` client; Redis backs sessions and rate-limit buckets.',
+            diagram:
+              'flowchart LR\n  client["client"] --> server["server.ts"]\n  server --> mw["middleware"]\n  mw --> redis["redis"]\n  mw --> api["api/public/*"]\n  api --> pg["postgres"]',
+          },
+          {
+            kind: 'critical_paths',
+            title: 'Critical paths',
+            items: [
+              { path: 'src/server.ts', why: 'App bootstrap and middleware chain' },
+              { path: 'src/api/public/index.ts', why: 'Public router, the unauthenticated surface' },
+              { path: 'src/middleware/auth.ts', why: 'Token validation, used by 14 routes' },
+              { path: 'src/lib/redis.ts', why: 'Shared Redis singleton, reuse this' },
+            ],
+          },
+          {
+            kind: 'run_locally',
+            title: 'How to run locally',
+            items: [
+              { command: 'pnpm install', note: null },
+              { command: 'docker compose up -d postgres redis', note: null },
+              { command: 'pnpm dev', note: 'http://localhost:3000' },
+            ],
+          },
+          {
+            kind: 'reading_path',
+            title: 'Guided reading path',
+            items: [
+              { path: 'src/server.ts', why: 'See the whole request lifecycle in one file' },
+              { path: 'src/api/public/index.ts', why: 'Understand the public contract before touching it' },
+              { path: 'src/middleware/auth.ts', why: 'Auth touches almost everything downstream' },
+            ],
+          },
+          {
+            kind: 'first_tasks',
+            title: 'First tasks',
+            items: [
+              {
+                title: 'Add a request id to the access log',
+                why: 'Small, self-contained, and touches the middleware chain',
+                files: [{ path: 'src/server.ts' }, { path: 'src/middleware/auth.ts' }],
+              },
+              {
+                title: 'Document the public router responses',
+                why: 'Teaches the public contract',
+                files: [{ path: 'src/api/public/index.ts' }],
+              },
+              {
+                title: 'Reuse the Redis singleton in the rate limiter',
+                why: 'Removes a duplicate connection',
+                files: [{ path: 'src/lib/redis.ts' }],
+              },
+            ],
+          },
+        ],
+      },
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      tokensIn: 9200,
+      tokensOut: 1100,
+      costUsd: 0.0021,
+      filesIndexed: 12450,
+      limited: false,
+    })
+    .onConflictDoNothing({ target: t.onboarding.repoId });
+
   // ---- built-in agents (three starter presets + the two L02 skill-driven ones) ----
   // Prompt bodies live in ./seed-prompts.ts (mirrored in docs/agent-prompts/*.md).
   const seedAgents: Array<typeof t.agents.$inferInsert> = [

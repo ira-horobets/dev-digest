@@ -152,11 +152,27 @@ describe('AI contracts parse fixtures', () => {
         completeness_pct: 80,
       }),
     ).not.toThrow();
-    expect(() =>
-      Onboarding.parse({
-        sections: [{ kind: 'architecture', title: 'T', body: 'b', links: [] }],
-      }),
-    ).not.toThrow();
+    const tour = {
+      generated_at: '2026-10-21T10:00:00.000Z',
+      provider: 'openrouter',
+      model: 'm',
+      tokens_in: 1,
+      tokens_out: 2,
+      cost_usd: null,
+      files_indexed: 3,
+      limited: false,
+      sections: [
+        { kind: 'architecture', title: 'A', body: 'b', diagram: null },
+        { kind: 'critical_paths', title: 'C', items: [{ path: 'a.ts', why: 'w' }] },
+        { kind: 'run_locally', title: 'R', items: [{ command: 'pnpm dev', note: null }] },
+        { kind: 'reading_path', title: 'G', items: [] },
+        { kind: 'first_tasks', title: 'F', items: [{ title: 't', why: 'w', files: [{ path: 'a.ts' }] }] },
+      ],
+    };
+    expect(() => Onboarding.parse(tour)).not.toThrow();
+    // old shape and a reordered tuple are rejected
+    expect(() => Onboarding.parse({ sections: [{ kind: 'architecture', title: 'T', body: 'b', links: [] }] })).toThrow();
+    expect(() => Onboarding.parse({ ...tour, sections: [...tour.sections].reverse() })).toThrow();
     expect(() =>
       EvalRun.parse({
         recall: 0.82,

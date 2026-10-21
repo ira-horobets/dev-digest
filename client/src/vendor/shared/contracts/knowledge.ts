@@ -26,25 +26,147 @@ export const Conformance = z.object({
 export type Conformance = z.infer<typeof Conformance>;
 
 // ---- Onboarding ----
+// Five fixed sections (architecture, critical paths, run locally, reading path,
+// first tasks). The stored tour is a tuple in that order; the model sees only
+// `OnboardingDraft` (a plain object, no tuples or unions: structured output
+// providers reject them).
 export const OnboardingLink = z.object({
-  label: z.string(),
   path: z.string(),
 });
 export type OnboardingLink = z.infer<typeof OnboardingLink>;
 
-export const OnboardingSection = z.object({
-  kind: z.string(),
-  title: z.string(),
+const SectionBase = { title: z.string() };
+
+export const OnboardingArchitecture = z.object({
+  ...SectionBase,
+  kind: z.literal('architecture'),
   body: z.string(), // markdown
-  diagram: z.string().nullish(), // mermaid
-  links: z.array(OnboardingLink),
+  diagram: z.string().nullable(), // mermaid
 });
+export const OnboardingCriticalPaths = z.object({
+  ...SectionBase,
+  kind: z.literal('critical_paths'),
+  items: z.array(z.object({ path: z.string(), why: z.string() })),
+});
+export const OnboardingRunLocally = z.object({
+  ...SectionBase,
+  kind: z.literal('run_locally'),
+  items: z.array(z.object({ command: z.string(), note: z.string().nullable() })),
+});
+export const OnboardingReadingPath = z.object({
+  ...SectionBase,
+  kind: z.literal('reading_path'),
+  items: z.array(z.object({ path: z.string(), why: z.string() })),
+});
+export const OnboardingFirstTasks = z.object({
+  ...SectionBase,
+  kind: z.literal('first_tasks'),
+  items: z.array(
+    z.object({ title: z.string(), why: z.string(), files: z.array(OnboardingLink) }),
+  ),
+});
+
+export const OnboardingSection = z.discriminatedUnion('kind', [
+  OnboardingArchitecture,
+  OnboardingCriticalPaths,
+  OnboardingRunLocally,
+  OnboardingReadingPath,
+  OnboardingFirstTasks,
+]);
 export type OnboardingSection = z.infer<typeof OnboardingSection>;
 
 export const Onboarding = z.object({
-  sections: z.array(OnboardingSection),
+  generated_at: z.string(),
+  provider: z.string().nullable(),
+  model: z.string().nullable(),
+  tokens_in: z.number().int(),
+  tokens_out: z.number().int(),
+  cost_usd: z.number().nullable(),
+  files_indexed: z.number().int(),
+  limited: z.boolean(),
+  sections: z.tuple([
+    OnboardingArchitecture,
+    OnboardingCriticalPaths,
+    OnboardingRunLocally,
+    OnboardingReadingPath,
+    OnboardingFirstTasks,
+  ]),
 });
 export type Onboarding = z.infer<typeof Onboarding>;
+
+export const OnboardingRun = z.object({
+  id: z.string(),
+  repo_id: z.string(),
+  status: z.enum(['running', 'done', 'failed']),
+  provider: z.string().nullable(),
+  model: z.string().nullable(),
+  tokens_in: z.number().int(),
+  tokens_out: z.number().int(),
+  cost_usd: z.number().nullable(),
+  files_indexed: z.number().int(),
+  error: z.string().nullable(),
+  started_at: z.string(),
+  finished_at: z.string().nullable(),
+});
+export type OnboardingRun = z.infer<typeof OnboardingRun>;
+
+export const OnboardingView = z.object({
+  tour: Onboarding.nullable(),
+  run: OnboardingRun.nullable(),
+  stale: z.boolean(),
+});
+export type OnboardingView = z.infer<typeof OnboardingView>;
+
+/** What the model returns: a plain object keyed by section kind. Titles are fixed server-side. */
+export const OnboardingDraft = z.object({
+  architecture: z.object({
+    body: z.string().describe('Markdown overview of the architecture, 3-6 short paragraphs or bullets. No HTML.'),
+    diagram: z
+      .string()
+      .nullable()
+      .describe('Mermaid flowchart source without code fences, or null when there is no useful diagram.'),
+  }),
+  critical_paths: z.object({
+    items: z.array(
+      z.object({
+        path: z.string().describe('A file path copied verbatim from the provided input.'),
+        why: z.string().describe('One short sentence on why this file matters.'),
+      }),
+    ),
+  }),
+  run_locally: z.object({
+    items: z.array(
+      z.object({
+        command: z
+          .string()
+          .describe('A command copied verbatim from a provided file, with no trailing comment.'),
+        note: z.string().nullable().describe('Optional short note for the command, or null.'),
+      }),
+    ),
+  }),
+  reading_path: z.object({
+    items: z.array(
+      z.object({
+        path: z.string().describe('A file path copied verbatim from the provided input.'),
+        why: z.string().describe('What the reader learns from this file.'),
+      }),
+    ),
+  }),
+  first_tasks: z.object({
+    items: z
+      .array(
+        z.object({
+          title: z.string().describe('A small first task for a new contributor.'),
+          why: z.string().describe('Why this is a good first task.'),
+          files: z
+            .array(z.object({ path: z.string().describe('A file path copied verbatim from the provided input.') }))
+            .describe('Files the task touches.'),
+        }),
+      )
+      .max(5),
+  }),
+});
+export type OnboardingDraft = z.infer<typeof OnboardingDraft>;
 
 // ---- Eval ----
 export const EvalPerTrace = z.object({

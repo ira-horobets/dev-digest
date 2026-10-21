@@ -28,6 +28,8 @@ import type { SkillsRepositoryPort } from '../modules/skills/ports.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
 import type { ConventionsRepositoryPort } from '../modules/conventions/ports.js';
 import { ConventionsRepository } from '../modules/conventions/repository.js';
+import type { OnboardingRepositoryPort } from '../modules/onboarding/ports.js';
+import { OnboardingRepository } from '../modules/onboarding/repository.js';
 import { RepoRepository } from '../modules/repos/repository.js';
 import { SkillsService } from '../modules/skills/service.js';
 import { AgentsService } from '../modules/agents/service.js';
@@ -73,6 +75,8 @@ export interface ContainerOverrides {
   skillsRepo?: SkillsRepositoryPort;
   /** conventions module port — same idea. */
   conventionsRepo?: ConventionsRepositoryPort;
+  /** onboarding module port — route/service tests inject an in-memory fake. */
+  onboardingRepo?: OnboardingRepositoryPort;
   /** reviews intent persistence port — same idea. */
   intentRepo?: IntentRepositoryPort;
   /** smart-diff module port — route tests inject an in-memory fake. */
@@ -106,6 +110,7 @@ export class Container {
   private _reviewRepo?: ReviewRepository;
   private _skillsRepo?: SkillsRepositoryPort;
   private _conventionsRepo?: ConventionsRepositoryPort;
+  private _onboardingRepo?: OnboardingRepositoryPort;
   private _intentRepo?: IntentRepositoryPort;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
@@ -147,6 +152,10 @@ export class Container {
 
   get conventionsRepo(): ConventionsRepositoryPort {
     return (this._conventionsRepo ??= this.overrides.conventionsRepo ?? new ConventionsRepository(this.db));
+  }
+
+  get onboardingRepo(): OnboardingRepositoryPort {
+    return (this._onboardingRepo ??= this.overrides.onboardingRepo ?? new OnboardingRepository(this.db));
   }
 
   get intentRepo(): IntentRepositoryPort {
