@@ -20,6 +20,7 @@ see it, do not write it.
 - [2026-09-26] `find role link click --name Conventions` does not find the sidebar nav item although NavItem renders a next/link anchor; `find text Conventions click` does. Prefer text locators for sidebar items. Evidence: `e2e/specs/11-conventions.flow.json`.
 - [2026-10-20] scripts/e2e.sh starts its own 'next dev' with NEXT_PUBLIC_API_BASE=http://localhost:3101 in the same client/.next directory the :3000 dev server uses, so after any e2e run (including verify.sh --e2e) the running dev web keeps serving chunks that call the e2e API port: every page shows 'Could not load' with ERR_CONNECTION_REFUSED to :3101 until 'next dev' on :3000 is restarted (rm -rf client/.next first). Seen 2026-10-20 during the project-context browser check. Fix candidates: give e2e its own distDir (NEXT_DIST_DIR / next.config distDir from env) or stop the dev web before e2e. Evidence: `scripts/e2e.sh:42`.
 - [2026-10-21] agent-browser 'wait --text' matches the page's innerText, which already carries CSS text-transform: a SectionLabel rendered uppercase makes 'wait --text "Project context"' fail (flow 14, 2026-10-21) although the DOM text is mixed case. Wait on text that is not transformed (body copy, error-state titles, breadcrumbs) or on the URL instead of section labels and nav group headings. Evidence: `e2e/specs/14-project-context.flow.json`.
+- [2026-10-21] A new card above an existing one pushes it below the fold of the page-internal scroll pane: the older flow (12-pr-intent 'Sources (7)') then clicked outside the viewport and failed. Add an eval scrollIntoView step before the click; also scroll before clicking after a tab switch, the pane keeps its old offset. Evidence: `e2e/specs/12-pr-intent.flow.json`.
 
 ## Codebase Patterns
 
@@ -36,7 +37,8 @@ see it, do not write it.
 
 ## Recurring Errors & Fixes
 
-_None yet._
+- [2026-10-21] Flaky full runs (2 of 6 on 2026-10-21): 'Command failed: agent-browser find text Add rate limiting to public API endpoints click' right after 'wait --url /pulls' (flow 12) and 'wait --url /agents/' timing out (flow 14), each once, while the :3000 next dev was compiling in parallel. Stop the dev web before verify.sh --e2e; a 'wait --text <row>' before the first click would harden the flows. Evidence: `e2e/specs/12-pr-intent.flow.json:open the PR row`.
+
 
 ## Session Notes
 
@@ -48,6 +50,7 @@ _None yet._
 - [2026-10-06] Intent layer: flow 12-pr-intent reads the seeded pr_intent row for PR #482, so no model call is needed in e2e. Evidence: `e2e/specs/12-pr-intent.flow.json; server/src/db/seed.ts`.
 - [2026-10-12] Blast radius: flow 13 asserts the card's degraded empty state on the seeded PR #482 (no clone, no index); first run failed only on the uppercase label locator, removed. Evidence: e2e/specs/flows.md:13-pr-blast-radius Evidence: `e2e/specs/flows.md`.
 - [2026-10-21] Onboarding Tour: flow 15-onboarding-tour reads the seeded tour row (no model call) and asserts the five cards, TOC and the not-cloned note in place of Regenerate; flow 06-onboarding (Add repository) kept passing with the /onboarding route untouched. 15/15 flows. Evidence: `e2e/specs/15-onboarding-tour.flow.json; server/src/db/seed.ts`.
+- [2026-10-21] feat-pr-brief: flow 16-pr-brief (seeded brief, reload, deep link, trace drawer); flow 08 cost total updated for the seeded brief run; flow 12 gained a scroll step before the sources disclosure. Evidence: `e2e/specs/16-pr-brief.flow.json`.
 
 ## Open Questions
 

@@ -5,13 +5,14 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Card, EmptyState, Icon, IconBtn, Skeleton } from "@devdigest/ui";
-import type { IntentSource } from "@devdigest/shared";
+import type { IntentSource, Risk } from "@devdigest/shared";
 import { usePrIntent, useRefreshIntent } from "@/lib/hooks/reviews";
 import { ApiError } from "@/lib/api";
 import { formatCost } from "@/lib/format-cost";
 import { relativeTime } from "@/lib/relative-time";
 import { BASIC_KINDS, CONFIDENCE_META, STATUS_META } from "./constants";
 import { reasonKey, sourceHref } from "./helpers";
+import { RiskAreas } from "../RiskAreas";
 import { s } from "./styles";
 
 function SourceRow({ source, href }: { source: IntentSource; href: string | null }) {
@@ -65,9 +66,14 @@ function ScopeList({ kind, items }: { kind: "in" | "out"; items: string[] }) {
 export function IntentCard({
   prId,
   repoFullName,
+  risks,
+  onOpenRef,
 }: {
   prId: string | null;
   repoFullName: string | null;
+  /** Risk areas of the stored PR brief; nothing renders when absent or empty. */
+  risks?: Risk[];
+  onOpenRef?: (path: string, line: number | null) => void;
 }) {
   const t = useTranslations("intent");
   const { data, isLoading, error } = usePrIntent(prId);
@@ -162,6 +168,7 @@ export function IntentCard({
         </div>
       )}
 
+      {risks && risks.length > 0 && <RiskAreas risks={risks} onOpenRef={onOpenRef} />}
 
       <button
         type="button"

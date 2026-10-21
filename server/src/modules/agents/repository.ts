@@ -264,7 +264,7 @@ export class AgentsRepository {
         avgCost: avg(t.agentRuns.costUsd),
       })
       .from(t.agentRuns)
-      .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.status, 'done'), isNotNull(t.agentRuns.agentId)))
+      .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.status, 'done'), eq(t.agentRuns.kind, 'review'), isNotNull(t.agentRuns.agentId)))
       .groupBy(t.agentRuns.agentId);
     const findingRows = await this.db
       .select({

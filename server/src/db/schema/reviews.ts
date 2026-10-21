@@ -76,4 +76,18 @@ export const prBrief = pgTable('pr_brief', {
     .primaryKey()
     .references(() => pullRequests.id, { onDelete: 'cascade' }),
   json: jsonb('json').notNull(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }),
+  provider: text('provider'),
+  model: text('model'),
+  tokensIn: integer('tokens_in'),
+  tokensOut: integer('tokens_out'),
+  costUsd: doublePrecision('cost_usd'),
+  /** PR head sha the brief was written for. */
+  headSha: text('head_sha'),
+  /** The newest review when generation started; null when the PR had none. */
+  sourceReviewId: uuid('source_review_id'),
+  /** The generating agent_runs row (plain column, no FK: the run may be reaped). */
+  runId: uuid('run_id'),
+  filesTotal: integer('files_total'),
+  filesIncluded: integer('files_included'),
 });

@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { Verdict } from './findings.js';
+import { RunSummary } from './trace.js';
 
 /**
  * PR Brief building blocks: Intent, Blast radius, Risks, PR History,
- * Smart Diff. Composed into PrBrief.
+ * Smart Diff, and the stored PR Brief.
  */
 
 // ---- Intent ----
@@ -84,8 +86,11 @@ export type BlastRadius = z.infer<typeof BlastRadius>;
 export const RiskSeverity = z.enum(['high', 'medium', 'low']);
 export type RiskSeverity = z.infer<typeof RiskSeverity>;
 
+export const RiskKind = z.enum(['auth', 'dependency', 'performance', 'data', 'api_change', 'config', 'other']);
+export type RiskKind = z.infer<typeof RiskKind>;
+
 export const Risk = z.object({
-  kind: z.string(),
+  kind: RiskKind,
   title: z.string(),
   explanation: z.string(),
   severity: RiskSeverity,
@@ -154,11 +159,61 @@ export const SmartDiff = z.object({
 });
 export type SmartDiff = z.infer<typeof SmartDiff>;
 
-// ---- Composed PR Brief (pr_brief.json) ----
+// ---- PR Brief (pr_brief) ----
+
+/** One place to read first. `line` is null when the model's line is not in the diff. */
+export const PrBriefFocusItem = z.object({
+  path: z.string(),
+  line: z.number().int().nullable(),
+  reason: z.string(),
+});
+export type PrBriefFocusItem = z.infer<typeof PrBriefFocusItem>;
+
+/** What the model returns: text and refs only, no verdict or score. */
+export const PrBriefDraft = z.object({
+  summary: z.string(),
+  risks: z.array(Risk),
+  review_focus: z.array(PrBriefFocusItem),
+});
+export type PrBriefDraft = z.infer<typeof PrBriefDraft>;
+
+/** The stored brief: the verified draft plus generation metadata. */
 export const PrBrief = z.object({
-  intent: Intent,
-  blast: BlastRadius,
-  risks: Risks,
-  history: PrHistory,
+  summary: z.string(),
+  risks: z.array(Risk),
+  review_focus: z.array(PrBriefFocusItem),
+  generated_at: z.string(),
+  provider: z.string(),
+  model: z.string(),
+  tokens_in: z.number().int(),
+  tokens_out: z.number().int(),
+  cost_usd: z.number().nullable(),
+  head_sha: z.string(),
+  source_review_id: z.string().nullable(),
+  run_id: z.string().nullable(),
+  files_total: z.number().int(),
+  files_included: z.number().int(),
 });
 export type PrBrief = z.infer<typeof PrBrief>;
+
+/** Facts of the newest `kind = review` review, computed at read time. */
+export const PrBriefReview = z.object({
+  review_id: z.string(),
+  run_id: z.string().nullable(),
+  agent_name: z.string().nullable(),
+  verdict: Verdict.nullable(),
+  score: z.number().int().nullable(),
+  findings_count: z.number().int(),
+  blockers: z.number().int(),
+  created_at: z.string(),
+});
+export type PrBriefReview = z.infer<typeof PrBriefReview>;
+
+/** Response of `GET /pulls/:id/brief` (database only). */
+export const PrBriefView = z.object({
+  brief: PrBrief.nullable(),
+  review: PrBriefReview.nullable(),
+  run: RunSummary.nullable(),
+  stale: z.boolean(),
+});
+export type PrBriefView = z.infer<typeof PrBriefView>;

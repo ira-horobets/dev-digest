@@ -30,6 +30,10 @@ import type { ConventionsRepositoryPort } from '../modules/conventions/ports.js'
 import { ConventionsRepository } from '../modules/conventions/repository.js';
 import type { OnboardingRepositoryPort } from '../modules/onboarding/ports.js';
 import { OnboardingRepository } from '../modules/onboarding/repository.js';
+import type { PrBriefRepositoryPort } from '../modules/pr-brief/ports.js';
+import { PrBriefRepository } from '../modules/pr-brief/repository.js';
+import { SmartDiffService } from '../modules/smart-diff/service.js';
+import { BlastService } from '../modules/blast/service.js';
 import { RepoRepository } from '../modules/repos/repository.js';
 import { SkillsService } from '../modules/skills/service.js';
 import { AgentsService } from '../modules/agents/service.js';
@@ -77,6 +81,8 @@ export interface ContainerOverrides {
   conventionsRepo?: ConventionsRepositoryPort;
   /** onboarding module port — route/service tests inject an in-memory fake. */
   onboardingRepo?: OnboardingRepositoryPort;
+  /** pr-brief module port — route/service tests inject an in-memory fake. */
+  prBriefRepo?: PrBriefRepositoryPort;
   /** reviews intent persistence port — same idea. */
   intentRepo?: IntentRepositoryPort;
   /** smart-diff module port — route tests inject an in-memory fake. */
@@ -112,6 +118,7 @@ export class Container {
   private _conventionsRepo?: ConventionsRepositoryPort;
   private _onboardingRepo?: OnboardingRepositoryPort;
   private _intentRepo?: IntentRepositoryPort;
+  private _prBriefRepo?: PrBriefRepositoryPort;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
   private _projectContextRepo?: ProjectContextRepositoryPort;
@@ -158,6 +165,10 @@ export class Container {
     return (this._onboardingRepo ??= this.overrides.onboardingRepo ?? new OnboardingRepository(this.db));
   }
 
+  get prBriefRepo(): PrBriefRepositoryPort {
+    return (this._prBriefRepo ??= this.overrides.prBriefRepo ?? new PrBriefRepository(this.db));
+  }
+
   get intentRepo(): IntentRepositoryPort {
     return (this._intentRepo ??= this.overrides.intentRepo ?? new IntentRepository(this.db));
   }
@@ -201,6 +212,15 @@ export class Container {
 
   get skillsService(): SkillsService {
     return (this._skillsService ??= new SkillsService({ repo: this.skillsRepo }));
+  }
+
+  /** Smart Diff and Blast facades for the pr-brief module (no module imports another). */
+  get smartDiffService(): SmartDiffService {
+    return new SmartDiffService({ repo: this.smartDiffRepo });
+  }
+
+  get blastService(): BlastService {
+    return new BlastService({ repo: this.blastRepo, intel: this.repoIntel });
   }
 
   get agentsService(): AgentsService {

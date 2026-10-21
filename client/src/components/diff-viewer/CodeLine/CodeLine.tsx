@@ -22,6 +22,7 @@ export function CodeLine({
   pill,
   findingsAfter,
   findingApi,
+  highlighted,
 }: {
   ln: Line;
   path: string;
@@ -31,6 +32,8 @@ export function CodeLine({
   pill?: Severity;
   findingsAfter?: FindingRecord[];
   findingApi?: DiffFindingApi;
+  /** A deep link points at this line: tint it for a moment. */
+  highlighted?: boolean;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
@@ -51,10 +54,11 @@ export function CodeLine({
   return (
     <div
       style={cs.rowWrap}
+      data-line={ln.kind !== "del" ? ln.newNo : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={{ ...lineRowFor(ln.kind), ...(showFindings && stripe ? stripeFor(SEV[stripe].c) : {}) }}>
+      <div style={{ ...lineRowFor(ln.kind), ...(showFindings && stripe ? stripeFor(SEV[stripe].c) : {}), ...(highlighted ? { background: "var(--accent-bg)" } : {}) }}>
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button

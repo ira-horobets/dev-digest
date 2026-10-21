@@ -1,0 +1,45 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  wrap: { marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)" } satisfies CSSProperties,
+  title: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    color: "var(--text-muted)",
+    margin: "0 0 8px",
+  } satisfies CSSProperties,
+  list: { display: "flex", flexDirection: "column", gap: 6, margin: 0, padding: 0, listStyle: "none" } satisfies CSSProperties,
+  chip: {
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    background: "var(--bg-elevated)",
+  } satisfies CSSProperties,
+  chipHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "8px 10px",
+    border: "none",
+    background: "transparent",
+    color: "var(--text-primary)",
+    fontSize: 13,
+    cursor: "pointer",
+    textAlign: "left",
+  } satisfies CSSProperties,
+  chipTitle: { fontWeight: 600, flex: 1 } satisfies CSSProperties,
+  refs: { display: "inline-flex", flexWrap: "wrap", gap: 6 } satisfies CSSProperties,
+  ref: {
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    fontSize: 12,
+    color: "var(--accent-text)",
+    cursor: "pointer",
+  } satisfies CSSProperties,
+  refStatic: { fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
+  body: { padding: "0 10px 10px 34px", fontSize: 13, lineHeight: 1.5, color: "var(--text-secondary)" } satisfies CSSProperties,
+  explanation: { margin: "0 0 8px" } satisfies CSSProperties,
+} as const;

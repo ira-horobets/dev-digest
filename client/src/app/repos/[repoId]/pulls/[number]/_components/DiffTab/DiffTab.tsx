@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { SectionLabel, Button } from "@devdigest/ui";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffFocus } from "@/components/diff-viewer";
 import {
   usePrComments,
   useCreatePrComment,
@@ -14,7 +14,8 @@ import {
 import { notify } from "@/lib/toast";
 import type { PrFile } from "@devdigest/shared";
 import type { DiffOrder } from "./constants";
-import { displayedFindings, joinGroupFiles } from "./helpers";
+import { displayedFindings, joinGroupFiles, resolveDeepLink } from "./helpers";
+import { useDiffDeepLink } from "./useDiffDeepLink";
 import { OrderToggle } from "./_components/OrderToggle";
 import { RoleGroup } from "./_components/RoleGroup";
 import { s } from "./styles";
@@ -25,9 +26,12 @@ interface DiffTabProps {
   files: PrFile[];
   /** Inline commenting is offered only on open PRs (GitHub rejects otherwise). */
   canComment?: boolean;
+  /** `file` / `line` query params of a deep link (matched only against changed paths). */
+  focusFile?: string | null;
+  focusLine?: string | null;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
+export function DiffTab({ prId, filesCount, files, canComment, focusFile, focusLine }: DiffTabProps) {
   const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const { data: smartDiff } = useSmartDiff(prId);
@@ -69,6 +73,10 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
     },
   };
 
+  const target = React.useMemo(() => resolveDeepLink(files, focusFile, focusLine), [files, focusFile, focusLine]);
+  const highlight = useDiffDeepLink(target);
+  const focus: DiffFocus | undefined = target ? { ...target, highlight } : undefined;
+
   const smart = order === "smart" && smartDiff;
 
   return (
@@ -109,11 +117,13 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
                 hasReview={smartDiff.has_review}
                 findings={findingApi}
                 commenting={commenting}
+                forceOpen={!!target && g.files.some((f) => f.path === target.path)}
+                focus={focus}
               />
             ))}
         </div>
       ) : (
-        <DiffViewer files={files} commenting={commenting} findings={findingApi} />
+        <DiffViewer files={files} commenting={commenting} findings={findingApi} focus={focus} />
       )}
     </section>
   );

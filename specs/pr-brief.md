@@ -1,6 +1,6 @@
 # Spec: PR Brief
 Spec ID: SPEC-03
-Status: draft
+Status: implemented
 Supersedes: —
 
 ## Problem and user

@@ -3,3 +3,4 @@
 export { DiffViewer } from "./DiffViewer";
 export type { DiffCommentApi } from "./comments";
 export type { DiffFindingApi } from "./findings";
+export type { DiffFocus } from "./DiffViewer";

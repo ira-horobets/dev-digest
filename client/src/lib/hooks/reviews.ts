@@ -3,6 +3,7 @@
 "use client";
 
 import React from "react";
+import { prBriefKey } from "./brief";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, API_BASE, ApiError } from "../api";
 import { notify } from "../toast";
@@ -208,6 +209,7 @@ export function useFindingAction() {
       if (prId) {
         qc.invalidateQueries({ queryKey: ["reviews", prId] });
         qc.invalidateQueries({ queryKey: ["smart-diff", prId] });
+        qc.invalidateQueries({ queryKey: prBriefKey(prId) });
       }
     },
   });

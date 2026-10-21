@@ -1,9 +1,11 @@
+import type React from "react";
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
 import type { PrIntentRecord } from "@devdigest/shared";
 import messages from "../../../../../../../../../../messages/en/intent.json";
+import briefMessages from "../../../../../../../../../../messages/en/brief.json";
 import { IntentCard } from "./IntentCard";
 
 const RECORD: PrIntentRecord = {
@@ -41,12 +43,12 @@ function json(body: unknown, status = 200) {
   );
 }
 
-function renderCard() {
+function renderCard(props: Partial<React.ComponentProps<typeof IntentCard>> = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <NextIntlClientProvider locale="en" messages={{ intent: messages }}>
-        <IntentCard prId="p1" repoFullName="acme/api" />
+      <NextIntlClientProvider locale="en" messages={{ intent: messages, brief: briefMessages }}>
+        <IntentCard prId="p1" repoFullName="acme/api" {...props} />
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );
@@ -97,6 +99,19 @@ describe("IntentCard", () => {
     expect(screen.getByText("High confidence")).toBeInTheDocument();
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
     expect(String(post![0])).toContain("/pulls/p1/intent/refresh");
+  });
+
+  it("shows Risk areas under the scope lists only when the brief has risks", async () => {
+    fetchMock.mockImplementation(() => json(RECORD));
+    const risks = [
+      { kind: "auth", title: "Secret committed", explanation: "e", severity: "high", file_refs: ["src/config.ts:12"] },
+    ] as never;
+    const { unmount } = renderCard({ risks });
+    expect(await screen.findByRole("heading", { name: "Risk areas" })).toBeInTheDocument();
+    unmount();
+    renderCard();
+    expect(await screen.findByText(/token-bucket rate limiter/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Risk areas" })).not.toBeInTheDocument();
   });
 
   it("flags a low-confidence, stale intent", async () => {

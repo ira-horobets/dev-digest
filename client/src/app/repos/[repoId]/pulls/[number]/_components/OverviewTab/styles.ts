@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 
 export const s = {
+  /* Brief card first, Intent + Blast grid, Review focus full-width below. */
+  section: { display: "flex", flexDirection: "column", gap: 16 } satisfies CSSProperties,
   /* Two columns on wide screens (Intent left, Blast radius right); one when narrow. */
   briefGrid: {
     display: "grid",

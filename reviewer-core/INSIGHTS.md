@@ -28,6 +28,7 @@ see it, do not write it.
 
 - [2026-09-25] `@devdigest/shared` resolves to `../server/src/vendor/shared`, and `zod` is pinned to this package's own `node_modules` via tsconfig paths to avoid duplicate zod instances. Evidence: `reviewer-core/tsconfig.json:24`.
 - [2026-09-25] This package uses npm (`package-lock.json`), not pnpm. `npm run typecheck` is the build; nothing is emitted. Evidence: `reviewer-core/package.json:scripts.typecheck`.
+- [2026-10-21] Zod 3.25 default issue messages echo the received value for invalid_enum_value, invalid_literal, unrecognized_keys and invalid_union_discriminator ('received "..."'), so a Zod issue list built from i.message is not safe to log when the input is model output. parseWithRepair keeps those codes path-only in .error and the full text only in .repromptMessage; never log or store repromptMessage. Evidence: `reviewer-core/src/llm/structured.ts:ECHOING_ISSUE_CODES`.
 
 ## Recurring Errors & Fixes
 
@@ -38,6 +39,7 @@ _None yet._
 - [2026-09-25] Initial capture from a read-through of the engine and the prompt guide. No code changed. Evidence: `reviewer-core/CLAUDE.md`.
 - [2026-09-25] HW1 criteria pass: ESLint added (`npm run lint`), one `no-useless-assignment` fix in `OpenRouterProvider`; docs/pipeline.md + specs/review-contract.md written by a subagent, which flagged that the server's 'map-reduce' integration test actually runs single-pass. Evidence: `reviewer-core/eslint.config.mjs`.
 - [2026-10-06] Intent layer: deriveIntent + INTENT_SYSTEM_PROMPT in src/intent.ts; assemblePrompt intent slot before PR description with a trusted confidence note; INJECTION_GUARD unchanged. Evidence: `reviewer-core/src/intent.ts; reviewer-core/src/prompt.ts`.
+- [2026-10-21] feat-pr-brief: OpenRouterProvider.completeStructured final error now carries the parse issues (capped, log-safe); parseWithRepair returns a fixed 'Output was not valid JSON' error and keeps detail in the reprompt; new test openrouter-structured.test.ts. Evidence: `reviewer-core/src/llm/openrouter.ts:completeStructured`.
 
 ## Open Questions
 

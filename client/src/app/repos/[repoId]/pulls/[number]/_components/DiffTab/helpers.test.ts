@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { PrFile, ReviewRecord, SmartDiffResponse } from "@devdigest/shared";
-import { displayedFindings, joinGroupFiles } from "./helpers";
+import { displayedFindings, joinGroupFiles, resolveDeepLink } from "./helpers";
 
 const file = (path: string, ids: string[] = []) => ({
   path,
@@ -51,5 +51,18 @@ describe("joinGroupFiles", () => {
     const out = joinGroupFiles(SMART.groups[0]!, prFiles);
     expect(out[0]!.patch).toBe("@@");
     expect(out[1]).toEqual({ path: "gone.ts", additions: 2, deletions: 1, patch: null });
+  });
+});
+
+describe("resolveDeepLink", () => {
+  const files = [{ path: "a.ts", additions: 1, deletions: 0, patch: null }] as PrFile[];
+  it("accepts only changed paths and positive integer lines", () => {
+    expect(resolveDeepLink(files, "a.ts", "12")).toEqual({ path: "a.ts", line: 12 });
+    expect(resolveDeepLink(files, "a.ts", null)).toEqual({ path: "a.ts", line: null });
+    expect(resolveDeepLink(files, "a.ts", "0")).toEqual({ path: "a.ts", line: null });
+    expect(resolveDeepLink(files, "a.ts", "12abc")).toEqual({ path: "a.ts", line: null });
+    expect(resolveDeepLink(files, "gone.ts", "3")).toBeNull();
+    expect(resolveDeepLink(files, "../etc/passwd", "3")).toBeNull();
+    expect(resolveDeepLink(files, null, "3")).toBeNull();
   });
 });

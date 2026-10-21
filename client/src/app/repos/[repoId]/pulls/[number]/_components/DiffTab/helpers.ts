@@ -26,3 +26,22 @@ export function joinGroupFiles(group: Group, prFiles: PrFile[]): PrFile[] {
       },
   );
 }
+
+export interface DeepLinkTarget {
+  path: string;
+  line: number | null;
+}
+
+/**
+ * The `file` / `line` query params as a diff target. The path must be a changed
+ * file of this PR (never trusted otherwise); a line must be a positive integer.
+ */
+export function resolveDeepLink(
+  files: PrFile[],
+  file: string | null | undefined,
+  line: string | null | undefined,
+): DeepLinkTarget | null {
+  if (!file || !files.some((f) => f.path === file)) return null;
+  const n = line != null && /^\d+$/.test(line) ? Number(line) : NaN;
+  return { path: file, line: Number.isSafeInteger(n) && n > 0 ? n : null };
+}

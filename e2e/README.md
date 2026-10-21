@@ -107,3 +107,4 @@ a CI artifact by `.github/workflows/e2e-web.yml`).
 | `12-pr-intent` | PR #482 Overview → Intent card: seeded intent text, Medium confidence, issue #471 used, external link skipped |
 | `14-project-context` | SKILLS LAB → Project Context: heading and the not-cloned error state with Retry for the seeded repo; Security Reviewer's Context tab shows the same state |
 | `15-onboarding-tour` | Sidebar → Onboarding Tour: heading, the five cards, a seeded run command and the not-cloned note for the seeded repo |
+| `16-pr-brief` | PR #482 Overview → seeded PR Brief card (Request changes verdict, summary, `8.2K→1.3K` cost line), Risk areas chip, Review focus row; reload shows the stored brief with no generation; focus row → Files changed with `tab=diff&line=12` and the file open; cost line → run trace drawer titled "PR Brief". No model call |
