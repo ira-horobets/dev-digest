@@ -19,6 +19,10 @@ token blocks in the run trace.
 | 5 | Agent cards | `useDeleteAgent` | «N skills» badge from `Agent.skill_count`; Delete opens `ConfirmDialog` (no more `window.confirm`) |
 | 6 | Run trace drawer → Prompt assembly | — | the Skills block label carries «N skills · T tokens» (`prompt_assembly.skills_tokens`) and one collapsible sub-block per enabled skill, «↳ Skill · name (vN) · T tokens» (`skill_blocks`); a disabled skill has no block |
 
+The skill editor also has a Context tab (project documents the skill
+attaches) and the agent editor a Context tab; both are specified in
+[`project-context.md`](project-context.md).
+
 `SkillForm` (name, description, type, body, enabled) is shared by the create
 modal, the import drawer and the panel's edit mode. The description field's
 hint says it is the skill's interface and must be written as a directive.

@@ -16,6 +16,7 @@ this file are relative to `client/` unless they start with `../`.
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
 | `/skills/[id]` | skill editor: Config, Preview, Versioning | `useSkill`, `useUpdateSkill`, `useDeleteSkill`, `useSkillVersions`, `useSkillVersionDiff`, `useRestoreSkillVersion` | path `id`, `?tab` | `10-skills` |
 | `/conventions` | conventions extractor for the active repo | `useConventions`, `useExtractConventions`, `useDecideConvention`, `useDeselectConventions`, `useConventionSkillDraft`, `useCreateConventionSkill`, `useAgents` | none | `11-conventions` |
+| `/context` | Project Context: the sidebar repo's Markdown documents, preview, edit with local override and reset, used-by and coverage | `useContextFiles`, `useRefreshContext`, `useContextFile`, `useSaveContextFile`, `useResetContextFile`, `useAgents` | `?doc` | `14-project-context` |
 | `/settings/[section]` | API keys, feature models | `useSecretsStatus`, `useTestConnection`, `useSettings`, `useUpdateSettings`, `useProviderModels` | path `section` | `07-settings` |
 
 `/showcase` (`src/app/showcase/page.tsx`) renders the component gallery
@@ -215,6 +216,7 @@ and its Live log tab shows `trace.log`. Trace tab (`TraceBody`):
 Configuration, Stats (`DURATION`, `TOKENS` as `8k→0.9k`, `COST` via
 `formatCost`, `FINDINGS`), Findings, Prompt assembly, Tool calls, Raw output.
 Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
+Project context blocks and the Specs read tokens: `specs/project-context.md`.
 
 ## `/agents` (`src/app/agents/page.tsx` → `AgentsListView`)
 
@@ -238,8 +240,9 @@ Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 
 - Left column lists all agents (`useAgents`, `AgentCard`); right side is
   `AgentEditor` for `useAgent(id)` (`GET /agents/:id`).
-- URL: `?tab=config|skills` (`VALID_TABS`); `config` is the fallback.
-  `AgentEditor` `TABS` has Config and Skills.
+- URL: `?tab=config|skills|context` (`VALID_TABS`); `config` is the fallback.
+  `AgentEditor` `TABS` has Config, Skills and Context (the Context tab attaches
+  project documents; contract in `specs/project-context.md`).
 - `ConfigTab`: name, description, provider, model (`SearchableSelect` fed by
   `useProviderModels(provider)`, `GET /providers/:provider/models`; an empty
   list shows a "key missing" hint), strategy, CI fail-on, repo intel toggle,
@@ -286,8 +289,9 @@ Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 
 - Server page awaits `params`, renders `SkillEditor` (`useSkill`). Header:
   name, type tag, `vN`, source, agent count, disabled / needs-vetting badges,
-  «All skills» back button. Tabs via `?tab=config|preview|versioning`
-  (`VALID_SKILL_TABS`, default `config`, written with `router.replace`).
+  «All skills» back button. Tabs via `?tab=config|preview|context|versioning`
+  (`VALID_SKILL_TABS`, default `config`, written with `router.replace`); the
+  Context tab is specified in `specs/project-context.md`.
 - Config: `SkillForm` keyed by `id:version` (a save or restore remounts it),
   Save (`useUpdateSkill`, toast `Skill saved (vN)`), Delete (`ConfirmDialog`
   → `useDeleteSkill` → `/skills`).
@@ -318,6 +322,32 @@ Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 - States: no repos («Select a repository»), repo without clone («Repository
   not cloned yet»), nothing extracted (empty state with Run Scan CTA), all
   rejected. Full contract: `specs/conventions.md`.
+
+## `/context` (`src/app/context/page.tsx` → `ProjectContextView`)
+
+- Repo: the shell's active repository (`useActiveRepo`); the page has no
+  selector of its own, and picking another repo in the sidebar keeps the page
+  open and reloads it (`useShellContext.onSelectRepo` replaces the URL with
+  `/context`). `?doc=<path>` selects the previewed document (`router.replace`).
+  The page wraps the view in `Suspense` (`useSearchParams`).
+- Two panes, no page title: a file panel (`FilePanel`: section label, shared
+  folder, toolbar, compact icon-and-name rows, footer with document and token
+  totals) and a document pane (`DocPane`). `useContextFiles`
+  (`GET /repos/:id/context`) lists the documents;
+  `useContextFile` (`GET /repos/:id/context/file?path=`) feeds the opened
+  document, shown as rendered Markdown (Preview pill) or an editable textarea
+  (Edit pill; Save and Ctrl/Cmd+S store a local override, Reset to repository
+  version removes it; a «Modified locally» badge and a row marker flag it), with
+  the token badge, «Used by N agents» and a Coverage ring (`agents_using` over
+  the enabled agents from `useAgents`) in the pane header. The panel toolbar
+  has the refresh icon (`useRefreshContext`) and the design's add / folder /
+  upload icons, disabled until they have a backend. Attaching happens in the
+  editors' Context tabs. Unsaved text is guarded on document switch, mode
+  switch and a sidebar repository change.
+- States: skeleton, «No repository yet», «Repository not cloned» error state
+  with Retry, load error with Retry, empty state naming `specs, docs, insights`,
+  «Select a document», a notice for a too-large document. Full contract:
+  `specs/project-context.md`.
 
 ## `/settings/[section]` (`src/app/settings/[section]/page.tsx` → `SettingsView`)
 

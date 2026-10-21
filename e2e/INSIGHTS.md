@@ -18,6 +18,7 @@ see it, do not write it.
 - [2026-09-25] Resetting the dev DB with `docker compose down -v`. It deletes the volume with every imported repo and review. Evidence: `docker-compose.yml`.
 - [2026-09-25] `find text <name> click` on a card that sits below the fold of a page-internal scroll pane (`overflow: auto` main column, e.g. the /skills grid) does not navigate: the click lands outside the viewport. Click an element in the first visible row instead, or scroll first. Evidence: `e2e/specs/10-skills.flow.json:open the first skill card's preview`.
 - [2026-09-26] `find role link click --name Conventions` does not find the sidebar nav item although NavItem renders a next/link anchor; `find text Conventions click` does. Prefer text locators for sidebar items. Evidence: `e2e/specs/11-conventions.flow.json`.
+- [2026-10-20] scripts/e2e.sh starts its own 'next dev' with NEXT_PUBLIC_API_BASE=http://localhost:3101 in the same client/.next directory the :3000 dev server uses, so after any e2e run (including verify.sh --e2e) the running dev web keeps serving chunks that call the e2e API port: every page shows 'Could not load' with ERR_CONNECTION_REFUSED to :3101 until 'next dev' on :3000 is restarted (rm -rf client/.next first). Seen 2026-10-20 during the project-context browser check. Fix candidates: give e2e its own distDir (NEXT_DIST_DIR / next.config distDir from env) or stop the dev web before e2e. Evidence: `scripts/e2e.sh:42`.
 
 ## Codebase Patterns
 

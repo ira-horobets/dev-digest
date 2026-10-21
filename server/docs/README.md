@@ -15,3 +15,4 @@ What goes where:
 ## Index
 
 - [`architecture.md`](architecture.md) — boot sequence, DI `Container` and overrides, the routes/service/repository trio, `JobRunner`, SSE `RunBus` + `RunLogger`, secrets, the Drizzle schema and migrations, and how `reviewer-core` is consumed through a path alias.
+- [`project-context.md`](project-context.md) — Project context: listing and run-resolution flows (sequence + flowchart), why documents are read from the object database at the PR base branch, adapter-side glob matching, the container-owned singleton with its per-sha cache, token caps and the unspaced-run guard, conditional injection-guard wording, local overrides of documents (save sequence, merge outside the cache, token memo, reset rules).

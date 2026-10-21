@@ -57,5 +57,6 @@ raw TypeScript source through a path alias.
 - `specs/conventions.md` — HW2 conventions extractor: scan job, sample selection, evidence verification, candidate decisions, `repo-conventions` skill; read before touching `modules/conventions/`.
 - `specs/smart-diff.md` — Smart Diff route, role classifier precedence, finding selection; read before touching `modules/smart-diff/` or the `SmartDiff` contract.
 - `specs/blast-radius.md` — Blast radius route, facade-to-contract mapping, prior-PR history; read before touching `modules/blast/` or the `BlastRadius` contracts.
+- `specs/project-context.md` — project context: tables, routes, base-branch reads, caps, trace fields, local overrides (`context_doc_overrides`, `PUT|DELETE /repos/:id/context/file`); `docs/project-context.md` for flows and decisions; read before touching `modules/project-context/`, `GitClient.listFiles` or the specs slot in the executor.
 - `INSIGHTS.md` — non-obvious gotchas; read at the start of every task here.
 - `../.claude/skills/onion-architecture-backend/SKILL.md` — ring map, the boundary rules (14 cruiser rules), new-module checklist, fix recipes; read before adding a module, route, service, repository or adapter.

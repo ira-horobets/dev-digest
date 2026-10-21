@@ -77,6 +77,7 @@ flowchart TB
     agents["agents<br/>/agents · /agents/:id · /agents/:id/skills (skill_ids)"]
     skills["skills<br/>/skills · /skills/:id · /skills/import/preview<br/>/skills/:id/versions · /versions/:v/(diff|restore)"]
     conventions["conventions<br/>/repos/:id/conventions · /extract · /skill-draft · /skill<br/>/conventions/:id"]
+    projectContext["project-context<br/>/repos/:id/context · /repos/:id/context/file (GET · PUT · DELETE)<br/>/agents/:id/context · /skills/:id/context"]
   end
   subgraph Intel["Repo intelligence"]
     repoIntel["repo-intel<br/>/repos/:id/index-state · /resync"]
@@ -100,6 +101,7 @@ flowchart TB
 | `GITHUB_TOKEN` | — | optional; PAT with repo scope (`GITHUB_PAT` accepted as a fallback) |
 | `EMBEDDINGS_ENABLED` | `false` | memory/RAG embeddings (OpenAI); off → **zero** OpenAI calls |
 | `REPO_INTEL_ENABLED` | `true` | repo skeleton + callers in the prompt; `false` → ripgrep-only |
+| `PROJECT_CONTEXT_GLOB` | `**/{specs,docs,insights}/**/*.md` | discovery glob for project context documents (braces expanded in code); see `specs/project-context.md` |
 | `DEVDIGEST_CLONE_DIR` | `./clones` | imported-repo checkouts (git-ignored) |
 | `LOG_LEVEL` | `info` (`silent` in test) | pino level |
 | `NODE_ENV` | `development` | `test` → silent logs + global rate-limit disabled |
@@ -133,6 +135,15 @@ What the reviewer actually sends to the model is assembled in
   demo / test / not for production / do not flag" never descope the review — real
   defects are reported at full severity regardless. We deliberately do **not**
   keyword-scan untrusted text (a denylist only catches one phrasing).
+- **Project context is manual.** Markdown documents attached to an agent or a
+  skill (per repository) are read from the PR's base branch and rendered under
+  `## Project context` as untrusted data, capped at 8,000 tokens per document
+  and 24,000 per assembled prompt. Nothing is attached automatically, and a
+  prompt with no attachments is unchanged. A document can be edited and saved as
+  a local override (`context_doc_overrides`, `PUT /repos/:id/context/file`);
+  runs then read the override instead of the repository text, and the run trace
+  marks the block `modified`. Nothing is written to git or GitHub. Details: `specs/project-context.md`,
+  `docs/project-context.md`.
 - **Grounding is mandatory.** Every finding must cite a line that exists in the
   diff or it is dropped (`groundFindings`), and the score is recomputed from the
   surviving findings — the model's self-reported score is ignored.
