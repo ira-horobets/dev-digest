@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { EmptyState, ErrorState, Skeleton } from "@devdigest/ui";
 import { AppShell } from "@/components/app-shell";
+import { PageContainer } from "@/components/page-shell";
 import { RepoNotFound } from "@/components/repo-not-found";
 import { TourToc } from "@/components/tour-toc";
 import { ApiError } from "@/lib/api";
@@ -58,78 +59,80 @@ export function OnboardingTourView({ repoId }: { repoId: string }) {
 
   return (
     <AppShell crumb={crumb}>
-      {state === "loading" ? (
-        <div style={s.layout} aria-busy="true">
-          <div />
-          <div style={s.main}>
-            <Skeleton height={36} width="50%" />
-            <Skeleton height={16} width="70%" />
-            {Array.from({ length: SKELETON_CARDS }).map((_, i) => (
-              <Skeleton key={i} height={140} />
-            ))}
+      <PageContainer>
+        {state === "loading" ? (
+          <div style={s.layout} aria-busy="true">
+            <div />
+            <div style={s.main}>
+              <Skeleton height={36} width="50%" />
+              <Skeleton height={16} width="70%" />
+              {Array.from({ length: SKELETON_CARDS }).map((_, i) => (
+                <Skeleton key={i} height={140} />
+              ))}
+            </div>
           </div>
-        </div>
-      ) : state === "error" ? (
-        <ErrorState
-          title={t("loadError.title")}
-          body={error instanceof ApiError ? error.message : undefined}
-          onRetry={() => void refetch()}
-        />
-      ) : (
-        <div style={s.layout}>
-          <aside style={s.toc}>
-            {state === "tour" ? (
-              <TourToc
-                title={t("toc.title")}
-                items={SECTIONS.map((sec) => ({ id: sec.id, label: t(`sections.${sec.kind}.title`) }))}
-                activeId={nav.activeId}
-                onSelect={nav.select}
-              />
-            ) : null}
-          </aside>
-          <div style={s.main}>
-            <TourHeader
-              repoName={repoName}
-              tour={tour}
-              stale={!!view?.stale}
-              modelLabel={modelLabel}
-              cloned={cloned}
-              running={running}
-              onRegenerate={onGenerate}
-              onShare={() => void onShare()}
-            />
-            {failed ? (
-              <div style={s.banner} role="alert">
-                {t("runFailed", { error: failed.error ?? t("unknownError") })}
-              </div>
-            ) : null}
-            {tour?.limited ? <LimitedBanner repoId={repoId} /> : null}
-            {state === "tour" && tour ? (
-              <TourSections
+        ) : state === "error" ? (
+          <ErrorState
+            title={t("loadError.title")}
+            body={error instanceof ApiError ? error.message : undefined}
+            onRetry={() => void refetch()}
+          />
+        ) : (
+          <div style={s.layout}>
+            <aside style={s.toc}>
+              {state === "tour" ? (
+                <TourToc
+                  title={t("toc.title")}
+                  items={SECTIONS.map((sec) => ({ id: sec.id, label: t(`sections.${sec.kind}.title`) }))}
+                  activeId={nav.activeId}
+                  onSelect={nav.select}
+                />
+              ) : null}
+            </aside>
+            <div style={s.main}>
+              <TourHeader
+                repoName={repoName}
                 tour={tour}
-                repo={activeRepo ? { full_name: activeRepo.full_name, default_branch: activeRepo.default_branch } : undefined}
+                stale={!!view?.stale}
+                modelLabel={modelLabel}
+                cloned={cloned}
+                running={running}
+                onRegenerate={onGenerate}
+                onShare={() => void onShare()}
               />
-            ) : state === "generating" ? (
-              <EmptyState
-                icon="Workflow"
-                title={t("generate.generating")}
-                body={t("generate.generatingBody", { model: modelLabel ?? "—" })}
-              />
-            ) : state === "notCloned" ? (
-              <EmptyState icon="GitBranch" title={t("notCloned.title")} body={t("notCloned.body")} />
-            ) : (
-              <EmptyState
-                icon="Workflow"
-                title={t("generate.title")}
-                body={t("generate.body")}
-                cta={modelLabel ? t("generate.ctaModel", { model: modelLabel }) : t("generate.cta")}
-                onCta={onGenerate}
-                ctaLoading={generate.isPending}
-              />
-            )}
+              {failed ? (
+                <div style={s.banner} role="alert">
+                  {t("runFailed", { error: failed.error ?? t("unknownError") })}
+                </div>
+              ) : null}
+              {tour?.limited ? <LimitedBanner repoId={repoId} /> : null}
+              {state === "tour" && tour ? (
+                <TourSections
+                  tour={tour}
+                  repo={activeRepo ? { full_name: activeRepo.full_name, default_branch: activeRepo.default_branch } : undefined}
+                />
+              ) : state === "generating" ? (
+                <EmptyState
+                  icon="Workflow"
+                  title={t("generate.generating")}
+                  body={t("generate.generatingBody", { model: modelLabel ?? "—" })}
+                />
+              ) : state === "notCloned" ? (
+                <EmptyState icon="GitBranch" title={t("notCloned.title")} body={t("notCloned.body")} />
+              ) : (
+                <EmptyState
+                  icon="Workflow"
+                  title={t("generate.title")}
+                  body={t("generate.body")}
+                  cta={modelLabel ? t("generate.ctaModel", { model: modelLabel }) : t("generate.cta")}
+                  onCta={onGenerate}
+                  ctaLoading={generate.isPending}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </PageContainer>
     </AppShell>
   );
 }
