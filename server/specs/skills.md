@@ -90,6 +90,11 @@ text config). The trace records `prompt_assembly.skills` (the joined block),
 tokens, text }`) so the drawer shows the skills block with its weight and one
 sub-block per skill (HW2 §19-20). With no enabled links all three are absent.
 
+Project documents attached to a skill (`skill_context_docs`) are a separate
+slot, `## Project context`, read at the PR base branch and resolved after the
+skill blocks; they do not change the skill body or `skills.version`. See
+[`project-context.md`](project-context.md).
+
 ## Seed (`db/seed-skills.ts`)
 
 Thirteen skills and per-agent links (`AGENT_SKILL_LINKS`): Security Reviewer

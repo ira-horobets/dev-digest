@@ -17,7 +17,6 @@
     "breadcrumbLab": "Skills Lab",
     "breadcrumb": "Agents",
     "title": "Agents",
-    "subtitle": "User-created reviewers. Each = provider + model + system prompt + linked skills.",
     "searchPlaceholder": "Search agents…",
     "addAgent": "Add Agent",
     "createFromScratch": "Create from scratch",
@@ -52,13 +51,14 @@
     "add": "Add",
     "createFromScratch": "Create from scratch",
     "disabled": "disabled",
-    "runOnPr": "Run on a PR…",
+    "runOnPr": "Run Review",
     "tabs": {
       "config": "Config",
       "skills": "Skills",
       "evals": "Evals",
       "stats": "Stats",
-      "ci": "CI"
+      "ci": "CI",
+      "context": "Context"
     }
   },
   "config": {
@@ -117,5 +117,11 @@
   },
   "mount": {
     "body": "Mount point for {owner}. The Agent Editor shell + tab routing are wired by A2 — {owner} renders this tab."
+  },
+  "context": {
+    "title": "Project context",
+    "badge": "{attached} of {total} attached",
+    "hint": "Order matters — earlier documents appear earlier in the assembled ## Project context block. Toggle to attach. Changing the set creates a new agent version.",
+    "footerNote": "Injected as an untrusted block (## Project context) into every run."
   }
 }

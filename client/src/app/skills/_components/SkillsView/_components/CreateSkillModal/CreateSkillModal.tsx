@@ -26,7 +26,7 @@ export function CreateSkillModal({ onClose }: { onClose: () => void }) {
   const submit = async () => {
     const skill = await create.mutateAsync({ ...form, name: form.name.trim() });
     onClose();
-    router.push(`/skills/${skill.id}`);
+    router.push(`/skills?skill=${skill.id}`);
   };
 
   return (

@@ -267,11 +267,30 @@ export const PrCommentInput = z.object({
 export type PrCommentInput = z.infer<typeof PrCommentInput>;
 
 // ---- Project Context ----
+export const SpecKind = z.enum(['specs', 'docs', 'insights']);
+export type SpecKind = z.infer<typeof SpecKind>;
+
 export const SpecFile = z.object({
   path: z.string(),
   content: z.string().nullish(),
   size: z.number().int().nullish(),
   updated_at: z.string().nullish(),
+  /** Nearest ancestor folder among specs, docs, insights; null when none. */
+  kind: SpecKind.nullish(),
+  /** Approximate token count of the text; absent when `too_large`. */
+  tokens: z.number().int().nullish(),
+  /** Larger than the file size cap: listed but not attachable. */
+  too_large: z.boolean().nullish(),
+  /** Agents attaching this document in the selected repository. */
+  agent_count: z.number().int().nullish(),
+  /** Skills attaching this document in the selected repository. */
+  skill_count: z.number().int().nullish(),
+  /** Distinct enabled agents that receive this document at run time: attached
+      directly, or through an enabled skill they link. Feeds "Used by N agents"
+      and the coverage ring (agents_using / enabled agents) on the page. */
+  agents_using: z.number().int().nullish(),
+  /** A local override replaces the repository text of this document; `tokens` counts the override. */
+  modified: z.boolean().nullish(),
 });
 export type SpecFile = z.infer<typeof SpecFile>;
 

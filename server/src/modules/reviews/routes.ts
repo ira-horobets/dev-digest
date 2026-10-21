@@ -31,7 +31,7 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
     llm: (provider) => container.llm(provider),
     featureModel: (workspaceId) => container.featureModel(workspaceId, 'review_intent'),
   });
-  const service = new ReviewService(container, intentService);
+  const service = new ReviewService(container, intentService, container.projectContext);
 
   // ---- Run a review (manual trigger) -------------------------------
   // Tight per-route limit: each call can fan out to expensive LLM runs.

@@ -16,6 +16,7 @@ this file are relative to `client/` unless they start with `../`.
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
 | `/skills/[id]` | skill editor: Config, Preview, Versioning | `useSkill`, `useUpdateSkill`, `useDeleteSkill`, `useSkillVersions`, `useSkillVersionDiff`, `useRestoreSkillVersion` | path `id`, `?tab` | `10-skills` |
 | `/conventions` | conventions extractor for the active repo | `useConventions`, `useExtractConventions`, `useDecideConvention`, `useDeselectConventions`, `useConventionSkillDraft`, `useCreateConventionSkill`, `useAgents` | none | `11-conventions` |
+| `/context` | Project Context: the sidebar repo's Markdown documents, preview, edit with local override and reset, used-by and coverage | `useContextFiles`, `useRefreshContext`, `useContextFile`, `useSaveContextFile`, `useResetContextFile`, `useAgents` | `?doc` | `14-project-context` |
 | `/settings/[section]` | API keys, feature models | `useSecretsStatus`, `useTestConnection`, `useSettings`, `useUpdateSettings`, `useProviderModels` | path `section` | `07-settings` |
 
 `/showcase` (`src/app/showcase/page.tsx`) renders the component gallery
@@ -215,31 +216,37 @@ and its Live log tab shows `trace.log`. Trace tab (`TraceBody`):
 Configuration, Stats (`DURATION`, `TOKENS` as `8k→0.9k`, `COST` via
 `formatCost`, `FINDINGS`), Findings, Prompt assembly, Tool calls, Raw output.
 Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
+Project context blocks and the Specs read tokens: `specs/project-context.md`.
 
 ## `/agents` (`src/app/agents/page.tsx` → `AgentsListView`)
 
-- `useAgents` (`GET /agents`); enable toggle on a card calls `useUpdateAgent`
-  (`PUT /agents/:id`); trash icon opens `ConfirmDialog`, then `useDeleteAgent`
-  (`DELETE /agents/:id`).
-- `AgentCard` footer (`Agent.stats`, computed server-side per workspace):
-  `N runs` (completed runs), `P% accept` (accepted share of decided findings,
-  «— accept» until one finding is accepted or dismissed) and `$X avg`
-  (`formatCost` of the mean cost of completed runs with a known cost, «— avg»
-  until one exists).
-- Local search filters name + description (`filterAgents`). "Add agent"
-  dropdown opens `CreateAgentModal` (`useCreateAgent`, `POST /agents`), then
-  navigates to `/agents/<id>?tab=config`. The template entries in that
-  dropdown also just open the modal.
-- Loading: three card skeletons. Error: `ErrorState` with retry. Empty:
-  `EmptyState` with a create CTA. Clicking a card opens
-  `/agents/<id>?tab=config`.
+- Master-detail like `/skills` (design "Agent Editor · Context", applied
+  2026-10-21): the agents column and the editor live on `/agents/[id]`, so this
+  view opens the first agent (`router.replace` to `/agents/<id>?tab=config`)
+  once `useAgents` (`GET /agents`) answers. Loading: a skeleton. Error:
+  `ErrorState` with retry. Empty: `EmptyState` with a create CTA that opens
+  `CreateAgentModal` (`useCreateAgent`, `POST /agents`, then
+  `/agents/<id>?tab=config`).
 
 ## `/agents/[id]` (`src/app/agents/[id]/page.tsx`)
 
-- Left column lists all agents (`useAgents`, `AgentCard`); right side is
-  `AgentEditor` for `useAgent(id)` (`GET /agents/:id`).
-- URL: `?tab=config|skills` (`VALID_TABS`); `config` is the fallback.
-  `AgentEditor` `TABS` has Config and Skills.
+- Left column (`aside` «Agents»): the heading, the **Add Agent** dropdown
+  (*Create from scratch* and the template entries all open
+  `CreateAgentModal`), a search box (`filterAgents` over name + description)
+  and one `AgentCard` per agent (`useAgents`): accent icon chip, name, enabled
+  `Toggle` (`useUpdateAgent`, `PUT /agents/:id`), trash icon → `ConfirmDialog`
+  → `useDeleteAgent` (`DELETE /agents/:id`), one-line description, model chip,
+  `N skills`, and the stats footer (`Agent.stats`, computed server-side per
+  workspace): `N runs` (completed runs), `P% accept` (accepted share of
+  decided findings, «— accept» until one finding is accepted or dismissed) and
+  `$X avg` (`formatCost` of the mean cost of completed runs with a known cost,
+  «— avg» until one exists). Clicking a card keeps the current `?tab=`.
+- Right side: header (icon chip, name, `provider/model` badge, disabled badge,
+  **Run Review** → `/`) over `AgentEditor` for `useAgent(id)`
+  (`GET /agents/:id`).
+- URL: `?tab=config|skills|context` (`VALID_TABS`); `config` is the fallback.
+  `AgentEditor` `TABS` has Config, Skills and Context (the Context tab attaches
+  project documents; contract in `specs/project-context.md`).
 - `ConfigTab`: name, description, provider, model (`SearchableSelect` fed by
   `useProviderModels(provider)`, `GET /providers/:provider/models`; an empty
   list shows a "key missing" hint), strategy, CI fail-on, repo intel toggle,
@@ -258,49 +265,50 @@ Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 
 ## `/skills` (`src/app/skills/page.tsx` → `SkillsView`)
 
-- `useSkills` (`GET /skills`). Cards (`SkillCard`): mono name, type tag,
-  description, `vN · source · N agents` (`agent_count`), «needs vetting» badge
-  for an imported skill that is still disabled, enabled `Toggle`
-  (`useUpdateSkill`, `PUT /skills/:id`), and a Delete icon; `SkillsView`
-  owns the single `ConfirmDialog` (Escape cancels) and calls `useDeleteSkill`
-  (`DELETE /skills/:id`) on confirm.
-  Local search filters name, description and type (`filterSkills`).
-- "Add Skill" dropdown: *Create from scratch* opens `CreateSkillModal`
-  (`useCreateSkill`, `POST /skills`) then navigates to `/skills/<id>`;
-  *Import from file* opens `ImportSkillDrawer` (file → base64 →
-  `usePreviewSkillImport`, `POST /skills/import/preview` → editable preview
-  with ignored entries and a trust notice → `POST /skills` with
-  `source: imported_file`, `enabled: false`).
-- Clicking a card writes `?skill=<id>` (`router.replace`, so Back leaves the page) and renders
-  `SkillPanel` on the right (`useSkill`, `GET /skills/:id`): badges, the
-  vetting notice for imported skills, description, Markdown body, **Open
-  editor** (→ `/skills/<id>`), Edit inline (`SkillForm`, Save →
-  `useUpdateSkill`, toast `Skill saved (vN)`), Delete → `ConfirmDialog` →
-  `useDeleteSkill` → back to `/skills`. Close clears the param. The page
+- Master-detail (design "Skill Editor", applied 2026-10-21): a Skills column
+  on the left (`aside` «Skills»: the heading, the **Add Skill** dropdown, a
+  search box and one `SkillCard` per skill) and the `SkillEditor` inline on
+  the right for `?skill=<id>`. With no `?skill=` the page opens the first
+  skill (`router.replace`); clicking a card writes `?skill=<id>` and keeps
+  the current `?tab=`. Back leaves the page (replace, not push). The page
   wraps the view in `Suspense` because it reads `useSearchParams`.
-- Loading: three card skeletons. Error: `ErrorState` with retry. Empty:
-  `EmptyState` with a create CTA; a search with no hits shows «No matching
-  skills». Full contract: `specs/skills.md`.
+- `useSkills` (`GET /skills`). Cards (`SkillCard`): type-coloured icon chip,
+  mono name (a `<button>` with `aria-pressed` when selected), enabled
+  `Toggle` (`useUpdateSkill`, `PUT /skills/:id`), one-line description, type
+  tag, source with icon, «needs vetting» badge for an imported skill that is
+  still disabled, and `N agents` (`agent_count`). Deleting lives in the
+  editor's Config tab. Local search filters name, description and type
+  (`filterSkills`).
+- "Add Skill" dropdown: *Create from scratch* opens `CreateSkillModal`
+  (`useCreateSkill`, `POST /skills`) then selects the new skill
+  (`/skills?skill=<id>`); *Import from file* opens `ImportSkillDrawer` (file →
+  base64 → `usePreviewSkillImport`, `POST /skills/import/preview` → editable
+  preview with ignored entries and a trust notice → `POST /skills` with
+  `source: imported_file`, `enabled: false`).
+- Loading: three card skeletons in the column. Error: `ErrorState` with
+  retry. Empty: `EmptyState` with a create CTA in the editor area; a search
+  with no hits shows «No matching skills» in the column while the editor
+  stays. Full contract: `specs/skills.md`.
 
-## `/skills/[id]` (`src/app/skills/[id]/page.tsx` → `SkillEditor`)
+## `/skills/[id]` (`src/app/skills/[id]/page.tsx`)
 
-- Server page awaits `params`, renders `SkillEditor` (`useSkill`). Header:
-  name, type tag, `vN`, source, agent count, disabled / needs-vetting badges,
-  «All skills» back button. Tabs via `?tab=config|preview|versioning`
-  (`VALID_SKILL_TABS`, default `config`, written with `router.replace`).
+- Server page that redirects to `/skills?skill=<id>` (keeping `?tab=`), so
+  old links land on the inline editor. The editor itself
+  (`[id]/_components/SkillEditor`, rendered by `SkillsView`): header with a
+  type-coloured icon chip, mono name, type tag, `vN`, source, agent count,
+  disabled / needs-vetting badges; tabs `?tab=config|context|preview|versioning`
+  (`VALID_SKILL_TABS`, default `config`, written by the page with
+  `router.replace`); the Context tab is specified in `specs/project-context.md`.
 - Config: `SkillForm` keyed by `id:version` (a save or restore remounts it),
   Save (`useUpdateSkill`, toast `Skill saved (vN)`), Delete (`ConfirmDialog`
-  → `useDeleteSkill` → `/skills`).
+  → `useDeleteSkill` → `/skills`, which opens the first remaining skill).
 - Preview: the body through the `Markdown` primitive.
-- Versioning: `useSkillVersions` (`GET /skills/:id/versions`), newest first;
+- Versions: `useSkillVersions` (`GET /skills/:id/versions`), newest first;
   the current version carries a `current` badge; previous versions offer
   **Diff** (`useSkillVersionDiff`, `GET …/versions/:v/diff`, rendered by
   `PatchView` with a «N added · M removed against vX» summary) and **Restore**
   (`ConfirmDialog` → `useRestoreSkillVersion`, `POST …/versions/:v/restore`,
   toast `Restored vA as vB`).
-- Loading: skeletons. Error or missing skill: full-screen `ErrorState`
-  «Skill not found» with retry.
-
 ## `/conventions` (`src/app/conventions/page.tsx` → `ConventionsView`)
 
 - Repo comes from `useActiveRepo` (switcher / `localStorage`, no URL param).
@@ -318,6 +326,32 @@ Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 - States: no repos («Select a repository»), repo without clone («Repository
   not cloned yet»), nothing extracted (empty state with Run Scan CTA), all
   rejected. Full contract: `specs/conventions.md`.
+
+## `/context` (`src/app/context/page.tsx` → `ProjectContextView`)
+
+- Repo: the shell's active repository (`useActiveRepo`); the page has no
+  selector of its own, and picking another repo in the sidebar keeps the page
+  open and reloads it (`useShellContext.onSelectRepo` replaces the URL with
+  `/context`). `?doc=<path>` selects the previewed document (`router.replace`).
+  The page wraps the view in `Suspense` (`useSearchParams`).
+- Two panes, no page title: a file panel (`FilePanel`: section label, shared
+  folder, toolbar, compact icon-and-name rows, footer with document and token
+  totals) and a document pane (`DocPane`). `useContextFiles`
+  (`GET /repos/:id/context`) lists the documents;
+  `useContextFile` (`GET /repos/:id/context/file?path=`) feeds the opened
+  document, shown as rendered Markdown (Preview pill) or an editable textarea
+  (Edit pill; Save and Ctrl/Cmd+S store a local override, Reset to repository
+  version removes it; a «Modified locally» badge and a row marker flag it), with
+  the token badge, «Used by N agents» and a Coverage ring (`agents_using` over
+  the enabled agents from `useAgents`) in the pane header. The panel toolbar
+  has the refresh icon (`useRefreshContext`) and the design's add / folder /
+  upload icons, disabled until they have a backend. Attaching happens in the
+  editors' Context tabs. Unsaved text is guarded on document switch, mode
+  switch and a sidebar repository change.
+- States: skeleton, «No repository yet», «Repository not cloned» error state
+  with Retry, load error with Retry, empty state naming `specs, docs, insights`,
+  «Select a document», a notice for a too-large document. Full contract:
+  `specs/project-context.md`.
 
 ## `/settings/[section]` (`src/app/settings/[section]/page.tsx` → `SettingsView`)
 

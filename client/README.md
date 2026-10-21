@@ -30,6 +30,7 @@ flowchart TD
   AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills)"]
   SKILLS["/skills<br/>grid + side panel (?skill=)"] --> SKILL["/skills/:id<br/>Config · Preview · Versioning"]
   CONV["/conventions<br/>extractor for the active repo"]
+  CTX["/context<br/>repo documents, preview, local edit"]
   SETTINGS["/settings/:section<br/>API keys · models"]
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
@@ -37,6 +38,7 @@ flowchart TD
   AGENTS -->|"/agents · /agents/:id"| API
   SKILLS -->|"/skills · /skills/:id · /skills/:id/versions · /skills/import/preview · /agents/:id/skills"| API
   CONV -->|"/repos/:id/conventions · /extract · /skill-draft · /skill · /conventions/:id"| API
+  CTX -->|"/repos/:id/context · /repos/:id/context/file · /agents/:id/context · /skills/:id/context"| API
   SETTINGS -->|"/settings · /providers"| API
 ```
 

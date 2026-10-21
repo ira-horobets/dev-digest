@@ -19,6 +19,7 @@ export {
   type PromptParts,
   type AssembledPrompt,
   type IntentPart,
+  type ProjectContextDoc,
 } from './prompt.js';
 
 // PR intent derivation (one structured call before review).

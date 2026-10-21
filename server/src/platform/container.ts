@@ -38,6 +38,9 @@ import type { SmartDiffRepositoryPort } from '../modules/smart-diff/ports.js';
 import { SmartDiffRepository } from '../modules/smart-diff/repository.js';
 import type { BlastRepositoryPort } from '../modules/blast/ports.js';
 import { BlastRepository } from '../modules/blast/repository.js';
+import type { ProjectContextRepositoryPort } from '../modules/project-context/ports.js';
+import { ProjectContextRepository } from '../modules/project-context/repository.js';
+import { ProjectContextService } from '../modules/project-context/service.js';
 import type { IntentRepositoryPort } from '../modules/reviews/ports.js';
 import { IntentRepository } from '../modules/reviews/repository/intent.repo.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
@@ -76,6 +79,10 @@ export interface ContainerOverrides {
   smartDiffRepo?: SmartDiffRepositoryPort;
   /** blast module port — same idea. */
   blastRepo?: BlastRepositoryPort;
+  /** project-context module port — same idea. */
+  projectContextRepo?: ProjectContextRepositoryPort;
+  /** project-context service — route tests inject one built from in-memory fakes. */
+  projectContext?: ProjectContextService;
 }
 
 export class Container {
@@ -102,6 +109,8 @@ export class Container {
   private _intentRepo?: IntentRepositoryPort;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
+  private _projectContextRepo?: ProjectContextRepositoryPort;
+  private _projectContext?: ProjectContextService;
   private _reposRepo?: RepoRepository;
   private _repoIntel?: RepoIntel;
   private _depgraph?: DepGraph;
@@ -150,6 +159,25 @@ export class Container {
 
   get blastRepo(): BlastRepositoryPort {
     return (this._blastRepo ??= this.overrides.blastRepo ?? new BlastRepository(this.db));
+  }
+
+  get projectContextRepo(): ProjectContextRepositoryPort {
+    return (this._projectContextRepo ??=
+      this.overrides.projectContextRepo ?? new ProjectContextRepository(this.db));
+  }
+
+  /** Singleton: it holds the per-head-sha listing cache. */
+  get projectContext(): ProjectContextService {
+    if (this.overrides.projectContext) return this.overrides.projectContext;
+    return (this._projectContext ??= new ProjectContextService({
+      repo: this.projectContextRepo,
+      agents: this.agentsRepo,
+      skills: this.skillsRepo,
+      repos: this.reposRepo,
+      git: this.git,
+      tokenizer: this.tokenizer,
+      glob: this.config.projectContextGlob,
+    }));
   }
 
   /** Repo rows for modules that only need to look a repository up (conventions). */

@@ -23,7 +23,7 @@ of that diff and whose score follows deterministically from those findings.
 | `strategy` | `'auto' \| 'single-pass' \| 'map-reduce'` | no | Default `auto`. |
 | `skills` | `string[]` | no | Resolved bodies, rendered unwrapped under `## Skills / rules`. |
 | `memory` | `string[]` | no | Rendered as bullets under `## Relevant memory`. |
-| `specs` | `string[]` | no | Each wrapped as untrusted `spec-<i>`. |
+| `specs` | `ProjectContextDoc[]` (`{ path, text }`) | no | Attached project documents, each wrapped as untrusted with `source` = `path`, under `## Project context`. |
 | `callers` | `string` | no | Wrapped as untrusted `callers`. |
 | `repoMap` | `string` | no | Wrapped as untrusted `repo-map`. |
 | `prDescription` | `string` | no | Wrapped as untrusted `pr-description`, truncated to 4000 chars. |
@@ -87,9 +87,13 @@ Each entry names the code that enforces it and the test that pins it, if any.
    text in the prompt.
 6. **Every untrusted slot is fenced.** `prDescription`, `repoMap`, `specs`,
    `callers` and `diff` go through `wrapUntrusted`, which neutralises a
-   `</untrusted>` inside the content. `INJECTION_GUARD` is always appended to
-   the system message. Pinned: `reviewer-core/test/prompt.test.ts`,
-   `server/test/prompt-structured.test.ts`.
+   `</untrusted>` inside the content and escapes `&`, `"`, `<`, `>` and line
+   breaks in the label (a `specs` label is a file path); labels without those
+   characters are unchanged. `INJECTION_GUARD` is always appended to the system
+   message; when `specs` is non-empty its list of untrusted content also names
+   "attached project documents under ## Project context", and with no `specs`
+   the system message is the text it was before. Pinned:
+   `reviewer-core/test/prompt.test.ts`, `server/test/prompt-structured.test.ts`.
 7. **Slot order is fixed**: task, PR description, skills, memory, repo
    skeleton, project context, callers, diff (`assemblePrompt`). The diff is
    always last and always present. Pinned partially:

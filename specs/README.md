@@ -58,3 +58,5 @@ A requirement that fits no pattern is not yet clear. It goes to
 ## Index
 
 <!-- one line per spec: - [`<file>`](<file>) — SPEC-NN · status · one-line summary -->
+
+- [`project-context.md`](project-context.md) — SPEC-01 · implemented · attach a repo's specs/docs/insights Markdown to agents and skills, read at the PR base branch into `## Project context`, with token counts and per-document trace blocks; increment AC-45 to AC-69 (implemented): edit a document and save a local override that runs read
