@@ -7,10 +7,18 @@ import type { OnboardingRun, OnboardingView } from "@devdigest/shared";
 
 const RUN_POLL_MS = 2_000;
 
+const onboardingKey = (repoId: string | null | undefined) => ["onboarding", repoId] as const;
+
+/** Refetch the tour view (e.g. after the code index was rebuilt). */
+export function useRefreshOnboarding(repoId: string | null | undefined) {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: onboardingKey(repoId) });
+}
+
 /** Stored tour + latest run + stale flag; polls while a run is running. */
 export function useOnboarding(repoId: string | null | undefined) {
   return useQuery({
-    queryKey: ["onboarding", repoId],
+    queryKey: onboardingKey(repoId),
     queryFn: () => api.get<OnboardingView>(`/repos/${repoId}/onboarding`),
     enabled: !!repoId,
     refetchInterval: (q) => (q.state.data?.run?.status === "running" ? RUN_POLL_MS : false),
@@ -24,12 +32,12 @@ export function useGenerateOnboarding() {
     mutationFn: (repoId: string) => api.post<{ run: OnboardingRun }>(`/repos/${repoId}/onboarding/generate`),
     onSuccess: ({ run }, repoId) => {
       // keep the last tour visible while the new one is written
-      qc.setQueryData<OnboardingView>(["onboarding", repoId], (old) => ({
+      qc.setQueryData<OnboardingView>(onboardingKey(repoId), (old) => ({
         tour: old?.tour ?? null,
         run,
         stale: old?.stale ?? false,
       }));
-      qc.invalidateQueries({ queryKey: ["onboarding", repoId] });
+      qc.invalidateQueries({ queryKey: onboardingKey(repoId) });
     },
   });
 }

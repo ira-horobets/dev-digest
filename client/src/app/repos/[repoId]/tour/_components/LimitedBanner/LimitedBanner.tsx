@@ -2,8 +2,8 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@devdigest/ui";
+import { useRefreshOnboarding } from "@/lib/hooks/onboarding";
 import { useRepoIntelStatus, useResyncRepoIntel } from "@/lib/hooks/repo-intel";
 import { s } from "./styles";
 
@@ -14,7 +14,7 @@ import { s } from "./styles";
  */
 export function LimitedBanner({ repoId }: { repoId: string }) {
   const t = useTranslations("onboarding");
-  const qc = useQueryClient();
+  const refreshTour = useRefreshOnboarding(repoId);
   const resync = useResyncRepoIntel(repoId);
   const [rebuildFrom, setRebuildFrom] = React.useState<string | null>(null);
   const { data: intel } = useRepoIntelStatus(repoId, rebuildFrom !== null);
@@ -22,8 +22,8 @@ export function LimitedBanner({ repoId }: { repoId: string }) {
   React.useEffect(() => {
     if (rebuildFrom === null || !intel || intel.updatedAt === rebuildFrom) return;
     setRebuildFrom(null);
-    void qc.invalidateQueries({ queryKey: ["onboarding", repoId] });
-  }, [rebuildFrom, intel, repoId, qc]);
+    void refreshTour();
+  }, [rebuildFrom, intel, refreshTour]);
 
   const start = () => {
     setRebuildFrom(intel?.updatedAt ?? "");
