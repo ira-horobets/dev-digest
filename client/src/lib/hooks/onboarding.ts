@@ -1,6 +1,7 @@
 /* hooks/onboarding.ts — React Query hooks for the Onboarding Tour. */
 "use client";
 
+import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { OnboardingRun, OnboardingView } from "@devdigest/shared";
@@ -12,7 +13,7 @@ const onboardingKey = (repoId: string | null | undefined) => ["onboarding", repo
 /** Refetch the tour view (e.g. after the code index was rebuilt). */
 export function useRefreshOnboarding(repoId: string | null | undefined) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: onboardingKey(repoId) });
+  return useCallback(() => qc.invalidateQueries({ queryKey: onboardingKey(repoId) }), [qc, repoId]);
 }
 
 /** Stored tour + latest run + stale flag; polls while a run is running. */
