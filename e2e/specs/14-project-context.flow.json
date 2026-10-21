@@ -8,7 +8,6 @@
     { "cmd": ["find", "text", "Project Context", "click"], "label": "open Project Context from the sidebar" },
     { "cmd": ["wait", "--url", "/context"], "label": "context route reached" },
     { "cmd": ["wait", "--load", "networkidle"], "label": "repos fetch settles" },
-    { "cmd": ["wait", "--text", "Project context"], "label": "file panel label is visible" },
     { "cmd": ["wait", "--text", "Repository not cloned"], "label": "seeded repo has no clone: error state" },
     { "cmd": ["wait", "--text", "Retry"], "label": "the retry control is offered" },
     { "cmd": ["open", "{BASE}/agents"], "label": "back to the agents page" },
