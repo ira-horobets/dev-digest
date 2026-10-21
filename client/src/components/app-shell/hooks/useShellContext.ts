@@ -8,7 +8,7 @@ import { type ShellContext } from "@devdigest/ui";
 import { useTheme } from "../../../lib/theme";
 import { useActiveRepo } from "../../../lib/repo-context";
 import { usePulls, useDeleteRepo } from "../../../lib/hooks";
-import { activeKeyFor, toShellRepo } from "../helpers";
+import { activeKeyFor, repoSwitchTarget, toShellRepo } from "../helpers";
 
 interface ShellContextOptions {
   onOpenCommandPalette: () => void;
@@ -39,7 +39,7 @@ export function useShellContext({ onOpenCommandPalette }: ShellContextOptions): 
         // Project Context is not repo-scoped in its URL: stay on the page and let
         // it reload for the new repo (the selected document belongs to the old one).
         if (pathname.startsWith(CONTEXT_PATH)) router.replace(CONTEXT_PATH);
-        else router.push(`/repos/${id}/pulls`);
+        else router.push(repoSwitchTarget(pathname, id));
       }),
     [requestRepoChange, setRepoId, router, pathname],
   );

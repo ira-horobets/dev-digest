@@ -47,3 +47,17 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
     defaultModel: "gpt-5.4",
   },
 ];
+
+/**
+ * The provider/model a feature will use: the workspace override from Settings,
+ * else the registry default. Mirrors the server's `getFeatureModel` resolution.
+ */
+export function featureModelFor(
+  settings: { feature_models?: Partial<Record<string, { provider: string; model: string }>> } | null | undefined,
+  id: string,
+): { provider: string; model: string } | null {
+  const override = settings?.feature_models?.[id];
+  if (override?.provider && override.model) return { provider: override.provider, model: override.model };
+  const def = FEATURE_MODELS.find((f) => f.id === id);
+  return def ? { provider: def.defaultProvider, model: def.defaultModel } : null;
+}

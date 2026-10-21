@@ -106,3 +106,4 @@ a CI artifact by `.github/workflows/e2e-web.yml`).
 | `11-conventions` | SKILLS LAB → Conventions: heading with the active repo and the not-cloned state of the seeded repo |
 | `12-pr-intent` | PR #482 Overview → Intent card: seeded intent text, Medium confidence, issue #471 used, external link skipped |
 | `14-project-context` | SKILLS LAB → Project Context: heading and the not-cloned error state with Retry for the seeded repo; Security Reviewer's Context tab shows the same state |
+| `15-onboarding-tour` | Sidebar → Onboarding Tour: heading, the five cards, a seeded run command and the not-cloned note for the seeded repo |

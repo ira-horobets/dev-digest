@@ -47,6 +47,11 @@ import { RunCostBadge } from "@/components/run-cost-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ContextDocumentRow } from "@/components/context-document-row";
 import { TokenBadge } from "@/components/token-badge";
+import { TourSectionCard } from "@/components/tour-section-card";
+import { TourToc } from "@/components/tour-toc";
+import { TourPathRow } from "@/components/tour-path-row";
+import { TourCommandRow } from "@/components/tour-command-row";
+import { TourReadingStep } from "@/components/tour-reading-step";
 import { ModifiedLocallyBadge } from "@/components/modified-locally-badge";
 import { s } from "./styles";
 import { SEVERITIES, CATEGORIES, MODEL_OPTIONS } from "./constants";
@@ -206,6 +211,43 @@ export function Gallery() {
       <Group title="Markdown">
         <div style={s.w420}>
           <Markdown>{"A finding with **bold**, `inline code`, and a [link](https://example.com).\n\n- one\n- two"}</Markdown>
+        </div>
+      </Group>
+
+      <Group title="Onboarding tour (section card · TOC · path row · command row · reading step)">
+        <div style={s.w460}>
+          <TourSectionCard id="showcase-tour-open" title="Critical paths" icon="Activity" collapseLabel="Collapse section" expandLabel="Expand section">
+            <TourPathRow
+              path="src/server.ts"
+              why="App bootstrap and middleware chain"
+              repo={{ full_name: "acme/payments-api", default_branch: "main" }}
+              openLabel="Open"
+              copiedLabel="Copied"
+            />
+          </TourSectionCard>
+        </div>
+        <div style={s.w460}>
+          <TourSectionCard id="showcase-tour-closed" title="How to run locally" icon="Command" collapseLabel="Collapse section" expandLabel="Expand section">
+            <TourCommandRow index={1} command="pnpm dev" note="http://localhost:3000" copyLabel="Copy command" copiedLabel="Copied" />
+          </TourSectionCard>
+        </div>
+        <div style={s.w200}>
+          <TourToc
+            title="On this page"
+            items={[
+              { id: "architecture", label: "Architecture overview" },
+              { id: "critical-paths", label: "Critical paths" },
+            ]}
+            activeId="architecture"
+            onSelect={() => {}}
+          />
+        </div>
+        <div style={s.w460}>
+          <TourPathRow path="src/lib/redis.ts" why="Opening without a repo copies the path" openLabel="Open" copiedLabel="Copied" />
+          <TourReadingStep index={1} path="src/server.ts" why="See the whole request lifecycle in one file" />
+        </div>
+        <div style={s.w460}>
+          <Markdown>{"Run it with:\n\n```\npnpm install\npnpm dev\n```\n\nthen open `src/server.ts`."}</Markdown>
         </div>
       </Group>
 

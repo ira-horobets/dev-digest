@@ -31,6 +31,9 @@ describe("web smoke (both themes)", () => {
       // modified locally: the badge and the row marker with its text alternative
       expect(screen.getAllByText("Modified locally").length).toBeGreaterThan(0);
       expect(screen.getAllByRole("img", { name: "Modified locally" }).length).toBeGreaterThan(0);
+      // onboarding tour group: a card, the TOC and a fenced Markdown block
+      expect(screen.getAllByRole("heading", { name: "Critical paths" }).length).toBeGreaterThan(0);
+      expect(screen.getByRole("navigation", { name: "On this page" })).toBeInTheDocument();
     });
   });
 

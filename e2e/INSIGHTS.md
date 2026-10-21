@@ -32,6 +32,7 @@ see it, do not write it.
 - [2026-09-25] This package uses npm (`package-lock.json`), not pnpm. `agent-browser` is a global CLI, installed once with `npm i -g agent-browser && agent-browser install`. Evidence: `e2e/package.json`.
 - [2026-10-06] The pipeline guard hook lets only test-writer edit e2e/specs/flows.md; doc-writer is blocked there and hands the flow section back to the main session. Plan flow-doc updates as a test-writer row, not a doc-writer one. Evidence: `.pipeline/feat-smart-diff/doc-writer.md`.
 - [2026-10-12] agent-browser wait --text matches the rendered text, so a label styled with CSS text-transform: uppercase (card labels such as INTENT / BLAST RADIUS) never matches its source-case string; wait on a plain-case string of the same card instead. Evidence: e2e/specs/13-pr-blast-radius.flow.json Evidence: `e2e/specs/13-pr-blast-radius.flow.json`.
+- [2026-10-21] The implementer Bash guard also blocks a shell command that merely mentions .env.example or .git/ inside a heredoc, and any 2>&1 | tail on verify.sh; write such files with the Write tool and run verify.sh bare. Evidence: `.claude/hooks/implementer-bash-guard.sh`.
 
 ## Recurring Errors & Fixes
 

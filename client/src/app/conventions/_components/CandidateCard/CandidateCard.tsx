@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Badge, Button, FormField, IconBtn, ProgressBar, SelectInput, TextInput } from "@devdigest/ui";
 import type { ConventionCandidate, ConventionCategory } from "@devdigest/shared";
 import type { ConventionPatch } from "../../../../lib/hooks/conventions";
+import { copyText } from "@/lib/clipboard";
 import { CATEGORY_VALUES } from "./constants";
 import { s } from "./styles";
 
@@ -42,8 +43,8 @@ export function CandidateCard({
     onChange({ rule: rule.trim(), category });
     setEditing(false);
   };
-  const copy = () => {
-    void navigator.clipboard?.writeText(location);
+  const copy = async () => {
+    if (!(await copyText(location))) return;
     setCopied(true);
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
     copiedTimer.current = setTimeout(() => setCopied(false), 1200);
