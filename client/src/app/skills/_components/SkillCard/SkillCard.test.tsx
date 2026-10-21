@@ -13,20 +13,26 @@ const SKILL: Skill = {
 };
 
 describe("SkillCard", () => {
-  it("shows version and agent count; the open surface is a button and Delete asks the grid, not the card", () => {
+  it("shows name, description, type, source and agent count; the name is a pressed button when active and the toggle does not open it", () => {
     const onClick = vi.fn();
-    const onDelete = vi.fn();
+    const onToggle = vi.fn();
     render(
       <NextIntlClientProvider locale="en" messages={{ skills: messages }}>
-        <SkillCard skill={SKILL} onClick={onClick} onToggle={() => {}} onDelete={onDelete} />
+        <SkillCard skill={SKILL} active onClick={onClick} onToggle={onToggle} />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByText("v2")).toBeInTheDocument();
+    expect(screen.getByText("Detect breaking changes.")).toBeInTheDocument();
+    expect(screen.getByText("rubric")).toBeInTheDocument();
+    expect(screen.getByText("manual")).toBeInTheDocument();
     expect(screen.getByText("2 agents")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "breaking-change" }));
+    expect(screen.queryByText("v2")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Delete skill")).not.toBeInTheDocument();
+    const open = screen.getByRole("button", { name: "breaking-change" });
+    expect(open).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(open);
     expect(onClick).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByLabelText("Delete skill"));
-    expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(onClick).toHaveBeenCalledTimes(1); // delete does not open the card
+    fireEvent.click(screen.getByRole("switch"));
+    expect(onToggle).toHaveBeenCalledWith(false);
+    expect(onClick).toHaveBeenCalledTimes(1); // the toggle does not open the card
   });
 });

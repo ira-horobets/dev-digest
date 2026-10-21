@@ -225,32 +225,21 @@ the Reject label reverts to Dismiss.
 
 ## 10-skills
 
-Journey: `/skills` → click the `breaking-change` card → side panel
-(`?skill=<id>`) → **Open editor** → `/skills/<id>` → Versioning tab
+Journey: `/skills` → click the `breaking-change` card → the editor opens
+inline on the right (`?skill=<id>`, Config tab) → Versions tab
 (`?tab=versioning`) → `/agents` → click `Security Reviewer` → Skills tab
 (`?tab=skills`).
 
 Seeded facts: `server/src/db/seed-skills.ts` seeds `pr-quality-rubric`,
 `secret-leakage-gate` and `lethal-trifecta` (among others) and links exactly
 those three to `Security Reviewer` (`AGENT_SKILL_LINKS`), so the tab badge
-starts with «3 of». The grid is alphabetical and scrolls inside the page, so
-the flow clicks `breaking-change`, the first card, which is always in view;
-its body starts with the heading `# Breaking change`, which the panel
-renders as text. Every seeded skill has exactly one version, so the
-Versioning tab shows one row with the `current` badge. A card below the fold
-(e.g. `secret-leakage-gate`) is not clickable with `find text … click`.
-
-Locators: `wait --text` on the card name and on the rendered body heading;
-`find text … click` on a card name and on the agent card name; `find role
-button click --name "Skills"` targets the editor tab (`editor.tabs.skills` in
-`agents.json`) — `find text "Skills"` would hit the sidebar link of the same
-name first and leave the editor; `wait --url tab=skills` proves the tab routing; `wait --text
-"3 of"` matches the `skills.enabledCount` badge without pinning the total.
-
-Breaks if: the seeded skill names or the Security Reviewer link set change,
-a skill sorting before `breaking-change` is seeded, a tab label changes, the
-body heading of `breaking-change` changes, the panel's «Open editor» button is
-renamed, or the tabs stop writing `?tab=`.
+starts with «3 of». The Skills column is alphabetical and scrolls inside the
+page, so the flow clicks `breaking-change`, the first card, which is always
+in view; with no `?skill=` the page opens the first skill by itself, and the
+click keeps that selection. The editor's Config tab shows the «Configuration»
+heading. Every seeded skill has exactly one version, so the Versions tab
+shows one row with the `current` badge. A card below the fold (e.g.
+`secret-leakage-gate`) is not clickable with `find text … click`.
 
 ## 11-conventions
 

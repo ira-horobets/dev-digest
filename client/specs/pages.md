@@ -261,50 +261,50 @@ Project context blocks and the Specs read tokens: `specs/project-context.md`.
 
 ## `/skills` (`src/app/skills/page.tsx` → `SkillsView`)
 
-- `useSkills` (`GET /skills`). Cards (`SkillCard`): mono name, type tag,
-  description, `vN · source · N agents` (`agent_count`), «needs vetting» badge
-  for an imported skill that is still disabled, enabled `Toggle`
-  (`useUpdateSkill`, `PUT /skills/:id`), and a Delete icon; `SkillsView`
-  owns the single `ConfirmDialog` (Escape cancels) and calls `useDeleteSkill`
-  (`DELETE /skills/:id`) on confirm.
-  Local search filters name, description and type (`filterSkills`).
-- "Add Skill" dropdown: *Create from scratch* opens `CreateSkillModal`
-  (`useCreateSkill`, `POST /skills`) then navigates to `/skills/<id>`;
-  *Import from file* opens `ImportSkillDrawer` (file → base64 →
-  `usePreviewSkillImport`, `POST /skills/import/preview` → editable preview
-  with ignored entries and a trust notice → `POST /skills` with
-  `source: imported_file`, `enabled: false`).
-- Clicking a card writes `?skill=<id>` (`router.replace`, so Back leaves the page) and renders
-  `SkillPanel` on the right (`useSkill`, `GET /skills/:id`): badges, the
-  vetting notice for imported skills, description, Markdown body, **Open
-  editor** (→ `/skills/<id>`), Edit inline (`SkillForm`, Save →
-  `useUpdateSkill`, toast `Skill saved (vN)`), Delete → `ConfirmDialog` →
-  `useDeleteSkill` → back to `/skills`. Close clears the param. The page
+- Master-detail (design "Skill Editor", applied 2026-10-21): a Skills column
+  on the left (`aside` «Skills»: the heading, the **Add Skill** dropdown, a
+  search box and one `SkillCard` per skill) and the `SkillEditor` inline on
+  the right for `?skill=<id>`. With no `?skill=` the page opens the first
+  skill (`router.replace`); clicking a card writes `?skill=<id>` and keeps
+  the current `?tab=`. Back leaves the page (replace, not push). The page
   wraps the view in `Suspense` because it reads `useSearchParams`.
-- Loading: three card skeletons. Error: `ErrorState` with retry. Empty:
-  `EmptyState` with a create CTA; a search with no hits shows «No matching
-  skills». Full contract: `specs/skills.md`.
+- `useSkills` (`GET /skills`). Cards (`SkillCard`): type-coloured icon chip,
+  mono name (a `<button>` with `aria-pressed` when selected), enabled
+  `Toggle` (`useUpdateSkill`, `PUT /skills/:id`), one-line description, type
+  tag, source with icon, «needs vetting» badge for an imported skill that is
+  still disabled, and `N agents` (`agent_count`). Deleting lives in the
+  editor's Config tab. Local search filters name, description and type
+  (`filterSkills`).
+- "Add Skill" dropdown: *Create from scratch* opens `CreateSkillModal`
+  (`useCreateSkill`, `POST /skills`) then selects the new skill
+  (`/skills?skill=<id>`); *Import from file* opens `ImportSkillDrawer` (file →
+  base64 → `usePreviewSkillImport`, `POST /skills/import/preview` → editable
+  preview with ignored entries and a trust notice → `POST /skills` with
+  `source: imported_file`, `enabled: false`).
+- Loading: three card skeletons in the column. Error: `ErrorState` with
+  retry. Empty: `EmptyState` with a create CTA in the editor area; a search
+  with no hits shows «No matching skills» in the column while the editor
+  stays. Full contract: `specs/skills.md`.
 
-## `/skills/[id]` (`src/app/skills/[id]/page.tsx` → `SkillEditor`)
+## `/skills/[id]` (`src/app/skills/[id]/page.tsx`)
 
-- Server page awaits `params`, renders `SkillEditor` (`useSkill`). Header:
-  name, type tag, `vN`, source, agent count, disabled / needs-vetting badges,
-  «All skills» back button. Tabs via `?tab=config|preview|context|versioning`
-  (`VALID_SKILL_TABS`, default `config`, written with `router.replace`); the
-  Context tab is specified in `specs/project-context.md`.
+- Server page that redirects to `/skills?skill=<id>` (keeping `?tab=`), so
+  old links land on the inline editor. The editor itself
+  (`[id]/_components/SkillEditor`, rendered by `SkillsView`): header with a
+  type-coloured icon chip, mono name, type tag, `vN`, source, agent count,
+  disabled / needs-vetting badges; tabs `?tab=config|context|preview|versioning`
+  (`VALID_SKILL_TABS`, default `config`, written by the page with
+  `router.replace`); the Context tab is specified in `specs/project-context.md`.
 - Config: `SkillForm` keyed by `id:version` (a save or restore remounts it),
   Save (`useUpdateSkill`, toast `Skill saved (vN)`), Delete (`ConfirmDialog`
-  → `useDeleteSkill` → `/skills`).
+  → `useDeleteSkill` → `/skills`, which opens the first remaining skill).
 - Preview: the body through the `Markdown` primitive.
-- Versioning: `useSkillVersions` (`GET /skills/:id/versions`), newest first;
+- Versions: `useSkillVersions` (`GET /skills/:id/versions`), newest first;
   the current version carries a `current` badge; previous versions offer
   **Diff** (`useSkillVersionDiff`, `GET …/versions/:v/diff`, rendered by
   `PatchView` with a «N added · M removed against vX» summary) and **Restore**
   (`ConfirmDialog` → `useRestoreSkillVersion`, `POST …/versions/:v/restore`,
   toast `Restored vA as vB`).
-- Loading: skeletons. Error or missing skill: full-screen `ErrorState`
-  «Skill not found» with retry.
-
 ## `/conventions` (`src/app/conventions/page.tsx` → `ConventionsView`)
 
 - Repo comes from `useActiveRepo` (switcher / `localStorage`, no URL param).

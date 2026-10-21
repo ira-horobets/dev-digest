@@ -63,6 +63,7 @@ describe("A2 Agent Editor (smoke)", () => {
     renderWithIntl(<AgentEditor agent={AGENT} tab="context" onTab={() => {}} />);
     expect(screen.getByRole("heading", { name: "Project context" })).toBeInTheDocument();
     expect(screen.getByText("1 of 1 attached")).toBeInTheDocument();
-    expect(screen.getByText("docs/a.md")).toBeInTheDocument();
+    expect(screen.getByText("a.md")).toBeInTheDocument();
+    expect(screen.getByText("docs/")).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, EmptyState, ErrorState, Icon, SelectInput, Skeleton } from "@devdigest/ui";
+import { Badge, EmptyState, ErrorState, Icon, SectionLabel, SelectInput, Skeleton } from "@devdigest/ui";
 import { ContextDocumentRow } from "@/components/context-document-row";
 import { ContextDocPreview } from "@/components/context-doc-preview";
 import { TokenBadge } from "@/components/token-badge";
@@ -130,13 +130,13 @@ export function ContextAttachPanel({ owner }: { owner: ContextOwner }) {
           <span>{tc("panel.totalTokens", { count: total })}</span>
         </div>
         {owner.kind === "skill" && (
-          <>
-            <div style={s.blockTitle}>{to("context.blockTitle")}</div>
-            <div style={s.blockHint}>{to("context.blockHint")}</div>
+          <div style={s.blockWrap}>
+            <SectionLabel>{to("context.blockTitle")}</SectionLabel>
             <pre className="mono" style={s.block} data-testid="skill-context-block">
               {serializeContextBlock(checked)}
             </pre>
-          </>
+            <div style={s.blockHint}>{to("context.blockHint")}</div>
+          </div>
         )}
       </>
     );
@@ -148,20 +148,9 @@ export function ContextAttachPanel({ owner }: { owner: ContextOwner }) {
       <div style={s.header}>
         <h2 style={s.h2}>{to("context.title")}</h2>
         {showControls && (
-          <Badge color="var(--accent)" bg="var(--bg-hover)">
+          <Badge color="var(--accent)" bg="var(--info-bg)">
             {to("context.badge", { attached: checked.length, total: rows.length })}
           </Badge>
-        )}
-      </div>
-      <div style={s.hint}>{to("context.hint")}</div>
-      <div style={s.controls}>
-        {repos.length > 1 && (
-          <label style={s.repoLabel}>
-            {tc("panel.repoLabel")}
-            <div style={s.repoSelect}>
-              <SelectInput mono={false} value={repoId ?? ""} onChange={setPicked} options={repos.map((r) => ({ value: r.id, label: r.name }))} />
-            </div>
-          </label>
         )}
         <span style={s.spacer} />
         {showControls && (
@@ -177,6 +166,17 @@ export function ContextAttachPanel({ owner }: { owner: ContextOwner }) {
           </div>
         )}
       </div>
+      <div style={s.hint}>{to("context.hint")}</div>
+      {repos.length > 1 && (
+        <div style={s.controls}>
+          <label style={s.repoLabel}>
+            {tc("panel.repoLabel")}
+            <div style={s.repoSelect}>
+              <SelectInput mono={false} value={repoId ?? ""} onChange={setPicked} options={repos.map((r) => ({ value: r.id, label: r.name }))} />
+            </div>
+          </label>
+        </div>
+      )}
       {content}
       {previewPath && repoId && <ContextDocPreview repoId={repoId} path={previewPath} onClose={() => setPreviewPath(null)} />}
     </div>

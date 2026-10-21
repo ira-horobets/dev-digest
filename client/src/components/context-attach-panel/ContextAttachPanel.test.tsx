@@ -67,13 +67,16 @@ describe("ContextAttachPanel (agent)", () => {
     expect(screen.getByText("Project context")).toBeInTheDocument();
     expect(screen.getByText("2 of 5 attached")).toBeInTheDocument();
     const rows = screen.getAllByTestId("context-doc-row");
+    // attach rows show the file name and its folder as separate cells
     expect(rows.map((r) => r.textContent)).toEqual([
-      expect.stringContaining("specs/c.md"),
-      expect.stringContaining("docs/gone.md"),
-      expect.stringContaining("docs/a.md"),
-      expect.stringContaining("docs/b.md"),
-      expect.stringContaining("docs/huge.md"),
+      expect.stringContaining("c.md"),
+      expect.stringContaining("gone.md"),
+      expect.stringContaining("a.md"),
+      expect.stringContaining("b.md"),
+      expect.stringContaining("huge.md"),
     ]);
+    expect(within(rows[0]!).getByText("specs/")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("c.md")).toBeInTheDocument();
     expect(within(rows[1]!).getByText("missing")).toBeInTheDocument();
     expect(within(rows[4]!).getByText("too large")).toBeInTheDocument();
     // total of the checked, listed documents only (the missing path adds nothing)

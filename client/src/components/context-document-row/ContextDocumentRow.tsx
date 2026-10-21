@@ -1,14 +1,16 @@
-/* ContextDocumentRow — one Markdown document of a repo. Read-only on the
-   Project Context page (selectable, "used by N agents / M skills"); with the
-   `attach` prop it is a row of the agent/skill Context tab (checkbox, drag
-   handle, reorder arrows). The path is rendered as text, never as HTML. */
+/* ContextDocumentRow — one Markdown document of a repo. Read-only (selectable,
+   "used by N agents / M skills") in the showcase; with the `attach` prop it is
+   a row of the agent/skill Context tab (drag handle, checkbox, name + folder,
+   kind badge, preview eye, reorder arrows). The path is rendered as text,
+   never as HTML. */
 "use client";
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Button, Checkbox, Icon, IconBtn } from "@devdigest/ui";
+import { Badge, Checkbox, Icon, IconBtn } from "@devdigest/ui";
 import type { SpecKind } from "@devdigest/shared";
-import { TokenBadge } from "../token-badge";
+import { TokenBadge } from "@/components/token-badge";
+import { KIND_COLOR, splitPath } from "./constants";
 import { s } from "./styles";
 
 export interface ContextRowAttach {
@@ -42,26 +44,15 @@ export interface ContextDocumentRowProps {
 
 export function ContextDocumentRow({ path, kind, tokens, missing, tooLarge, modified, usage, selected, attach, onSelect, onPreview }: ContextDocumentRowProps) {
   const t = useTranslations("context");
-  const body = (
+  const kindColor = KIND_COLOR[kind ?? "none"];
+  const kindBadge = (
+    <Badge color={kindColor.c} bg={kindColor.bg} mono>
+      {t(`row.kind.${kind ?? "none"}`)}
+    </Badge>
+  );
+  const flags = (
     <>
-      {attach && (
-        <span style={s.grip(attach.draggable)} aria-hidden>
-          <Icon.Menu size={14} />
-        </span>
-      )}
-      {attach && (
-        <span title={t("row.attach", { path })} aria-disabled={tooLarge && !attach.checked}>
-          {/* a too-large file cannot be attached: the box stays inert until it is checked (then it can be unchecked) */}
-          <Checkbox checked={attach.checked} onChange={tooLarge && !attach.checked ? undefined : attach.onToggle} />
-        </span>
-      )}
-      <span className="mono" style={s.path} title={path}>
-        {path}
-      </span>
       {modified && <span role="img" aria-label={t("row.modifiedMarker")} title={t("row.modifiedMarker")} style={s.modifiedDot} data-testid="context-row-modified" />}
-      <Badge color="var(--text-secondary)" mono>
-        {t(`row.kind.${kind ?? "none"}`)}
-      </Badge>
       {missing && (
         <span title={t("row.missingTitle")}>
           <Badge color="var(--crit)" bg="var(--crit-bg)">
@@ -76,8 +67,6 @@ export function ContextDocumentRow({ path, kind, tokens, missing, tooLarge, modi
           </Badge>
         </span>
       )}
-      {typeof tokens === "number" && <TokenBadge count={tokens} />}
-      {usage && <span style={s.usage}>{t("row.usedBy", { agents: usage.agents, skills: usage.skills })}</span>}
     </>
   );
 
@@ -85,11 +74,18 @@ export function ContextDocumentRow({ path, kind, tokens, missing, tooLarge, modi
     // read-only row: one button selects it for the preview
     return (
       <button type="button" data-testid="context-doc-row" style={s.row(false, !!selected, false, !!onSelect)} onClick={onSelect} aria-pressed={selected}>
-        {body}
+        <span className="mono" style={s.path} title={path}>
+          {path}
+        </span>
+        {flags}
+        {kindBadge}
+        {typeof tokens === "number" && <TokenBadge count={tokens} />}
+        {usage && <span style={s.usage}>{t("row.usedBy", { agents: usage.agents, skills: usage.skills })}</span>}
       </button>
     );
   }
 
+  const { folder, name } = splitPath(path);
   return (
     <div
       role="listitem"
@@ -101,12 +97,27 @@ export function ContextDocumentRow({ path, kind, tokens, missing, tooLarge, modi
       onDrop={attach.onDrop}
       onDragEnd={attach.onDragEnd}
     >
-      {body}
-      {onPreview && (
-        <Button kind="ghost" size="sm" onClick={onPreview} aria-label={t("row.previewLabel", { path })}>
-          {t("row.preview")}
-        </Button>
-      )}
+      <span style={s.grip(attach.draggable)} aria-hidden>
+        <Icon.Menu size={14} />
+      </span>
+      <span title={t("row.attach", { path })} aria-disabled={tooLarge && !attach.checked}>
+        {/* a too-large file cannot be attached: the box stays inert until it is checked (then it can be unchecked) */}
+        <Checkbox checked={attach.checked} onChange={tooLarge && !attach.checked ? undefined : attach.onToggle} />
+      </span>
+      <span style={s.pathCell} title={path}>
+        <span className="mono" style={s.name}>
+          {name}
+        </span>
+        {folder && (
+          <span className="mono" style={s.folder}>
+            {folder}
+          </span>
+        )}
+      </span>
+      {flags}
+      {typeof tokens === "number" && <TokenBadge count={tokens} />}
+      {kindBadge}
+      {onPreview && <IconBtn icon="Eye" size={26} label={t("row.previewLabel", { path })} onClick={onPreview} />}
       {attach.checked && (
         <span style={s.arrows}>
           <IconBtn icon="ArrowUp" size={24} label={t("row.moveUp", { path })} onClick={attach.onMoveUp} />

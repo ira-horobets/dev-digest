@@ -2,8 +2,8 @@ import type { CSSProperties } from "react";
 
 /** Co-located styles for ContextAttachPanel. */
 export const s = {
-  wrap: { maxWidth: 760 } satisfies CSSProperties,
-  header: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" } satisfies CSSProperties,
+  wrap: { maxWidth: 860 } satisfies CSSProperties,
+  header: { display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" } satisfies CSSProperties,
   h2: { fontSize: 18, fontWeight: 700 } satisfies CSSProperties,
   spacer: { flex: 1 } satisfies CSSProperties,
   hint: { fontSize: 12.5, color: "var(--text-muted)", marginBottom: 14 } satisfies CSSProperties,
@@ -17,8 +17,8 @@ export const s = {
     padding: "6px 10px",
     borderRadius: 7,
     border: "1px solid var(--border)",
-    background: "var(--bg-surface)",
-    width: 200,
+    background: "var(--bg-elevated)",
+    width: 230,
   } satisfies CSSProperties,
   searchInput: {
     flex: 1,
@@ -40,15 +40,16 @@ export const s = {
     fontSize: 13,
   } satisfies CSSProperties,
   footer: { display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,
-  blockTitle: { fontSize: 13, fontWeight: 600, marginTop: 18, marginBottom: 4 } satisfies CSSProperties,
-  blockHint: { fontSize: 12.5, color: "var(--text-muted)", marginBottom: 6 } satisfies CSSProperties,
+  blockWrap: { marginTop: 22 } satisfies CSSProperties,
+  blockHint: { fontSize: 12, color: "var(--text-muted)", marginTop: 6 } satisfies CSSProperties,
   block: {
     margin: 0,
-    padding: "10px 12px",
+    padding: "12px 14px",
     borderRadius: 8,
     border: "1px solid var(--border)",
     background: "var(--bg-surface)",
     fontSize: 12.5,
+    lineHeight: 1.6,
     whiteSpace: "pre-wrap",
     wordBreak: "break-all",
   } satisfies CSSProperties,

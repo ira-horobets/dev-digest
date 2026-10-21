@@ -2,15 +2,16 @@ import type { IconName } from "@devdigest/ui";
 
 /** Editor tab descriptor; `labelKey` resolves under the `skills` namespace. */
 export interface SkillEditorTab {
-  key: "config" | "preview" | "context" | "versioning";
+  key: "config" | "context" | "preview" | "versioning";
   labelKey: string;
   icon: IconName;
 }
 
+/** Tab order follows the design: Config, Context, Preview, Versions. */
 export const SKILL_TABS: readonly SkillEditorTab[] = [
   { key: "config", labelKey: "editor.tabs.config", icon: "Settings" },
-  { key: "preview", labelKey: "editor.tabs.preview", icon: "Eye" },
   { key: "context", labelKey: "editor.tabs.context", icon: "FileText" },
+  { key: "preview", labelKey: "editor.tabs.preview", icon: "Eye" },
   { key: "versioning", labelKey: "editor.tabs.versioning", icon: "History" },
 ];
 

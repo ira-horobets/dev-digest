@@ -1,6 +1,6 @@
 {
   "name": "Skills page lists seeded skills; the agent editor Skills tab shows the linked set",
-  "description": "Loads /skills and confirms a seeded skill card (pr-quality-rubric) renders, opens the first card's side preview (breaking-change — alphabetically first, so it sits in the visible first row of the scrolling grid) via ?skill=, opens the full editor at /skills/:id and its Versioning tab, then opens the seeded Security Reviewer's Skills tab and confirms the linked count badge (3 of N enabled) and a linked skill row. Exercises the skills list route, GET /skills/:id, GET /skills/:id/versions, the two tab routers and GET /agents/:id/skills. No writes, no model call.",
+  "description": "Opens /skills (master-detail: Skills column on the left, the editor inline on the right), selects the seeded breaking-change card (?skill=), switches the editor to the Versions tab (?tab=versioning) and sees the current version row; then opens the seeded Security Reviewer's Skills tab and confirms the linked count badge and a linked row. No writes, no model call.",
   "steps": [
     {
       "cmd": [
@@ -48,7 +48,7 @@
         "--url",
         "skill="
       ],
-      "label": "side panel selection is in the URL"
+      "label": "selection is in the URL"
     },
     {
       "cmd": [
@@ -62,9 +62,9 @@
       "cmd": [
         "wait",
         "--text",
-        "Breaking change"
+        "Configuration"
       ],
-      "label": "preview renders the skill body heading"
+      "label": "the inline editor renders the Config tab"
     },
     {
       "cmd": [
@@ -73,36 +73,9 @@
         "button",
         "click",
         "--name",
-        "Open editor"
+        "Versions"
       ],
-      "label": "open the full skill editor"
-    },
-    {
-      "cmd": [
-        "wait",
-        "--url",
-        "/skills/"
-      ],
-      "label": "editor route reached"
-    },
-    {
-      "cmd": [
-        "wait",
-        "--load",
-        "networkidle"
-      ],
-      "label": "editor fetch settles"
-    },
-    {
-      "cmd": [
-        "find",
-        "role",
-        "button",
-        "click",
-        "--name",
-        "Versioning"
-      ],
-      "label": "switch to the Versioning tab"
+      "label": "switch to the Versions tab"
     },
     {
       "cmd": [

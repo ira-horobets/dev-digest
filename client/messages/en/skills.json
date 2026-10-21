@@ -3,7 +3,6 @@
     "crumbLab": "Skills Lab",
     "crumbSkills": "Skills",
     "heading": "Skills",
-    "subtitle": "Reusable review rules. Text only — a skill is Markdown that agents append to their prompt, in order.",
     "addSkill": "Add Skill",
     "searchPlaceholder": "Search skills…",
     "loadError": "Could not load skills.",
@@ -22,7 +21,7 @@
     },
     "selectPrompt": {
       "title": "Select a skill",
-      "body": "Pick a card to preview its body, edit it, or delete it."
+      "body": "Pick a skill in the list to edit it, attach project context, preview it or browse its versions."
     }
   },
   "card": {
@@ -116,12 +115,11 @@
   },
   "editor": {
     "crumb": "Skill",
-    "back": "All skills",
     "tabs": {
       "config": "Config",
+      "context": "Context",
       "preview": "Preview",
-      "versioning": "Versioning",
-      "context": "Context"
+      "versioning": "Versions"
     },
     "config": {
       "title": "Configuration",
@@ -157,7 +155,7 @@
     "title": "Project context to use",
     "badge": "{attached} attached",
     "hint": "Agents that use this skill inherit these documents. Changing them does not create a new skill version.",
-    "blockTitle": "Serialised block",
+    "blockTitle": "Serializes as",
     "blockHint": "Read-only: the skill text itself is not changed."
   }
 }
