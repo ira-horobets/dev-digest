@@ -74,7 +74,7 @@ Cost and trace
 - AC-18 (US-4) · The system shall record every brief generation as an `agent_runs` row **(new column `kind`, value `brief`; existing rows read as `review`)** with `agent_id` null, `pr_id`, `provider`, `model`, `tokens_in`, `tokens_out`, `cost_usd` (price book, null when unpriced), `duration_ms`, `status` and `error`.
 - AC-19 (US-4) · The system shall persist a `run_traces` document for each brief run containing the prompt as sent, the raw model output, and log lines that state the input counts and caps applied, the single model call with `provider/model`, tokens, cost and duration, and the number of references dropped by verification.
 - AC-20 (US-4) · The system shall send log lines for a brief run through `RunLogger` so that they reach the run's SSE stream, the persisted trace and the server's structured logger.
-- AC-21 (US-4) · The system shall make exactly one structured model call per brief run, with no reprompt (`maxRetries: 0`), and the persisted trace shall list exactly one `generate_brief` tool call.
+- AC-21 (US-4) · The system shall make exactly one model call per brief run, meaning one structured call with no reprompt (`maxRetries: 0`) and no intent derivation; a transport-level retry of the same request after a 429 or 5xx response (adapter default) is not a second call. The persisted trace shall list exactly one `generate_brief` tool call.
 - AC-22 (US-4) · The system shall not call a model on `GET /pulls/:id/brief`, on page load, on Intent derivation, or on any other action than `POST /pulls/:id/brief/generate`.
 - AC-23 (US-4) · The system shall exclude `kind = brief` runs from agent statistics, from `GET /pulls/:id/runs/active`, from the Findings-tab live run UI and from the review accordions of the Run history, and shall include their cost in the PR list cost rollup.
 
@@ -157,14 +157,14 @@ Contract shape (new, field names only):
 | Model summary disagrees with the verdict | The verdict tile is the review's; the summary is shown as text only | AC-10 |
 | Deep link to a file that is collapsed or in a collapsed group | File and group expand, line highlighted | AC-44 |
 | Deep link to a file removed from the PR after a sync | Files changed opens normally, no error | AC-45 |
-| PR deleted while a run is running | Cascade removes the rows; the run's final write finds none and ends silently | AC-52 |
+| PR deleted while a run is running | The `pr_brief` row cascades away; the `agent_runs` row survives with `pr_id` null (`ON DELETE SET NULL`) and is marked `failed`; the job ends silently with no further write and no error surfaced | AC-52 |
 | Brief run shown in Run history or active runs | Never shown there as a review; reachable only from the card's cost line | AC-23 |
 | Clipboard or tooltip unavailable | Not used; no clipboard action in this feature | — |
 | Postgres unavailable | GET fails; inline error with Retry | AC-9 |
 
 ## Non-functional requirements
 
-- One brief generation is exactly one model call (AC-21); reading the brief makes no model call, no GitHub call and no git read (AC-50).
+- One brief generation is exactly one model call (AC-21): one structured call with no reprompt (`maxRetries: 0`) and no intent derivation; a transport-level retry of the same request after a 429 or 5xx response is not a second call. Reading the brief makes no model call, no GitHub call and no git read (AC-50).
 - Input per call is capped by the constants in AC-30; the caps are not user settings.
 - Cost and tokens per generation are recorded on the run row and the stored brief and shown on the card; a null cost shows "—".
 - Generation runs as a background job and never blocks the request; the stale-run limit is 10 minutes.
@@ -185,7 +185,7 @@ Contract shape (new, field names only):
 | Verdict, score, findings and blockers counts | computed at read time from the newest review | `[deterministic: counts in code]` | pr-brief module **(new)** |
 | Stored intent | `pr_intent` via `PrIntentRecord` | `[reused: IntentService data, never derived here]` | reviews module |
 | Blast summary, symbols, callers | `BlastService` / repo index | `[reused: BlastRadius, no model]` | blast |
-| Summary, risks (kind, title, explanation, severity, refs), review focus | one structured model call on `risk_brief` | `[llm: risk_brief generate_brief]` | pr-brief module **(new)** |
+| Summary, risks (kind, title, explanation, severity, refs), review focus | exactly one model call on `risk_brief` (AC-21): one structured call, no reprompt, no intent derivation; a transport-level 429/5xx retry of the same request is not a second call | `[llm: risk_brief generate_brief]` | pr-brief module **(new)** |
 | Verified paths and lines | check against changed files and new-side hunks | `[deterministic: verification]` | pr-brief module **(new)** |
 | Feature model choice | Settings → Feature Models, `FEATURE_MODELS.risk_brief` | `[reused: featureModel, FEATURE_MODELS]` | settings |
 | Tokens and cost | provider usage and the price book | `[reused: price book]` | platform |
