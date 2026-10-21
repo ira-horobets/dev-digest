@@ -47,6 +47,7 @@ _None yet._
 - [2026-09-26] HW2: flow 10 extended to the side panel (?skill=) and the /skills/:id Versioning tab; flow 11 covers /conventions on the seeded (uncloned) repo. Evidence: `e2e/specs/flows.md:11-conventions`.
 - [2026-10-06] Intent layer: flow 12-pr-intent reads the seeded pr_intent row for PR #482, so no model call is needed in e2e. Evidence: `e2e/specs/12-pr-intent.flow.json; server/src/db/seed.ts`.
 - [2026-10-12] Blast radius: flow 13 asserts the card's degraded empty state on the seeded PR #482 (no clone, no index); first run failed only on the uppercase label locator, removed. Evidence: e2e/specs/flows.md:13-pr-blast-radius Evidence: `e2e/specs/flows.md`.
+- [2026-10-21] Onboarding Tour: flow 15-onboarding-tour reads the seeded tour row (no model call) and asserts the five cards, TOC and the not-cloned note in place of Regenerate; flow 06-onboarding (Add repository) kept passing with the /onboarding route untouched. 15/15 flows. Evidence: `e2e/specs/15-onboarding-tour.flow.json; server/src/db/seed.ts`.
 
 ## Open Questions
 
