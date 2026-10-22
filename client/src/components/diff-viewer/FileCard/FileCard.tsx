@@ -37,17 +37,26 @@ export function FileCard({
   commenting,
   findings,
   defaultOpen,
+  forceOpen,
+  highlightLine,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   findings?: DiffFindingApi;
   defaultOpen?: boolean;
+  /** Opens the card (a deep link points here); never closes it. */
+  forceOpen?: boolean;
+  /** New-side line to highlight. */
+  highlightLine?: number | null;
 }) {
   const t = useTranslations("shell");
   const tp = useTranslations("prReview");
   const [open, setOpen] = React.useState(
     defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
+  React.useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
   // Group this file's comments into threads, then split into ones we can anchor
@@ -72,7 +81,7 @@ export function FileCard({
     : 0;
 
   return (
-    <div style={s.fileCard}>
+    <div style={s.fileCard} data-diff-path={file.path}>
       <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         {hasOpenFindings(fileFindings) && (
@@ -111,6 +120,7 @@ export function FileCard({
                 pill={anchored.pill.get(i)}
                 findingsAfter={anchored.after.get(i)}
                 findingApi={findings}
+                highlighted={highlightLine != null && ln.kind !== "del" && ln.newNo === highlightLine}
               />
             ))
           )}

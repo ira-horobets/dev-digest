@@ -127,8 +127,13 @@ export type RunTrace = z.infer<typeof RunTrace>;
  * One row of a PR's run history (every agent_runs row, any status). Surfaced on
  * the PR page so runs — including FAILED ones with their error — survive reload.
  */
+export const RunKind = z.enum(['review', 'brief']);
+export type RunKind = z.infer<typeof RunKind>;
+
 export const RunSummary = z.object({
   run_id: z.string(),
+  /** What the run produced: a review, or a PR brief (hidden from run history). */
+  kind: RunKind,
   agent_id: z.string().nullable(),
   agent_name: z.string().nullable(),
   provider: z.string().nullable(),

@@ -58,5 +58,6 @@ raw TypeScript source through a path alias.
 - `specs/smart-diff.md` — Smart Diff route, role classifier precedence, finding selection; read before touching `modules/smart-diff/` or the `SmartDiff` contract.
 - `specs/blast-radius.md` — Blast radius route, facade-to-contract mapping, prior-PR history; read before touching `modules/blast/` or the `BlastRadius` contracts.
 - `specs/project-context.md` — project context: tables, routes, base-branch reads, caps, trace fields, local overrides (`context_doc_overrides`, `PUT|DELETE /repos/:id/context/file`); `docs/project-context.md` for flows and decisions; read before touching `modules/project-context/`, `GitClient.listFiles` or the specs slot in the executor.
+- `specs/pr-brief.md` — PR brief: routes, `agent_runs.kind` and `pr_brief` columns (migration 0017), one-call rule, reference verification, stale rule, kind filters, trace shape; `docs/pr-brief.md` for flows and decisions; read before touching `modules/pr-brief/`, the kind filters in `run.repo.ts` / `agents/repository.ts`, or the `PrBrief*` contracts.
 - `INSIGHTS.md` — non-obvious gotchas; read at the start of every task here.
 - `../.claude/skills/onion-architecture-backend/SKILL.md` — ring map, the boundary rules (14 cruiser rules), new-module checklist, fix recipes; read before adding a module, route, service, repository or adapter.

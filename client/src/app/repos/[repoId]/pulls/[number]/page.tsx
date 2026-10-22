@@ -17,12 +17,14 @@ import { DiffTab } from "./_components/DiffTab";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "../../../../../lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import { prBriefKey } from "@/lib/hooks/brief";
 import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun } from "../../../../../lib/hooks/reviews";
 import { useRefreshOnRunsSettled } from "@/lib/hooks/reviews";
 import { useActiveRepo, useRepoNotFound } from "../../../../../lib/repo-context";
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
+import { diffDeepLinkSearch } from "./helpers";
 
 export default function PRDetailPage() {
   const params = useParams<{ repoId: string; number: string }>();
@@ -62,6 +64,10 @@ export default function PRDetailPage() {
   const invalidateIntent = () => {
     if (prId) qc.invalidateQueries({ queryKey: ["pr-intent", prId] });
   };
+  // A finished review changes the brief card's verdict, score and stale flag.
+  const invalidateBrief = () => {
+    if (prId) qc.invalidateQueries({ queryKey: prBriefKey(prId) });
+  };
 
   const tab = search.get("tab") ?? "overview";
   const traceRunId = search.get("trace");
@@ -72,6 +78,9 @@ export default function PRDetailPage() {
     router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
   const setTab = (t: string) => setParam("tab", t);
+  // Brief deep link: Files changed at a path and optional line, in one navigation.
+  const openDiffAt = (path: string, line: number | null) =>
+    router.replace(`/repos/${repoId}/pulls/${number}?${diffDeepLinkSearch(search, path, line)}`);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = React.useMemo(() => reviews ?? [], [reviews]);
@@ -141,7 +150,14 @@ export default function PRDetailPage() {
 
       <div style={{ padding: "24px 32px 44px", display: "flex", flexDirection: "column", gap: 24, maxWidth: 1080, margin: "0 auto" }}>
         {tab === "overview" && (
-          <OverviewTab prId={prId} repoId={repoId} repoFullName={repoFullName} prBody={pr.body} />
+          <OverviewTab
+            prId={prId}
+            repoId={repoId}
+            repoFullName={repoFullName}
+            prBody={pr.body}
+            onOpenTrace={(id) => setParam("trace", id)}
+            onOpenDiff={openDiffAt}
+          />
         )}
 
         {tab === "findings" && (
@@ -165,6 +181,7 @@ export default function PRDetailPage() {
               invalidateActiveRuns();
               invalidateRunHistory();
               invalidateIntent();
+              invalidateBrief();
               refetchReviews();
             }}
           />
@@ -176,6 +193,8 @@ export default function PRDetailPage() {
             filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            focusFile={search.get("file")}
+            focusLine={search.get("line")}
           />
         )}
       </div>

@@ -527,6 +527,102 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       .where(eq(t.reviews.id, seededReview.id));
   }
 
+  // ---- PR brief for #482 (e2e shows it with no model call) ----
+  // Idempotent: only while the PR has no stored brief. Paths and lines sit inside
+  // the seeded `src/config.ts` patch; head sha and review id make it fresh.
+  const [existingBrief] = await db.select().from(t.prBrief).where(eq(t.prBrief.prId, pr!.id));
+  if (!existingBrief) {
+    const briefStats = {
+      duration_ms: 6_400,
+      tokens_in: 8_190,
+      tokens_out: 1_300,
+      cost_usd: 0.0021,
+      findings: 0,
+      grounding: '5/5 refs kept',
+    };
+    const [briefRun] = await db
+      .insert(t.agentRuns)
+      .values({
+        workspaceId,
+        agentId: null,
+        prId: pr!.id,
+        kind: 'brief',
+        provider: 'openrouter',
+        model: 'deepseek/deepseek-v4-flash',
+        status: 'done',
+        source: 'local',
+        durationMs: briefStats.duration_ms,
+        tokensIn: briefStats.tokens_in,
+        tokensOut: briefStats.tokens_out,
+        costUsd: briefStats.cost_usd,
+        findingsCount: 0,
+        grounding: briefStats.grounding,
+      })
+      .returning();
+    await db.insert(t.runTraces).values({
+      runId: briefRun!.id,
+      trace: {
+        config: { agent: 'PR Brief', provider: 'openrouter', model: 'deepseek/deepseek-v4-flash', pr: 482, source: 'local' },
+        stats: briefStats,
+        prompt_assembly: { system: '(seeded brief - no prompt recorded)', user: '(seeded brief - no prompt recorded)' },
+        tool_calls: [{ tool: 'generate_brief', args: 'openrouter/deepseek/deepseek-v4-flash', meta: 'attempts=1', ms: briefStats.duration_ms }],
+        raw_output: '',
+        memory_pulled: [],
+        specs_read: [],
+        log: [
+          { t: '00.00', kind: 'info', msg: 'Seeded demo brief' },
+          { t: '06.40', kind: 'result', msg: 'Brief stored' },
+        ],
+      },
+    });
+    await db.insert(t.prBrief).values({
+      prId: pr!.id,
+      json: {
+        summary:
+          'Adds a token-bucket rate limiter to the public API. A Stripe secret key is committed in config.ts and the limiter settings are read without validation.',
+        risks: [
+          {
+            kind: 'auth',
+            title: 'Secret key committed in config',
+            explanation: 'A payment provider key sits in plain text in the config module and ships with the repository.',
+            severity: 'high',
+            file_refs: ['src/config.ts:12'],
+          },
+          {
+            kind: 'config',
+            title: 'Limiter settings are unvalidated',
+            explanation: 'The window and maximum come straight from config; a zero or negative value would disable limiting.',
+            severity: 'medium',
+            file_refs: ['src/config.ts:13-15'],
+          },
+          {
+            kind: 'performance',
+            title: 'User list may issue one query per user',
+            explanation: 'The users endpoint changes under the new limiter; check for a per-row query.',
+            severity: 'low',
+            file_refs: ['src/api/users.ts'],
+          },
+        ],
+        review_focus: [
+          { path: 'src/config.ts', line: 12, reason: 'Hard-coded secret key' },
+          { path: 'src/config.ts', line: 14, reason: 'Window length for the limiter' },
+          { path: 'src/api/users.ts', line: null, reason: 'Query pattern behind the limited endpoint' },
+        ],
+      },
+      generatedAt: new Date(),
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      tokensIn: briefStats.tokens_in,
+      tokensOut: briefStats.tokens_out,
+      costUsd: briefStats.cost_usd,
+      headSha: pr!.headSha,
+      sourceReviewId: seededReview?.id ?? null,
+      runId: briefRun!.id,
+      filesTotal: 9,
+      filesIncluded: 1,
+    });
+  }
+
   return { workspaceId, userId };
 }
 

@@ -9,6 +9,7 @@
     { "cmd": ["wait", "--load", "networkidle"], "label": "PR detail data settles" },
     { "cmd": ["wait", "--text", "Medium confidence"], "label": "Intent card shows the confidence badge" },
     { "cmd": ["wait", "--text", "token-bucket rate limiter"], "label": "seeded intent text renders" },
+    { "cmd": ["eval", "[...document.querySelectorAll('button')].find((b) => b.textContent.includes('Sources (7)')).scrollIntoView({ block: 'center' })"], "label": "scroll the sources disclosure into view (the brief card sits above the Intent card)" },
     { "cmd": ["find", "text", "Sources (7)", "click"], "label": "expand the collapsed sources disclosure" },
     { "cmd": ["wait", "--text", "#471"], "label": "linked issue #471 is listed as a source" },
     { "cmd": ["wait", "--text", "external links are not fetched"], "label": "the external link is recorded as skipped with its reason" }

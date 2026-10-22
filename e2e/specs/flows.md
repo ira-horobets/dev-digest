@@ -301,6 +301,32 @@ show a map instead), the Overview tab stops being the default, or the empty
 state copy changes.
 
 
+## 16-pr-brief
+
+Journey: root → PR list → click the PR #482 row → `/pulls/482` (Overview) →
+reload → click the «Hard-coded secret key» focus row → Files changed
+(`?tab=diff&file=src/config.ts&line=12`) → back to Overview → click the cost
+line → run trace drawer.
+
+Precondition: the seeded `acme/payments-api` only. `db/seed.ts` writes one brief
+run with trace and one stored `pr_brief` for PR #482 (summary «Adds a
+token-bucket rate limiter to the public API», a Risk areas chip «Secret key
+committed in config», a Review focus row «Hard-coded secret key» at
+`src/config.ts:12`, tokens 8.2K→1.3K) next to the seeded review with the
+«Request changes» verdict. Nothing generates a brief, so no model call is made
+and nothing is written.
+
+Locators: `wait --text` on the summary, «Request changes», the chip title,
+«Hard-coded secret key», «8.2K→1.3K», «rateLimitMax» (the opened patch) and
+«PR Brief» (trace drawer title); `wait --url` on `tab=diff`, `line=12` and
+`trace=`. The focus row and the cost line sit below the fold, so an `eval`
+`scrollIntoView` precedes each click.
+
+Breaks if: the seeded brief, its run or its review change, the seeded priced run
+set changes (the cost line), the Intent card or brief card order changes (the
+scroll steps), or the copy in `messages/en/brief.json` changes.
+
+
 ## 15-onboarding-tour
 
 Journey: `/agents` → sidebar «Onboarding Tour» → `/repos/<id>/tour`.

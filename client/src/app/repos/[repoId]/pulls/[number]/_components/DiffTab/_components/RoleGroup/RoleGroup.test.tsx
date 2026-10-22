@@ -12,7 +12,10 @@ const FILES: PrFile[] = [
   { path: "src/b.ts", additions: 1, deletions: 0, patch: "@@ -1,1 +1,2 @@\n x\n+y" },
 ];
 
-function renderGroup(role: SmartDiffRole, over: { filesWithFindings?: number; hasReview?: boolean } = {}) {
+function renderGroup(
+  role: SmartDiffRole,
+  over: { filesWithFindings?: number; hasReview?: boolean; forceOpen?: boolean } = {},
+) {
   render(
     <NextIntlClientProvider locale="en" messages={{ prReview, shell }}>
       <RoleGroup
@@ -20,6 +23,7 @@ function renderGroup(role: SmartDiffRole, over: { filesWithFindings?: number; ha
         files={FILES}
         filesWithFindings={over.filesWithFindings ?? 0}
         hasReview={over.hasReview ?? true}
+        forceOpen={over.forceOpen}
       />
     </NextIntlClientProvider>,
   );
@@ -57,5 +61,13 @@ describe("RoleGroup", () => {
   it("has a sticky header", () => {
     renderGroup("core");
     expect(screen.getByRole("button", { expanded: true }).style.position).toBe("sticky");
+  });
+
+  it("a deep link opens a collapsed group, and the group can still be collapsed by hand", async () => {
+    const user = userEvent.setup();
+    renderGroup("docs", { forceOpen: true });
+    expect(await screen.findByText("src/a.ts")).toBeTruthy();
+    await user.click(screen.getByRole("button", { expanded: true }));
+    expect(screen.queryByText("src/a.ts")).toBeNull();
   });
 });

@@ -68,6 +68,7 @@ flowchart TB
     pulls["pulls<br/>/pulls/:id · /pulls/:id/comments"]
     smartDiff["smart-diff<br/>/pulls/:id/smart-diff"]
     blast["blast<br/>/pulls/:id/blast"]
+    prBrief["pr-brief<br/>/pulls/:id/brief · /pulls/:id/brief/generate"]
     polling["polling<br/>/repos/:id/poll"]
   end
   subgraph Review["Review & runs"]
@@ -144,6 +145,13 @@ What the reviewer actually sends to the model is assembled in
   runs then read the override instead of the repository text, and the run trace
   marks the block `modified`. Nothing is written to git or GitHub. Details: `specs/project-context.md`,
   `docs/project-context.md`.
+- **The PR brief is one stored model call.** `POST /pulls/:id/brief/generate`
+  starts a background run (`agent_runs.kind = 'brief'`, one per PR) that makes
+  exactly one structured call on the `risk_brief` feature model, verifies every
+  path and line against the PR patches, and stores the survivors in `pr_brief`;
+  `GET /pulls/:id/brief` reads the database only. Verdict, score and counts come
+  from the newest review at read time. Brief runs are hidden from run history,
+  active runs and agent stats. Details: `specs/pr-brief.md`, `docs/pr-brief.md`.
 - **Grounding is mandatory.** Every finding must cite a line that exists in the
   diff or it is dropped (`groundFindings`), and the score is recomputed from the
   surviving findings — the model's self-reported score is ignored.

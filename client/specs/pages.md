@@ -10,7 +10,7 @@ this file are relative to `client/` unless they start with `../`.
 | `/` | redirect to the first repo's PR list | `useRepos` | none | `01-app-boot` (and 02, 04, 05, 08 start here) |
 | `/onboarding` | add a repository by URL | `useAddRepo` | none | `06-onboarding` |
 | `/repos/[repoId]/pulls` | PR list with filters | `usePulls`, `useRefreshRepo` | `?status` | `01`, `02`, `08` |
-| `/repos/[repoId]/pulls/[number]` | PR detail: Overview, Agent runs, Files changed | `usePulls`, `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns`, `usePrIntent`, `useBlastRadius` | `?tab`, `?trace` | `02`, `04`, `05`, `08`, `12`, `13` |
+| `/repos/[repoId]/pulls/[number]` | PR detail: Overview, Agent runs, Files changed | `usePulls`, `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns`, `usePrIntent`, `useBlastRadius`, `usePrBrief`, `useGenerateBrief` | `?tab`, `?trace`, `?file`, `?line` | `02`, `04`, `05`, `08`, `12`, `13`, `16` |
 | `/agents` | agent cards, create modal | `useAgents`, `useUpdateAgent`, `useCreateAgent`, `useDeleteAgent` | none | `03-agents` |
 | `/agents/[id]` | agent editor: Config, Skills | `useAgents`, `useAgent`, `useUpdateAgent`, `useProviderModels`, `useSkills`, `useAgentSkills`, `useSetAgentSkills` | `?tab` | `10-skills` |
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
@@ -88,7 +88,10 @@ Clicking a row pushes `/repos/<repoId>/pulls/<number>`.
   `useDeleteRun` (`DELETE /runs/:id`).
 - URL: `?tab=overview|findings|diff` (default `overview`) and
   `?trace=<runId>`; both via `router.replace`. Starting a review switches to
-  `?tab=findings`.
+  `?tab=findings`. `?file=<path>` and `?line=<n>` are read only by the Files
+  changed tab (deep link below); `openDiffAt` in `page.tsx` writes `tab=diff`,
+  `file` and `line` in one `router.replace` (`line` removed when the reference
+  has none) and keeps the other params. The brief card's cost line sets `?trace`.
 - Loading: skeleton block while either the list or the detail loads. Error or
   missing PR: full-screen `ErrorState` "Couldn't load this pull request" with
   retry. Unknown repo: `RepoNotFound`.
@@ -100,11 +103,26 @@ Clicking a row pushes `/repos/<repoId>/pulls/<number>`.
 
 ### Tab `overview` (`OverviewTab`)
 
-A "PR brief" grid with two cards, then the PR body as plain text under a
-"Description" label (nothing when `pr.body` is empty).
+A "PR brief" section: the **PR Brief card** first, then a grid with two cards,
+then the **Review focus** card full-width (only with a stored brief), then the PR
+body as plain text under a "Description" label (nothing when `pr.body` is empty).
+With no stored brief the grid and the description are unchanged.
 
+- **PR Brief card** (`_components/PrBriefCard`, `usePrBrief` → `GET
+  /pulls/:id/brief`, `useGenerateBrief` → `POST /pulls/:id/brief/generate`):
+  states skeleton, load error with Retry, Generate (tooltip names the workspace's
+  `risk_brief` model), running (spinner, previous brief kept, polls 2 s), stored
+  (verdict tile from the newest review, findings and blockers badges, (i) popover,
+  summary, PR SCORE ring, "Out of date" badge, cost line that opens `?trace=`),
+  and an inline error for a failed run (no toast). Contract:
+  [`pr-brief.md`](pr-brief.md); server half `server/specs/pr-brief.md`. Strings:
+  `messages/en/brief.json`. Covered by e2e flow `16`.
+- **Review focus** (`_components/ReviewFocusCard`): count badge and one
+  `path:line — reason` button per item; a click calls `openDiffAt`.
 - **Intent** (`IntentCard`, `usePrIntent` / `useRefreshIntent`): the derived
-  intent, confidence badge, in/out of scope, collapsed Sources disclosure.
+  intent, confidence badge, in/out of scope, a "Risk areas" sub-section from the
+  stored brief (`RiskAreas`; absent when the brief has no risks), collapsed
+  Sources disclosure.
 - **Blast radius** (`_components/BlastRadiusCard`, `useBlastRadius` → `GET /pulls/:id/blast`,
   server spec `server/specs/blast-radius.md`): stat row (symbols · callers ·
   endpoints · crons, distinct across symbols), a Tree / Graph toggle
@@ -206,6 +224,13 @@ a path; it joins each server group's paths to `pr.files` (patch text) in
   `useRefreshOnRunsSettled(prId, reviewRunning)`, which invalidates `["reviews",
   prId]` and `["smart-diff", prId]` when a run goes from running to settled, on
   any tab.
+- **Deep link** (`?file=<path>&line=<n>`): `resolveDeepLink` accepts the path
+  only when it is a changed file of the PR and the line only as a positive
+  integer. On a hit the file's `RoleGroup` and `FileCard` expand (`forceOpen`),
+  the file (or the `data-line` row when rendered) scrolls into view once, and the
+  line is tinted for 2 s (`useDiffDeepLink`). Unknown file or unrendered line:
+  the tab opens normally, no error, no toast. The params stay in the URL.
+  Details: [`pr-brief.md`](pr-brief.md).
 - Strings: `messages/en/prReview.json` namespace `smartDiff`.
 
 ### Trace drawer (`?trace=<runId>`, `RunTraceDrawer`)
@@ -217,6 +242,9 @@ Configuration, Stats (`DURATION`, `TOKENS` as `8k→0.9k`, `COST` via
 `formatCost`, `FINDINGS`), Findings, Prompt assembly, Tool calls, Raw output.
 Footer: Copy raw output. States: "Loading trace…", "No trace available yet."
 Project context blocks and the Specs read tokens: `specs/project-context.md`.
+A brief run opens here from the PR Brief card's cost line: the title falls back
+to `config.agent` ("PR Brief"), Findings is empty and the tool call is
+`generate_brief`.
 
 ## `/agents` (`src/app/agents/page.tsx` → `AgentsListView`)
 

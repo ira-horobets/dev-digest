@@ -96,7 +96,7 @@ describe('AI contracts parse fixtures', () => {
     ).not.toThrow();
     expect(() =>
       Risks.parse({
-        risks: [{ kind: 'security', title: 't', explanation: 'e', severity: 'high', file_refs: [] }],
+        risks: [{ kind: 'auth', title: 't', explanation: 'e', severity: 'high', file_refs: [] }],
       }),
     ).not.toThrow();
     expect(() =>
@@ -214,6 +214,7 @@ describe('AI contracts parse fixtures', () => {
   it('run cost: RunSummary and PrMeta carry a nullable cost_usd (null = unknown, never 0)', () => {
     const base = {
       run_id: 'r1',
+      kind: 'review',
       agent_id: null,
       agent_name: null,
       provider: 'openrouter',

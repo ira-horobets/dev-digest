@@ -27,10 +27,10 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
   },
   {
     id: "risk_brief",
-    label: "Risk Brief",
-    description: "Assesses merge risks for a pull request.",
-    defaultProvider: "openai",
-    defaultModel: "gpt-4.1",
+    label: "PR Brief",
+    description: "Writes the PR brief (summary, risks, review focus).",
+    defaultProvider: "openrouter",
+    defaultModel: "deepseek/deepseek-v4-flash",
   },
   {
     id: "conformance",

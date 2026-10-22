@@ -120,6 +120,13 @@
       "when": 1792586937792,
       "tag": "0016_brief_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792609885106,
+      "tag": "0017_heavy_jackal",
+      "breakpoints": true
     }
   ]
 }

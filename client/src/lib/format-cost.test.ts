@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatCost, formatTokenTotal, totalTokens } from "./format-cost";
+import { formatCost, formatTokenPair, formatTokenTotal, totalTokens } from "./format-cost";
 
 describe("formatCost — adaptive precision", () => {
   it("no data renders an em dash, never $0.00", () => {
@@ -41,5 +41,14 @@ describe("token helpers", () => {
     expect(totalTokens(8190, 929)).toBe(9119);
     expect(totalTokens(null, null)).toBeNull();
     expect(totalTokens(undefined, 5)).toBe(5);
+  });
+});
+
+describe("formatTokenPair", () => {
+  it("compacts both sides and shows an em dash when either is unknown", () => {
+    expect(formatTokenPair(8190, 1300)).toBe("8.2K→1.3K");
+    expect(formatTokenPair(940, 12)).toBe("940→12");
+    expect(formatTokenPair(1_300_000, 2000)).toBe("1.3M→2.0K");
+    expect(formatTokenPair(null, 5)).toBe("—");
   });
 });

@@ -39,3 +39,17 @@ export function totalTokens(
   if (tokensIn == null && tokensOut == null) return null;
   return (tokensIn ?? 0) + (tokensOut ?? 0);
 }
+
+/** Compact token count: 940 → "940", 8190 → "8.2K", 1_300_000 → "1.3M". */
+function compactTokens(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(Math.round(n));
+}
+
+/** "<in>→<out>" tokens of one call (8190, 1300 → "8.2K→1.3K"); "—" when either side is unknown. */
+export function formatTokenPair(tokensIn: number | null | undefined, tokensOut: number | null | undefined): string {
+  if (tokensIn == null || tokensOut == null) return "—";
+  return `${compactTokens(tokensIn)}→${compactTokens(tokensOut)}`;
+}

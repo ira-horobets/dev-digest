@@ -26,6 +26,7 @@ export async function activeRunsForPull(
       and(
         eq(t.agentRuns.workspaceId, workspaceId),
         eq(t.agentRuns.prId, prId),
+        eq(t.agentRuns.kind, 'review'),
         eq(t.agentRuns.status, 'running'),
       ),
     );
@@ -47,10 +48,13 @@ export async function listRunsForPull(
     .select({ run: t.agentRuns, agentName: t.agents.name })
     .from(t.agentRuns)
     .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
-    .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.prId, prId)))
+    .where(
+      and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.prId, prId), eq(t.agentRuns.kind, 'review')),
+    )
     .orderBy(desc(t.agentRuns.ranAt));
   return rows.map(({ run, agentName }) => ({
     run_id: run.id,
+    kind: run.kind,
     agent_id: run.agentId,
     agent_name: agentName ?? null,
     provider: run.provider,
@@ -98,6 +102,7 @@ export async function findingsForRun(
   return {
     run: {
       run_id: run.id,
+      kind: run.kind,
       agent_id: run.agentId,
       agent_name: agentName ?? null,
       provider: run.provider,
