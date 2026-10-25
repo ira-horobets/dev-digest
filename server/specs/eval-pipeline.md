@@ -104,6 +104,12 @@ metrics, model and cost only, never diff or finding prose.
 
 ## Tests
 
+`pnpm verify:l06` (server) runs everything below plus
+`eval-contract-parity.test.ts` (the Eval regions of both `vendor/shared`
+copies are byte-identical) and `eval.it.test.ts` (Testcontainers: migrations
+apply on a fresh database; finding → case → suite run → metrics → compare over
+the real routes; the mock model is called once per case and never on a read).
+
 `server/test/eval-scoring.test.ts` (match rule, per-case pass rules, run
 metrics, null denominators, subset recomputation, transitions),
 `eval-frozen-input.test.ts`, `eval-prompt-diff.test.ts` (diff + callout),

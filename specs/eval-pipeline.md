@@ -120,7 +120,7 @@ Demonstration
 - Migrations reshape the reserved tables in place (both at zero rows): `0010_eval_suite_runs.sql` adds columns and indexes, `0011_eval_drop_per_case_columns.sql` drops `case_id`, `actual_output`, `pass`. `eval_cases.expected_output` keeps its column name and stores the `EvalExpectation` object.
 - Logs carry counts, metrics, model and cost only; never a diff, an expectation or finding prose.
 - The eval module owns `eval_cases` and `eval_runs`; it reads findings, reviews, pull requests and `pr_files` only at freeze time and declares local ports (`AgentLookup`, `LlmResolver`) satisfied by `container.agentsRepo` and `container.llm`.
-- Verification: `cd server && pnpm exec vitest run test/eval-` (scoring, frozen input, prompt diff, callout, service), `cd client && pnpm test` (EvalsTab, EvalDashboardView, CompareModal, FindingCard), `cd e2e && npm test` (`17-eval-dashboard.flow.json`, read-only).
+- Verification: `cd server && pnpm verify:l06` runs the scoring, frozen-input, prompt-diff, callout and service suites, the contract-parity check across both `vendor/shared` copies, the contracts test and the Testcontainers integration test (migrations apply on a fresh database; every eval route answers over its documented surface; the mock model is called once per case and never on a read). Also `cd client && pnpm test` (EvalsTab, EvalDashboardView, CompareModal, FindingCard) and `cd e2e && npm test` (`17-eval-dashboard.flow.json`, read-only).
 
 ## Inputs and provenance
 

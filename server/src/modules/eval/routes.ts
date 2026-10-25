@@ -95,12 +95,16 @@ export default async function evalRoutes(appBase: FastifyInstance) {
   });
 
   // ---- runs ----------------------------------------------------------------
+  // Body is tolerant: an absent body (plain POST) means a suite run; a
+  // schema-declared optional body still rejects a bodyless request, so the
+  // same manual parse as `POST /pulls/:id/review` is used.
   app.post(
     '/agents/:id/eval/runs',
-    { schema: { params: IdParams, body: EvalRunInput.optional() }, config: { rateLimit: RUN_RATE_LIMIT } },
+    { schema: { params: IdParams }, config: { rateLimit: RUN_RATE_LIMIT } },
     async (req, reply) => {
       const { workspaceId } = await getContext(container, req);
-      const result = await service.startRun(workspaceId, req.params.id, req.body?.case_ids);
+      const input = EvalRunInput.parse(req.body ?? {});
+      const result = await service.startRun(workspaceId, req.params.id, input.case_ids);
       reply.status(202);
       return result;
     },
