@@ -1,0 +1,249 @@
+# Harness evals — skills, subagents and workflow behaviour, on OpenRouter.
+#
+# A pull request pays only for what it touched. The `plan` job maps the changed paths onto the
+# evals to run (evals/src/ci/plan.ts — unit-tested, no model):
+#
+#   .claude/skills/<name>/**   → that skill's evals (a warning when it has none)
+#   .claude/agents/<name>.md   → that agent's evals + the whole workflow tier (dispatch is systemic)
+#   any CLAUDE.md              → the whole workflow tier (routing, activation, dispatch)
+#   evals/<tier>/<name>/**     → that artifact's evals; evals/workflow/** → the workflow tier
+#   evals/src/**, proxy, CI    → everything
+#
+# Every tier runs on ONE model, resolved in this order: the `model` input of a manual run, the
+# repository variable EVAL_MODEL, then the default below. The judge follows the same chain through
+# `judge_model` / EVAL_JUDGE_MODEL and otherwise uses the task model. Subagents declared with an
+# Anthropic alias (`model: sonnet`) are pinned to the same model by evals/src/runtime/env.ts.
+#
+# Secrets: OPENROUTER_API_KEY (repository → Settings → Secrets and variables → Actions). Pull
+# requests from forks do not receive secrets, so the model-backed jobs skip there with a notice —
+# never switch this to pull_request_target to work around that.
+#
+# `evals-gate` is the one job to mark as a required status check: it fails if any model-backed job
+# failed and passes when they were skipped.
+name: evals
+
+on:
+  pull_request:
+    paths:
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - '**/CLAUDE.md'
+      - 'evals/**'
+      - '.github/workflows/evals.yml'
+      - '.github/actions/eval-setup/**'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: OpenRouter model slug for every tier (blank = repo variable EVAL_MODEL, else the default)
+        required: false
+        default: ''
+      judge_model:
+        description: OpenRouter model slug for the LLM judge (blank = same chain as model)
+        required: false
+        default: ''
+      scope:
+        description: Which evals to run
+        type: choice
+        default: all
+        options: [all, changed, workflow, skills, agents]
+      soft_kinds:
+        description: Workflow case kinds that warn instead of fail (comma-separated; blank = none)
+        required: false
+        default: activation
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EVAL_BACKEND: openrouter
+  EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4.1-flash' }}
+  EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4.1-flash' }}
+  # On a pull_request event `inputs` is empty, so the variable (default: activation) applies.
+  EVAL_SOFT_KINDS: ${{ github.event_name == 'workflow_dispatch' && inputs.soft_kinds || vars.EVAL_SOFT_KINDS || 'activation' }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  # Headless Claude Code inside the Agent SDK: no update checks, no telemetry calls.
+  DISABLE_AUTOUPDATER: '1'
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_matrix: ${{ steps.plan.outputs.has_matrix }}
+      run_workflow: ${{ steps.plan.outputs.run_workflow }}
+      missing: ${{ steps.plan.outputs.missing }}
+      key_present: ${{ steps.key.outputs.present }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the planner diffs against the merge-base with the target branch
+
+      - uses: ./.github/actions/eval-setup
+
+      - id: key
+        name: Check for the OpenRouter key
+        run: |
+          present=${{ secrets.OPENROUTER_API_KEY != '' }}
+          echo "present=$present" >> "$GITHUB_OUTPUT"
+          if [ "$present" != "true" ]; then
+            echo "::notice title=evals skipped::OPENROUTER_API_KEY is not available to this run (fork PR, or secret not set) — only the static gate runs."
+          fi
+
+      - id: plan
+        name: Plan which evals run
+        working-directory: evals
+        run: |
+          case "${{ github.event_name }}/${{ inputs.scope }}" in
+            workflow_dispatch/all)      pnpm -s ci:plan --all ;;
+            workflow_dispatch/workflow) pnpm -s ci:plan --all --only workflow ;;
+            workflow_dispatch/skills)   pnpm -s ci:plan --all --only skills ;;
+            workflow_dispatch/agents)   pnpm -s ci:plan --all --only agents ;;
+            workflow_dispatch/changed)  pnpm -s ci:plan --base origin/${{ github.event.repository.default_branch }} ;;
+            *)                          pnpm -s ci:plan --base origin/${{ github.base_ref }} ;;
+          esac
+
+      - name: Require evals for every changed artifact
+        if: vars.EVAL_REQUIRE_COVERAGE == 'true' && steps.plan.outputs.missing != '[]'
+        run: |
+          echo "::error title=missing evals::changed artifacts without evals: ${{ steps.plan.outputs.missing }} — run pnpm eval:scaffold"
+          exit 1
+
+      - name: Plan summary
+        run: |
+          {
+            echo "## evals plan"
+            echo
+            echo "- model: \`$EVAL_MODEL\` · judge: \`$EVAL_JUDGE_MODEL\` · soft kinds: \`${EVAL_SOFT_KINDS:-none}\`"
+            echo "- key available: \`${{ steps.key.outputs.present }}\`"
+            echo "- artifact matrix: \`${{ steps.plan.outputs.matrix }}\`"
+            echo "- workflow tier: \`${{ steps.plan.outputs.run_workflow }}\`"
+            echo "- changed artifacts without evals: \`${{ steps.plan.outputs.missing }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # No model: typecheck, the SKILL.md structural gate, and the package's own unit tests.
+  static:
+    name: static gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/eval-setup
+      - run: pnpm typecheck
+      - run: pnpm eval:quality
+      - run: pnpm exec vitest run src
+
+  # One runner per changed skill / agent. Skills are content-only and call OpenRouter directly;
+  # agents run inside the Agent SDK and need the proxy. Low parallelism: OpenRouter throttles
+  # bursts, and a throttled session reads as a false miss.
+  artifact:
+    name: ${{ matrix.tier }}/${{ matrix.name }}
+    needs: plan
+    if: needs.plan.outputs.has_matrix == 'true' && needs.plan.outputs.key_present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/eval-setup
+        with:
+          proxy: ${{ matrix.tier == 'agents' }}
+
+      # The trailing slash matters: vitest filters by substring, so "agents/architecture-reviewer"
+      # would also run agents/architecture-reviewer-lite.
+      - name: Run skill evals (content tier, direct to OpenRouter)
+        if: matrix.tier == 'skills'
+        run: pnpm exec vitest run "skills/${{ matrix.name }}/"
+
+      - name: Run agent evals (tool tier, through the proxy)
+        if: matrix.tier == 'agents'
+        env:
+          OPENROUTER_BASE_URL: http://localhost:4000
+          EVAL_SEQUENTIAL: '1'
+          EVAL_RETRY: '1'
+        run: pnpm exec vitest run "agents/${{ matrix.name }}/"
+
+      - name: Job summary
+        if: always()
+        run: pnpm -s ci:summary "${{ matrix.tier }}/${{ matrix.name }} · $EVAL_MODEL"
+
+      - name: Proxy logs
+        if: failure() && matrix.tier == 'agents'
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ matrix.tier }}-${{ matrix.name }}
+          path: evals/results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The systemic tier: CLAUDE.md routing, skill activation, subagent dispatch — against the real
+  # on-disk harness. Sequential with one retry; `activation` cases soft-fail by default here.
+  workflow:
+    name: workflow tier
+    needs: plan
+    if: needs.plan.outputs.run_workflow == 'true' && needs.plan.outputs.key_present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: evals
+    env:
+      OPENROUTER_BASE_URL: http://localhost:4000
+      EVAL_SEQUENTIAL: '1'
+      EVAL_RETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/eval-setup
+        with:
+          proxy: 'true'
+
+      - run: pnpm eval:workflow
+
+      - name: Job summary
+        if: always()
+        run: pnpm -s ci:summary "workflow tier · $EVAL_MODEL"
+
+      - name: Proxy logs
+        if: failure()
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-workflow
+          path: evals/results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The single required status check. Skipped model jobs (no key, nothing to run) pass; a failed
+  # one fails the gate.
+  evals-gate:
+    name: evals gate
+    needs: [static, artifact, workflow]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate
+        run: |
+          echo "static: ${{ needs.static.result }} · artifact: ${{ needs.artifact.result }} · workflow: ${{ needs.workflow.result }}"
+          for r in "${{ needs.static.result }}" "${{ needs.artifact.result }}" "${{ needs.workflow.result }}"; do
+            case "$r" in success|skipped) ;; *) echo "::error::a required evals job ended with '$r'"; exit 1 ;; esac
+          done

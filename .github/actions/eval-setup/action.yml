@@ -1,0 +1,40 @@
+# Shared setup for every evals job: pnpm + Node 22 + the evals/ dependencies, and optionally the
+# LiteLLM translating proxy the tool tiers (agents, workflow) need to run the Claude Agent SDK on a
+# non-Anthropic OpenRouter model. The proxy container reads OPENROUTER_API_KEY from the job env.
+#
+# No teardown step: a composite action cannot register `post:` steps, and the runner is disposable.
+name: eval setup
+description: Install the evals package and, optionally, start the LiteLLM proxy for the tool tiers.
+
+inputs:
+  proxy:
+    description: "'true' to start evals/proxy (needed by the agents and workflow tiers)"
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: evals/pnpm-lock.yaml
+
+    - name: Install evals
+      shell: bash
+      working-directory: evals
+      run: pnpm install --frozen-lockfile
+
+    - name: Start LiteLLM proxy
+      if: inputs.proxy == 'true'
+      shell: bash
+      working-directory: evals
+      run: |
+        : "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY must be in the job env to start the proxy}"
+        docker compose -f proxy/docker-compose.yml up -d
+        scripts/litellm-proxy.sh wait
