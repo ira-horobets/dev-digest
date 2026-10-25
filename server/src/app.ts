@@ -95,8 +95,13 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
 
   // Global rate limit. Disabled under test so integration suites can hammer
   // endpoints via inject(); per-route overrides live on the routes themselves.
+  // 600/min, not 120: every page of the UI fires ~10 React Query requests on
+  // mount, so 120 locks out anyone who clicks through a dozen pages in a minute
+  // — and the 16 e2e flows make ~170 requests in well under a minute on CI
+  // (production web build), which turned the repos/agents fetches into 429s
+  // mid-suite and failed flow 14 while every flow passed locally on next dev.
   if (config.nodeEnv !== 'test') {
-    await app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+    await app.register(rateLimit, { max: 600, timeWindow: '1 minute' });
   }
 
   // Liveness check (no module, no DB, no rate limit).

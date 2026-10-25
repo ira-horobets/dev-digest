@@ -21,6 +21,7 @@ see it, do not write it.
 - [2026-09-26] Naming a new contract `AgentStats` collides with the L07 placeholder of the same name in contracts/observability.ts; the barrel then fails typecheck with TS2308 while vitest still passes. Grep the shared contracts for the name before adding one (the card read model is `AgentCardStats`). Evidence: `server/src/vendor/shared/contracts/observability.ts:96`.
 - [2026-10-19] js-tiktoken (TiktokenTokenizer.count) is quadratic on long runs without whitespace: a 48k-char 'xxxx...' document made an IT test hang for minutes, and project-context truncation calls count ~17 times per document. Tests use natural text ('word ' repeated); a real 200 KB base64 or minified blob in a listed .md would block the event loop on listing. No guard exists yet. Evidence: `server/src/modules/project-context/service.ts:resolveForRun`.
 - [2026-10-21] Seeding a second priced agent_runs row on the demo PR changes the PR-list COST total (the rollup counts every kind), so flow 08-run-cost had to move from $0.0013 to $0.0034. Any new seeded run on PR #482 needs the cost flow updated. Evidence: `server/src/db/seed.ts`.
+- [2026-10-25] A global @fastify/rate-limit of 120/min on a single-user UI: a page mount is ~10 React Query requests, so clicking through a dozen pages in a minute, or the e2e suite on CI, gets 429 on repos/agents and the shell shows 'No repo selected' + 'Could not load agents'. 600/min is the floor that fits both; heavy routes keep per-route overrides. Evidence: `server/src/app.ts:rateLimit`.
 
 ## Codebase Patterns
 

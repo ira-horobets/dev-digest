@@ -119,6 +119,17 @@ jobs:
           npm ci
           npm test
 
+      # A flow failure usually has its cause on the API side (a 429, a 500, a
+      # crash), which the screenshot cannot show. Print the tail and ship both
+      # server logs with the screenshots.
+      - name: API and web logs
+        if: failure()
+        run: |
+          echo "::group::api.log (last 150 lines)"; tail -n 150 "$RUNNER_TEMP/api.log" || true; echo "::endgroup::"
+          echo "::group::web.log (last 60 lines)"; tail -n 60 "$RUNNER_TEMP/web.log" || true; echo "::endgroup::"
+          mkdir -p e2e/test-results
+          cp "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/web.log" e2e/test-results/ 2>/dev/null || true
+
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
