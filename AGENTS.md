@@ -90,3 +90,14 @@ Never edit these by hand. Change them only through the tool that owns them, or n
 - Per-package `docs/`: design notes. `specs/`: feature specs. `INSIGHTS.md`: non-obvious learnings and gotchas.
 - `docs/agent-prompts/`: how reviewer prompts are assembled and the rules for writing them.
 - `.claude/skills/`: vendored skills (Fastify, Drizzle, Next.js, React, Zod, security, …). Only descriptions load at session start; bodies load when a task matches.
+
+## Read When
+
+- **Modifying the review pipeline** → read `reviewer-core/docs/pipeline.md`
+- **Adding or changing an API route** → read `server/docs/api-contracts.md`
+- **Changing DI wiring, adapters, or secrets** → read `server/docs/architecture.md`
+- **Working on any server module** → read `server/CLAUDE.md`
+- **Working on the UI** → read `client/CLAUDE.md`
+- **Writing or debugging e2e flows** → read `e2e/docs/flows.md`
+- **Hit unexpected behavior** → check `<package>/insights/gotchas.md`
+- **Changing DB schema** → read `server/docs/architecture.md` (Drizzle section)
