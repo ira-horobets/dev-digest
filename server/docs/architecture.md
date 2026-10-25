@@ -25,7 +25,7 @@ alive (`uncaughtException` is deliberately not swallowed), then
 | Zod provider | `setValidatorCompiler` / `setSerializerCompiler` | Routes opt in via `app.withTypeProvider<ZodTypeProvider>()`. |
 | Container | `new Container(config, db, opts.overrides)`, `app.decorate('container', ...)` | `container.jobs.setLogger(app.log)` so failed jobs are logged. |
 | Reaping | `new ReviewService(container).reapStaleRuns()` | `run.repo.ts` `reapStaleRunningRuns` sets every `running` `agent_runs` row to `failed`. Awaited before listening (the comment rejects an async reaper, which could reap a brand-new run) and assumes one API instance per DB. Failure is a warning. |
-| Plugins | `helmet`, `cors` (`origin: [config.webOrigin]`), `FastifySSEPlugin`, `rateLimit` 120/min | Global rate limit skipped when `nodeEnv === 'test'`. |
+| Plugins | `helmet`, `cors` (`origin: [config.webOrigin]`), `FastifySSEPlugin`, `rateLimit` 600/min | Global rate limit skipped when `nodeEnv === 'test'`; 600 because a page mount is ~10 requests and the e2e suite is ~170 in under a minute. |
 | Health | `GET /health`, `GET /health/ready` (`select 1`, 503 when down) | Both `rateLimit: false`. |
 | Error handler | `app.setErrorHandler(...)` | Registered before modules so encapsulated plugins inherit it. |
 | Modules | `for (const plugin of Object.values(modules)) await app.register(plugin)` | Registry in `modules/index.ts`. |
