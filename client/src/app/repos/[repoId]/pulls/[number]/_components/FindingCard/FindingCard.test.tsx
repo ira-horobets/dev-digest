@@ -57,4 +57,17 @@ describe("FindingCard (smoke, both themes)", () => {
     fireEvent.click(screen.getByText("Reject"));
     expect(onAction).toHaveBeenCalledWith("dismiss");
   });
+
+  it("offers “Turn into eval case” only once the finding is triaged", () => {
+    const onAction = vi.fn();
+    const { unmount } = renderWithIntl(<FindingCard f={FINDING} defaultExpanded onAction={onAction} />);
+    expect(screen.queryByText("Turn into eval case")).not.toBeInTheDocument();
+    unmount();
+
+    renderWithIntl(
+      <FindingCard f={{ ...FINDING, accepted_at: "2026-05-29T09:14:00Z" }} defaultExpanded onAction={onAction} />,
+    );
+    fireEvent.click(screen.getByText("Turn into eval case"));
+    expect(onAction).toHaveBeenCalledWith("turnIntoEvalCase");
+  });
 });

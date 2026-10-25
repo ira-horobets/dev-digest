@@ -1,0 +1,121 @@
+{
+  "name": "Eval Dashboard and the agent Evals tab render",
+  "description": "Loads /eval (the regression harness across agents) and confirms the seeded agents are listed, then opens a seeded agent's Evals tab in the agent editor. Read-only: no eval run is started, so no LLM call is made.",
+  "steps": [
+    {
+      "cmd": [
+        "open",
+        "{BASE}/eval"
+      ],
+      "label": "load the eval dashboard"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--url",
+        "/eval"
+      ],
+      "label": "eval route reached"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--load",
+        "networkidle"
+      ],
+      "label": "dashboard fetch settles"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--text",
+        "Eval Dashboard"
+      ],
+      "label": "dashboard title is visible"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--text",
+        "Security Reviewer"
+      ],
+      "label": "seeded agent row is listed"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--text",
+        "Run all agents"
+      ],
+      "label": "run-all action is offered"
+    },
+    {
+      "cmd": [
+        "open",
+        "{BASE}/agents"
+      ],
+      "label": "load the agents page"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--load",
+        "networkidle"
+      ],
+      "label": "agents fetch settles"
+    },
+    {
+      "cmd": [
+        "find",
+        "text",
+        "Security Reviewer",
+        "click"
+      ],
+      "label": "open the seeded agent"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--url",
+        "/agents/"
+      ],
+      "label": "agent editor route reached"
+    },
+    {
+      "cmd": [
+        "find",
+        "role",
+        "button",
+        "click",
+        "--name",
+        "Evals",
+        "--exact"
+      ],
+      "label": "switch to the Evals tab"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--url",
+        "tab=evals"
+      ],
+      "label": "evals tab is in the URL"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--text",
+        "Eval cases"
+      ],
+      "label": "evals tab renders the case list heading"
+    },
+    {
+      "cmd": [
+        "wait",
+        "--text",
+        "New eval case"
+      ],
+      "label": "new-case action is offered"
+    }
+  ]
+}

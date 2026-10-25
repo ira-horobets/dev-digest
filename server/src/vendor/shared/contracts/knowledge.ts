@@ -169,23 +169,84 @@ export const OnboardingDraft = z.object({
 export type OnboardingDraft = z.infer<typeof OnboardingDraft>;
 
 // ---- Eval ----
-export const EvalPerTrace = z.object({
-  name: z.string(),
-  pass: z.boolean(),
-  expected: z.unknown(),
-  actual: z.unknown(),
-});
-export type EvalPerTrace = z.infer<typeof EvalPerTrace>;
+// Eval Pipeline (L06): a case freezes ONE file's diff fragment + ONE
+// expectation; a run replays an agent over its whole case set and scores the
+// output in code (file equality + line-range intersection — no model judge).
 
-export const EvalRun = z.object({
-  recall: z.number().min(0).max(1),
-  precision: z.number().min(0).max(1),
-  citation_accuracy: z.number().min(0).max(1),
-  traces_passed: z.number().int(),
-  traces_total: z.number().int(),
+/** accepted finding → must_find; dismissed finding → must_not_flag. */
+export const EvalExpectationType = z.enum(['must_find', 'must_not_flag']);
+export type EvalExpectationType = z.infer<typeof EvalExpectationType>;
+
+export const EvalExpectation = z.object({
+  type: EvalExpectationType,
+  file: z.string().min(1),
+  start_line: z.number().int().positive(),
+  end_line: z.number().int().positive(),
+  severity: z.string().nullish(),
+  category: z.string().nullish(),
+  title: z.string().nullish(),
+});
+export type EvalExpectation = z.infer<typeof EvalExpectation>;
+
+/** Trimmed PR metadata frozen with the case (the only PR context replayed). */
+export const EvalCaseMeta = z.object({
+  pr_number: z.number().int().nullable(),
+  title: z.string(),
+  body: z.string().nullable(),
+});
+export type EvalCaseMeta = z.infer<typeof EvalCaseMeta>;
+
+/** One grounded finding the agent produced for a case, with its match flag. */
+export const EvalActualFinding = z.object({
+  file: z.string(),
+  start_line: z.number().int(),
+  end_line: z.number().int(),
+  severity: z.string(),
+  category: z.string(),
+  title: z.string(),
+  matched: z.boolean(),
+});
+export type EvalActualFinding = z.infer<typeof EvalActualFinding>;
+
+export const EvalCaseOutcomeStatus = z.enum(['scored', 'errored']);
+export type EvalCaseOutcomeStatus = z.infer<typeof EvalCaseOutcomeStatus>;
+
+/** Per-case result inside a run. An errored case has `pass: null` and is
+ *  excluded from every ratio. */
+export const EvalCaseOutcome = z.object({
+  case_id: z.string(),
+  name: z.string(),
+  expectation_type: EvalExpectationType,
+  status: EvalCaseOutcomeStatus,
+  pass: z.boolean().nullable(),
+  error_reason: z.string().nullable(),
+  findings_total: z.number().int(),
+  findings_matched: z.number().int(),
+  grounding_kept: z.number().int(),
+  grounding_total: z.number().int(),
   duration_ms: z.number().int(),
   cost_usd: z.number().nullable(),
-  per_trace: z.array(EvalPerTrace),
+  actual: z.array(EvalActualFinding),
+});
+export type EvalCaseOutcome = z.infer<typeof EvalCaseOutcome>;
+
+/**
+ * Set-level metrics of one run. Every ratio is `null` (not 0) when its
+ * denominator is empty:
+ *  - recall             = must_find cases passed / must_find cases
+ *  - precision          = 1 − (findings matching a must_not_flag case / all kept findings)
+ *  - citation_accuracy  = findings kept by the grounding gate / findings the model emitted
+ */
+export const EvalRun = z.object({
+  recall: z.number().min(0).max(1).nullable(),
+  precision: z.number().min(0).max(1).nullable(),
+  citation_accuracy: z.number().min(0).max(1).nullable(),
+  traces_passed: z.number().int(),
+  traces_total: z.number().int(),
+  cases_errored: z.number().int(),
+  duration_ms: z.number().int(),
+  cost_usd: z.number().nullable(),
+  per_case: z.array(EvalCaseOutcome),
 });
 export type EvalRun = z.infer<typeof EvalRun>;
 
@@ -198,10 +259,14 @@ export const EvalCase = z.object({
   owner_id: z.string(),
   name: z.string(),
   input_diff: z.string(),
-  input_files: z.unknown(),
-  input_meta: z.unknown(),
-  expected_output: z.unknown(),
+  input_files: z.array(z.string()),
+  input_meta: EvalCaseMeta,
+  expectation: EvalExpectation,
+  /** The finding this case was created from (no FK — a case outlives it). */
+  source_finding_id: z.string().nullable(),
   notes: z.string().nullish(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type EvalCase = z.infer<typeof EvalCase>;
 

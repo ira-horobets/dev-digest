@@ -180,9 +180,26 @@ describe('AI contracts parse fixtures', () => {
         citation_accuracy: 0.95,
         traces_passed: 17,
         traces_total: 20,
+        cases_errored: 0,
         duration_ms: 12000,
         cost_usd: 0.23,
-        per_trace: [{ name: 't01', pass: true, expected: 'x', actual: 'x' }],
+        per_case: [
+          {
+            case_id: 'c1',
+            name: 'stripe-key-leak',
+            expectation_type: 'must_find',
+            status: 'scored',
+            pass: true,
+            error_reason: null,
+            findings_total: 1,
+            findings_matched: 1,
+            grounding_kept: 1,
+            grounding_total: 1,
+            duration_ms: 1800,
+            cost_usd: 0.02,
+            actual: [],
+          },
+        ],
       }),
     ).not.toThrow();
     expect(() =>

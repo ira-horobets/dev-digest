@@ -42,6 +42,28 @@ Rate limit: `POST /pulls/:id/review` — 120/min globally.
 | `PUT` | `/agents/:id` | Update agent |
 | `DELETE` | `/agents/:id` | Delete agent |
 
+### Eval Pipeline
+
+Cases are frozen inputs (one file's diff fragment + one expectation); a run replays an agent version over its case set and is scored **in code** (file equality + line-range intersection — no model judge). Runs execute in the background; clients poll `GET /eval/runs/:id` until `status !== "running"`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/findings/:id/eval-case` | Turn a triaged finding into a case (accepted → `must_find`, dismissed → `must_not_flag`). `201` created / `200` already existed. Body: `{ case, created, agent_name }` |
+| `GET` | `/agents/:id/eval/cases` | The agent's case set |
+| `POST` | `/agents/:id/eval/cases` | Hand-authored case (`EvalCaseInput`) |
+| `GET` / `PATCH` / `DELETE` | `/eval/cases/:id` | One case; edits are re-validated (size cap + expectation must fall inside a hunk) |
+| `POST` | `/agents/:id/eval/runs` | Start a run → `202 EvalRunResult`. Body `{ case_ids? }`: omitted = suite run (dashboard/trend/compare use suite runs only), given = ad-hoc `case` run |
+| `GET` | `/agents/:id/eval/runs` | Run history (any scope) |
+| `GET` | `/eval/runs/:id` | One run (`metrics` null while running) |
+| `POST` | `/eval/runs/all` | `{ confirm: true }` → suite run for every enabled agent with ≥1 case; per-agent `started / refused_reason` |
+| `GET` | `/eval/dashboard` | `EvalDashboard`: one row per agent (latest suite run + recall trend) and the recent runs table |
+| `GET` | `/eval/agents/:id?days=30` | `EvalAgentDetail`: runs in the window, trend, current metrics, delta vs previous, callout, latest outcome per case. `days=all` disables the window |
+| `GET` | `/eval/compare?a=&b=` | `EvalCompare`: older → newer deltas over the common case ids, flipped cases, and the system-prompt line diff from `agent_versions` |
+
+Metrics (`EvalRun`, every ratio `null` when its denominator is empty): `recall` = must_find cases passed / must_find cases; `precision` = 1 − findings matching a must_not_flag case / all kept findings; `citation_accuracy` = findings kept by the grounding gate / findings emitted.
+
+Run-start routes are rate-limited (5/min) and refuse with `409 run_in_flight`, `422 no_cases`, `422 provider_not_configured`.
+
 ### Repo Intel
 
 | Method | Path | Description |
@@ -84,6 +106,8 @@ All schemas are in `server/src/vendor/shared/`. Key files:
 | `repo.ts` | `Repo`, `Pull` |
 | `settings.ts` | `Settings`, `LLMProvider` enum |
 | `run.ts` | `Run`, `RunEvent` |
+| `contracts/knowledge.ts` | `EvalExpectation`, `EvalCase`, `EvalCaseOutcome`, `EvalRun` |
+| `contracts/eval-ci.ts` | `EvalCaseInput`, `EvalRunRecord`, `EvalDashboard`, `EvalAgentDetail`, `EvalCompare` |
 
 ## Error Format
 
