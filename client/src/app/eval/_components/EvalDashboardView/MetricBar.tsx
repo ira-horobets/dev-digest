@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ProgressBar } from "@devdigest/ui";
-import { formatPct, pctValue } from "../../../../lib/eval-format";
+import { formatPct, pctValue } from "@/lib/eval-format";
 import { s } from "./styles";
 
 export const METRIC_COLORS = {

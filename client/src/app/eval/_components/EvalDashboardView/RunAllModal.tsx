@@ -4,8 +4,8 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Modal, Button, Icon } from "@devdigest/ui";
 import type { EvalAgentSummary, EvalRunAllResult } from "@devdigest/shared";
-import { useRunAllEvals } from "../../../../lib/hooks/eval";
-import { ApiError } from "../../../../lib/api";
+import { useRunAllEvals } from "@/lib/hooks/eval";
+import { ApiError } from "@/lib/api";
 import { s } from "./styles";
 
 /** Confirmation (with the stated execution count) → per-agent result list. */

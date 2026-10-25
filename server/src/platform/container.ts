@@ -32,6 +32,7 @@ import type { OnboardingRepositoryPort } from '../modules/onboarding/ports.js';
 import { OnboardingRepository } from '../modules/onboarding/repository.js';
 import type { PrBriefRepositoryPort } from '../modules/pr-brief/ports.js';
 import { PrBriefRepository } from '../modules/pr-brief/repository.js';
+import { EvalRepository } from '../modules/eval/repository.js';
 import { SmartDiffService } from '../modules/smart-diff/service.js';
 import { BlastService } from '../modules/blast/service.js';
 import { RepoRepository } from '../modules/repos/repository.js';
@@ -119,6 +120,7 @@ export class Container {
   private _onboardingRepo?: OnboardingRepositoryPort;
   private _intentRepo?: IntentRepositoryPort;
   private _prBriefRepo?: PrBriefRepositoryPort;
+  private _evalRepo?: EvalRepository;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
   private _projectContextRepo?: ProjectContextRepositoryPort;
@@ -167,6 +169,11 @@ export class Container {
 
   get prBriefRepo(): PrBriefRepositoryPort {
     return (this._prBriefRepo ??= this.overrides.prBriefRepo ?? new PrBriefRepository(this.db));
+  }
+
+  /** Eval pipeline data-access (SPEC-04); routes receive it from here. */
+  get evalRepo(): EvalRepository {
+    return (this._evalRepo ??= new EvalRepository(this.db));
   }
 
   get intentRepo(): IntentRepositoryPort {

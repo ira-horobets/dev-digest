@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { EmptyState, Icon } from "@devdigest/ui";
 import type { EvalRunRecord } from "@devdigest/shared";
-import { formatRanAt, formatVersion } from "../../../../lib/eval-format";
+import { formatRanAt, formatVersion } from "@/lib/eval-format";
 import { MetricBar, METRIC_COLORS } from "./MetricBar";
 import { s } from "./styles";
 

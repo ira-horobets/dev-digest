@@ -1,5 +1,5 @@
 import type { EvalExpectation } from '@devdigest/shared';
-import { groundFindings } from '@devdigest/reviewer-core';
+import { groundFindings } from '../../platform/grounding.js';
 import { parseUnifiedDiff } from '../../adapters/git/diff-parser.js';
 
 /**

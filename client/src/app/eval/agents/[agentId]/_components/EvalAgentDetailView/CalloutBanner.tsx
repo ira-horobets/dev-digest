@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@devdigest/ui";
 import type { EvalCallout } from "@devdigest/shared";
-import { formatVersion } from "../../../../../../lib/eval-format";
+import { formatVersion } from "@/lib/eval-format";
 import { s } from "./styles";
 
 /**

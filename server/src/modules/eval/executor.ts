@@ -1,5 +1,5 @@
 import type { LLMProvider, PromptAssembly } from '@devdigest/shared';
-import { reviewPullRequest } from '@devdigest/reviewer-core';
+import { reviewPullRequest } from '../../platform/review-engine.js';
 import { parseUnifiedDiff } from '../../adapters/git/diff-parser.js';
 import { EVAL_TASK_LINE } from './constants.js';
 import type { AgentRecord } from './ports.js';

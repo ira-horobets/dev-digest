@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { Agent, EvalAgentDetail, EvalCase, EvalRunRecord } from "@devdigest/shared";
 import evalMessages from "../../../../../../../../messages/en/eval.json";
-import { ToastProvider } from "../../../../../../../lib/toast";
+import { ToastProvider } from "@/lib/toast";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
@@ -14,7 +14,7 @@ const hooks = vi.hoisted(() => ({
   detail: null as EvalAgentDetail | null,
   runs: [] as EvalRunRecord[],
 }));
-vi.mock("../../../../../../../lib/hooks/eval", () => ({
+vi.mock("@/lib/hooks/eval", () => ({
   useEvalCases: () => ({ data: hooks.cases, isLoading: false }),
   useEvalAgentDetail: () => ({ data: hooks.detail }),
   useEvalRuns: () => ({ data: hooks.runs }),

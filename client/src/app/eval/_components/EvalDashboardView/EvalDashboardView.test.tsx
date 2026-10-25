@@ -9,12 +9,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
   usePathname: () => "/eval",
 }));
-vi.mock("../../../../components/app-shell", () => ({
+vi.mock("@/components/app-shell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 const state = vi.hoisted(() => ({ data: null as EvalDashboard | null, isLoading: false, isError: false }));
-vi.mock("../../../../lib/hooks/eval", () => ({
+vi.mock("@/lib/hooks/eval", () => ({
   useEvalDashboard: () => ({ data: state.data, isLoading: state.isLoading, isError: state.isError, refetch: vi.fn() }),
   useRunAllEvals: () => ({ mutate: vi.fn(), isPending: false }),
 }));

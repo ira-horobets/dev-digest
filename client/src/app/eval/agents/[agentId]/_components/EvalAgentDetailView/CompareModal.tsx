@@ -4,11 +4,11 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Modal, Button, Skeleton, ErrorState, Icon } from "@devdigest/ui";
 import type { EvalCompare } from "@devdigest/shared";
-import { useEvalCompare } from "../../../../../../lib/hooks/eval";
-import { useAgent, useUpdateAgent } from "../../../../../../lib/hooks/agents";
-import { ApiError } from "../../../../../../lib/api";
-import { notify } from "../../../../../../lib/toast";
-import { formatCost, formatCostDelta, formatPct, formatVersion } from "../../../../../../lib/eval-format";
+import { useEvalCompare } from "@/lib/hooks/eval";
+import { useAgent, useUpdateAgent } from "@/lib/hooks/agents";
+import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/toast";
+import { formatCost, formatCostDelta, formatPct, formatVersion } from "@/lib/eval-format";
 import { s } from "./styles";
 
 /**
@@ -189,8 +189,13 @@ function DeltaTile({
     const magnitude = unit === "pt" ? Math.round(Math.abs(delta) * 100) : formatCostDelta(delta);
     const unitLabel = unit === "pt" ? "pt" : "";
     deltaText = `${magnitude}${unitLabel}`;
-    if (delta > 0) (deltaColor = unit === "usd" ? "var(--warn)" : "var(--ok)"), (Arrow = Icon.ArrowUp);
-    else if (delta < 0) (deltaColor = unit === "usd" ? "var(--ok)" : "var(--crit)"), (Arrow = Icon.ArrowDown);
+    if (delta > 0) {
+      deltaColor = unit === "usd" ? "var(--warn)" : "var(--ok)";
+      Arrow = Icon.ArrowUp;
+    } else if (delta < 0) {
+      deltaColor = unit === "usd" ? "var(--ok)" : "var(--crit)";
+      Arrow = Icon.ArrowDown;
+    }
   }
   return (
     <div style={s.deltaTile}>

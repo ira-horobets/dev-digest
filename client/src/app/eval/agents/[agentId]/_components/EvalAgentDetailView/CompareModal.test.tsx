@@ -3,14 +3,14 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { EvalCompare, EvalRunRecord } from "@devdigest/shared";
 import evalMessages from "../../../../../../../messages/en/eval.json";
-import { ToastProvider } from "../../../../../../lib/toast";
+import { ToastProvider } from "@/lib/toast";
 
 const updateAgent = vi.fn();
 const state = vi.hoisted(() => ({ compare: null as EvalCompare | null, currentPrompt: "" }));
-vi.mock("../../../../../../lib/hooks/eval", () => ({
+vi.mock("@/lib/hooks/eval", () => ({
   useEvalCompare: () => ({ data: state.compare, isLoading: false, isError: false }),
 }));
-vi.mock("../../../../../../lib/hooks/agents", () => ({
+vi.mock("@/lib/hooks/agents", () => ({
   useAgent: () => ({ data: { id: "ag1", name: "Security Reviewer", system_prompt: state.currentPrompt, version: 8 } }),
   useUpdateAgent: () => ({ mutate: updateAgent, isPending: false }),
 }));

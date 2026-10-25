@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Icon, Sparkline } from "@devdigest/ui";
 import type { EvalAgentSummary } from "@devdigest/shared";
-import { formatPct, formatRanAt, formatVersion } from "../../../../lib/eval-format";
+import { formatPct, formatRanAt, formatVersion } from "@/lib/eval-format";
 import { METRIC_COLORS } from "./MetricBar";
 import { s } from "./styles";
 

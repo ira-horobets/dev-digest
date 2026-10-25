@@ -11,9 +11,9 @@ import {
   useEvalCases,
   useEvalRuns,
   useStartEvalRun,
-} from "../../../../../../../lib/hooks/eval";
-import { ApiError } from "../../../../../../../lib/api";
-import { notify } from "../../../../../../../lib/toast";
+} from "@/lib/hooks/eval";
+import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import { MetricTiles } from "./MetricTiles";
 import { CaseRow } from "./CaseRow";
 import { CaseEditorModal } from "./CaseEditorModal";

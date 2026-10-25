@@ -6,7 +6,6 @@ import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { NotFoundError } from '../../platform/errors.js';
 import { DEFAULT_DETAIL_DAYS, RUN_RATE_LIMIT } from './constants.js';
-import { EvalRepository } from './repository.js';
 import { EvalService } from './service.js';
 
 /**
@@ -43,7 +42,7 @@ export default async function evalRoutes(appBase: FastifyInstance) {
   const app = appBase.withTypeProvider<ZodTypeProvider>();
   const { container } = app;
   const service = new EvalService(
-    new EvalRepository(container.db),
+    container.evalRepo,
     container.agentsRepo,
     (provider) => container.llm(provider),
     app.log,

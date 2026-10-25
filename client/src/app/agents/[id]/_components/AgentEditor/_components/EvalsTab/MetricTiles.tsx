@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@devdigest/ui";
 import type { EvalMetricDeltas, EvalRun } from "@devdigest/shared";
-import { formatPct } from "../../../../../../../lib/eval-format";
+import { formatPct } from "@/lib/eval-format";
 import { s } from "./styles";
 
 const COLORS = {

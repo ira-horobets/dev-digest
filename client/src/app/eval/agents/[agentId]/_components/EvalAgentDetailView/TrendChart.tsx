@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon, LineChart } from "@devdigest/ui";
 import type { EvalTrendPoint } from "@devdigest/shared";
-import { formatPct, formatRanAt } from "../../../../../../lib/eval-format";
+import { formatPct, formatRanAt } from "@/lib/eval-format";
 import { s } from "./styles";
 
 const SERIES = [
@@ -29,7 +29,7 @@ export function TrendChart({ trend }: { trend: EvalTrendPoint[] }) {
         </span>
         <div style={s.legend}>
           {SERIES.map((sr) => (
-            <span key={sr.key} style={s.legendItem(sr.color)}>
+            <span key={sr.key} style={s.legendItem}>
               <span style={s.legendSwatch(sr.color)} />
               {t(sr.labelKey)}
             </span>

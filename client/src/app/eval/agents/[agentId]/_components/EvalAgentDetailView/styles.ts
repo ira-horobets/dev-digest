@@ -53,7 +53,7 @@ export const s = {
     color: "var(--text-muted)",
   } satisfies CSSProperties,
   legend: { marginLeft: "auto", display: "flex", gap: 16, fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,
-  legendItem: (color: string): CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6 }),
+  legendItem: { display: "inline-flex", alignItems: "center", gap: 6 } satisfies CSSProperties,
   legendSwatch: (color: string): CSSProperties => ({ width: 12, height: 2, background: color, display: "inline-block" }),
   runsHead: { display: "flex", alignItems: "center", gap: 12, marginBottom: 12 } satisfies CSSProperties,
   selected: { fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,

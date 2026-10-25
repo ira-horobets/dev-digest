@@ -4,10 +4,10 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Modal, Button, Tabs, TextInput, Textarea, Toggle, Icon } from "@devdigest/ui";
 import type { Agent, EvalCase, EvalCaseInput, EvalCaseOutcome } from "@devdigest/shared";
-import { useCreateEvalCase, useUpdateEvalCase } from "../../../../../../../lib/hooks/eval";
-import { ApiError } from "../../../../../../../lib/api";
-import { notify } from "../../../../../../../lib/toast";
-import { formatCost, formatDuration } from "../../../../../../../lib/eval-format";
+import { useCreateEvalCase, useUpdateEvalCase } from "@/lib/hooks/eval";
+import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/toast";
+import { formatCost, formatDuration } from "@/lib/eval-format";
 import { expectationSkeleton, expectationText, expectedCount, filesFromDiff, parseExpectation } from "./helpers";
 import { s } from "./styles";
 
