@@ -51,7 +51,12 @@ export default class TrendReporter {
       }
       task.tasks?.forEach((t) => walk(t, file));
     };
-    for (const f of files) (f.tasks ?? []).forEach((t) => walk(t, f.name ?? "?"));
+    // Only model-backed eval files belong in the trend; the package's own unit tests (src/**/*.test.ts)
+    // would otherwise pad history.jsonl and the CI summary with rows that never touch a model.
+    for (const f of files) {
+      if (!(f.name ?? "").endsWith(".eval.ts")) continue;
+      (f.tasks ?? []).forEach((t) => walk(t, f.name ?? "?"));
+    }
     if (!rows.length) return;
     mkdirSync(dirname(HISTORY), { recursive: true });
     appendFileSync(HISTORY, rows.join("\n") + "\n");

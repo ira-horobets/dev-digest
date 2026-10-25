@@ -45,6 +45,14 @@ export interface RunOptions {
   stopWhen?: (partial: Pick<Result, "subagents" | "filesRead" | "skillsInvoked" | "toolsUsed">) => boolean;
 }
 
+/** Every built-in Claude Code tool a headless session could reach. Anything here that is not on a
+ *  run's allow-list is passed as `disallowedTools`, so an eval can never write, run shells, or
+ *  fetch the web unless its case explicitly asked for that tool. */
+const BUILTIN_TOOLS = [
+  "Bash", "BashOutput", "KillShell", "Write", "Edit", "MultiEdit", "NotebookEdit",
+  "WebFetch", "WebSearch", "Read", "Grep", "Glob", "LS", "Task", "Agent", "Skill", "TodoWrite",
+];
+
 /** Run one headless Claude turn-loop and extract what it ACTUALLY did (not its prose). */
 export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<Result> {
   const allowedTools = opts.allowedTools ?? [];
@@ -59,12 +67,20 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     systemPrompt = (systemPrompt ?? "") + directive;
   }
 
+  // Under bypassPermissions, `allowedTools` only auto-approves — every other built-in tool is
+  // still offered to the model and runs without a prompt. A workflow run against the live repo
+  // once used Write and Bash this way and created server/insights/INSIGHTS.md. `disallowedTools`
+  // removes a tool from the model's context entirely, so compute it as the complement of the
+  // allow-list: what is not allowed does not exist for this session.
+  const disallowedTools = BUILTIN_TOOLS.filter((t) => !allowedTools.includes(t));
+
   const options: Options = {
     model: opts.model ?? EVAL_MODEL,
     maxTurns: opts.maxTurns ?? MAX_TURNS,
-    permissionMode: "bypassPermissions", // safe: evals only read/plan and tools are allow-listed
+    permissionMode: "bypassPermissions", // safe only because disallowedTools hard-removes everything off the allow-list
     systemPrompt,
     allowedTools,
+    disallowedTools,
     cwd: opts.cwd ?? REPO_ROOT,
     // Default: do NOT load on-disk config — isolates the injected artifact. workflowTask overrides.
     settingSources: opts.settingSources ?? [],

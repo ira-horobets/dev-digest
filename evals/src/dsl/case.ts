@@ -9,7 +9,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
-import { DEFAULT_THRESHOLD } from "../config.js";
+import { DEFAULT_THRESHOLD, SOFT_KINDS } from "../config.js";
+import { YELLOW, RESET } from "../ansi.js";
 import { skillTask, agentTask, workflowTask } from "../tasks.js";
 import { runClaude, type Result, type RunOptions } from "../runtime/run-claude.js";
 import { patternMatch } from "../scoring/pattern-match.js";
@@ -115,6 +116,28 @@ function runQualityCases(artifact: string, cases: QualityCase[], task: Task): vo
 export const runSkillCases = (skill: string, cases: SkillCase[]) => runQualityCases(skill, cases, skillTask);
 export const runAgentCases = (agent: string, cases: AgentCase[]) => runQualityCases(agent, cases, agentTask);
 
+/**
+ * Run a case's assertions. For a kind listed in EVAL_SOFT_KINDS a failure is downgraded: the
+ * message is logged (and surfaced as a GitHub annotation under Actions), the test passes, and
+ * the returned note is stored on the record so the soft-fail is still visible in the data.
+ */
+function assertSoftly(kind: WorkflowCase["kind"], name: string, assertions: () => void): string | undefined {
+  try {
+    assertions();
+    return undefined;
+  } catch (err) {
+    if (!SOFT_KINDS.has(kind)) throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`${YELLOW}soft-fail${RESET} [${kind}] ${name}\n  ${msg.split("\n")[0]}`);
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(`::warning title=eval soft-fail (${kind})::${name}: ${msg.split("\n")[0]}`);
+    }
+    return msg;
+  }
+}
+
+const softExtra = (softFail: string | undefined) => (softFail ? { softFail } : undefined);
+
 export function runWorkflowCases(cases: WorkflowCase[]): void {
   for (const c of cases) {
     test(c.name, async () => {
@@ -126,21 +149,27 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
           stopWhen: (p) => p.subagents.includes(expect1),
         });
         logTrace(c.name, result);
+        let soft: string | undefined;
         try {
-          expect(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(c.expectSubagent);
+          soft = assertSoftly(c.kind, c.name, () => {
+            expect(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(c.expectSubagent);
+          });
         } finally {
-          record(c.name, { result });
+          record(c.name, { result, extra: softExtra(soft) });
         }
       } else if (c.kind === "activation") {
         const result = await workflowTask(c.prompt, { maxTurns: c.maxTurns });
         logTrace(c.name, result);
+        let soft: string | undefined;
         try {
-          expect(
-            activated(result, c.skill),
-            `skills: ${result.skillsInvoked.join(", ")} | reads: ${result.filesRead.join(", ")}`,
-          ).toBe(c.shouldActivate);
+          soft = assertSoftly(c.kind, c.name, () => {
+            expect(
+              activated(result, c.skill),
+              `skills: ${result.skillsInvoked.join(", ")} | reads: ${result.filesRead.join(", ")}`,
+            ).toBe(c.shouldActivate);
+          });
         } finally {
-          record(c.name, { result });
+          record(c.name, { result, extra: softExtra(soft) });
         }
       } else if (c.kind === "trace") {
         // One session, many asserts — every provided expectation is checked against the same trace.
@@ -160,25 +189,28 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
             files.every((f) => p.filesRead.some((r) => r.includes(f))),
         });
         logTrace(c.name, result);
+        let soft: string | undefined;
         try {
-          for (const sub of c.expectSubagents ?? []) {
-            expect(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(sub);
-          }
-          for (const skill of c.expectSkills ?? []) {
-            expect(
-              activated(result, skill),
-              `skill ${skill} not engaged | skills: ${result.skillsInvoked.join(", ")} | reads: ${result.filesRead.join(", ")}`,
-            ).toBe(true);
-          }
-          for (const file of c.expectFilesRead ?? []) {
-            expect(
-              result.filesRead.some((f) => f.includes(file)),
-              `${file} not read | reads: ${result.filesRead.join(", ")}`,
-            ).toBe(true);
-          }
-          expect(result.isError).toBe(false);
+          soft = assertSoftly(c.kind, c.name, () => {
+            for (const sub of c.expectSubagents ?? []) {
+              expect(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(sub);
+            }
+            for (const skill of c.expectSkills ?? []) {
+              expect(
+                activated(result, skill),
+                `skill ${skill} not engaged | skills: ${result.skillsInvoked.join(", ")} | reads: ${result.filesRead.join(", ")}`,
+              ).toBe(true);
+            }
+            for (const file of c.expectFilesRead ?? []) {
+              expect(
+                result.filesRead.some((f) => f.includes(file)),
+                `${file} not read | reads: ${result.filesRead.join(", ")}`,
+              ).toBe(true);
+            }
+            expect(result.isError).toBe(false);
+          });
         } finally {
-          record(c.name, { result });
+          record(c.name, { result, extra: softExtra(soft) });
         }
       } else {
         // contrast: treatment (real harness) vs control (empty tmpdir, no on-disk config).
@@ -193,14 +225,17 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         });
         logTrace(`${c.name} [treatment]`, treatment);
         logTrace(`${c.name} [control]`, control);
+        let soft: string | undefined;
         try {
-          const treatmentRead = treatment.filesRead.some((f) => f.includes(c.expectFileRead));
-          const controlRead = control.filesRead.some((f) => f.includes(c.expectFileRead));
-          expect(treatmentRead, `treatment reads: ${treatment.filesRead.join(", ")}`).toBe(true);
-          expect(controlRead, `control reads: ${control.filesRead.join(", ")}`).toBe(false);
+          soft = assertSoftly(c.kind, c.name, () => {
+            const treatmentRead = treatment.filesRead.some((f) => f.includes(c.expectFileRead));
+            const controlRead = control.filesRead.some((f) => f.includes(c.expectFileRead));
+            expect(treatmentRead, `treatment reads: ${treatment.filesRead.join(", ")}`).toBe(true);
+            expect(controlRead, `control reads: ${control.filesRead.join(", ")}`).toBe(false);
+          });
         } finally {
-          record(`${c.name} [treatment]`, { result: treatment });
-          record(`${c.name} [control]`, { result: control });
+          record(`${c.name} [treatment]`, { result: treatment, extra: softExtra(soft) });
+          record(`${c.name} [control]`, { result: control, extra: softExtra(soft) });
         }
       }
     });

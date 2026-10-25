@@ -56,8 +56,8 @@ Proxy ready. To route every eval tier through it:
   export EVAL_BACKEND=openrouter
   export OPENROUTER_BASE_URL=${URL}
   export OPENROUTER_API_KEY=<your key>   # also used by the proxy container
-  export EVAL_MODEL=google/gemini-2.5-flash        # cheap model that survives the tool tiers
-  export EVAL_JUDGE_MODEL=google/gemini-2.5-flash
+  export EVAL_MODEL=deepseek/deepseek-v4.1-flash   # the CI default; google/gemini-2.5-flash also verified
+  export EVAL_JUDGE_MODEL=deepseek/deepseek-v4.1-flash
   pnpm eval:workflow
 
 Stop it with: scripts/litellm-proxy.sh down

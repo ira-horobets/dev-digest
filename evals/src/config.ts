@@ -27,6 +27,15 @@ export const SPAWN_TOOLS = new Set(["Task", "Agent"]);
 // workflowTask runs against the LIVE repo with bypassPermissions — keep this read-only.
 export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", "Skill"];
 
+// --- Soft (non-blocking) workflow kinds -------------------------------------
+// Comma-separated WorkflowCase kinds whose assertion failures are downgraded to a warning (and a
+// GitHub annotation) instead of failing the test. Used in CI on non-Anthropic models, where
+// `activation` is indicative rather than blocking: a capable model may do the underlying action
+// directly instead of invoking the Skill tool. The run is still recorded with a `softFail` note.
+export const SOFT_KINDS = new Set(
+  (process.env.EVAL_SOFT_KINDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+);
+
 // --- Output verbosity -------------------------------------------------------
 // Set EVAL_QUIET to suppress per-run trace/verdict spam during multi-run aggregation.
 export const QUIET = Boolean(process.env.EVAL_QUIET);

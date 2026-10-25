@@ -126,7 +126,7 @@ inside `evals/` and needs no code changes to use.
 
 | File | Role |
 |------|------|
-| `proxy/litellm.config.yaml` | LiteLLM config: a wildcard route forwarding any `EVAL_MODEL` slug to OpenRouter, in no-auth mode |
+| `proxy/litellm.config.yaml` | LiteLLM config: a wildcard route forwarding any `EVAL_MODEL` slug to OpenRouter; the OpenRouter key doubles as the proxy's master key |
 | `proxy/docker-compose.yml` | Runs `ghcr.io/berriai/litellm` on `:4000`, both wire formats on one port |
 | `scripts/litellm-proxy.sh` | `up` / `down` / `wait` wrapper (reads `OPENROUTER_API_KEY` from env, else `~/.devdigest/secrets.json`) |
 | `src/runtime/env.ts` | Points the SDK's `ANTHROPIC_BASE_URL` at `OPENROUTER_BASE_URL` (the proxy) under `EVAL_BACKEND=openrouter` |
@@ -154,8 +154,9 @@ pnpm proxy:down
 ```
 
 `EVAL_MODEL` is forwarded verbatim to OpenRouter (the wildcard route in `proxy/litellm.config.yaml`),
-so you never edit config to try a new model. The proxy runs in **no-auth** mode — do not expose the
-port publicly.
+so you never edit config to try a new model. The proxy authenticates callers with the OpenRouter key
+itself (LiteLLM refuses to boot without a master key; both tiers already send that key as their bearer
+token) — still, do not expose the port publicly.
 
 #### Which cheap model — verified
 
@@ -186,62 +187,67 @@ workflow cases:
 > checkout is disposable); locally, prefer the Anthropic path or a throwaway clone for the workflow
 > tier.
 
-### Wiring it into GitHub Actions (per-PR)
+### GitHub Actions — `.github/workflows/evals.yml`
 
-The engine is CI-ready: bring the proxy up as a step, wait for it, run the tier, tear it down. Put
-the OpenRouter key in the repo's **Actions secrets** as `OPENROUTER_API_KEY` (Settings → Secrets and
-variables → Actions). Create `.github/workflows/<name>.yml` in your repo:
+The evals run on every pull request that touches the harness, on OpenRouter, and a PR pays only
+for what it changed. The `plan` job maps the PR's changed paths onto the evals to run
+(`src/ci/plan.ts` — a pure function with unit tests, `pnpm vitest run src/ci`):
 
-```yaml
-name: evals
-on:
-  pull_request:
-    paths: ['evals/**', '.claude/**', 'CLAUDE.md']   # only when the harness/artifacts change
+| Changed path | Runs |
+|---|---|
+| `.claude/skills/<name>/**` | that skill's evals; a **warning annotation** when it has none |
+| `.claude/agents/<name>.md` | that agent's evals (warning when none) **and** the workflow tier — dispatch is a harness-level fact |
+| `CLAUDE.md`, `*/CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/settings*.json` | the workflow tier |
+| `evals/skills/<name>/**`, `evals/agents/<name>/**` | that artifact's evals (its cases changed) |
+| `evals/workflow/**` | the workflow tier |
+| `evals/src/**`, `evals/package.json`, `evals/proxy/**`, `evals/scripts/**`, the CI files | everything |
 
-permissions:
-  contents: read
+Jobs: `plan` → `static gate` (typecheck, `eval:quality`, the unit tests — no model, always runs)
+→ one `<tier>/<name>` job per matrix entry (`max-parallel: 2`; skills call OpenRouter directly,
+agents go through the proxy) → `workflow tier` (proxy, sequential, one retry) → `evals gate`.
+**Mark `evals gate` as the required status check**: it fails if any model-backed job failed and
+passes when they were skipped. Each job writes a results table to the job summary
+(`pnpm ci:summary`) and uploads `evals/results` as a 14-day artifact; nothing is committed back.
 
-jobs:
-  workflow-evals:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: evals
-    env:
-      EVAL_BACKEND: openrouter
-      OPENROUTER_BASE_URL: http://localhost:4000
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # repo Actions secret
-      EVAL_MODEL: google/gemini-2.5-flash
-      EVAL_JUDGE_MODEL: google/gemini-2.5-flash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10 }
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: evals/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
+**The model knob.** Every tier runs on one model, resolved in order: the `model` input of a manual
+run → repository variable `EVAL_MODEL` → the default `deepseek/deepseek-v4.1-flash` (pinned, not
+`deepseek-flash-latest`: a moving alias silently invalidates `eval:delta` / `eval:benchmark`
+comparisons). The judge follows `judge_model` → `EVAL_JUDGE_MODEL` → the task model. Subagents
+declared with an Anthropic alias (`model: sonnet`) are pinned to the same model by
+`src/runtime/env.ts` (`CLAUDE_CODE_SUBAGENT_MODEL` + `ANTHROPIC_DEFAULT_*_MODEL`), so a dispatched
+agent actually *runs* on it instead of erroring on an unknown Anthropic ID at the proxy.
 
-      # --- the engine ---
-      - run: docker compose -f proxy/docker-compose.yml up -d   # OPENROUTER_API_KEY from job env
-      - run: pnpm proxy:wait                                     # block until the proxy answers
-      - run: pnpm eval:workflow                                  # or eval:agents / eval:skills / eval
-      - if: failure()
-        run: docker compose -f proxy/docker-compose.yml logs --tail 100
-      - if: always()
-        run: docker compose -f proxy/docker-compose.yml down
+**Set up once** (repository → Settings → Secrets and variables → Actions):
+
+| Kind | Name | Purpose |
+|---|---|---|
+| secret | `OPENROUTER_API_KEY` | required; without it the model-backed jobs skip with a notice (this is what happens on PRs from forks — never use `pull_request_target` to work around it) |
+| variable | `EVAL_MODEL` | override the default model without touching the workflow |
+| variable | `EVAL_JUDGE_MODEL` | a stronger judge (e.g. `deepseek/deepseek-v4-pro`) to soften self-preference |
+| variable | `EVAL_SOFT_KINDS` | workflow kinds that warn instead of fail; default `activation` (see below) |
+| variable | `EVAL_REQUIRE_COVERAGE` | `true` turns the "changed artifact has no evals" warning into a failure |
+
+**Manual runs** (Actions → evals → Run workflow): `scope` = `all` / `changed` / `workflow` /
+`skills` / `agents`, plus `model`, `judge_model`, `soft_kinds`. Use `scope: workflow` with a
+candidate `model` to check a new cheap model survives the dispatch case before changing `EVAL_MODEL`.
+
+**CI-only knobs** honoured by the package: `EVAL_SEQUENTIAL=1` (one eval file at a time —
+OpenRouter throttles bursts and a throttled session reads as a false dispatch miss), `EVAL_RETRY=n`
+(vitest retries; every attempt is recorded), `EVAL_SOFT_KINDS=activation,…` (a listed
+`WorkflowCase` kind downgrades an assertion failure to a warning + GitHub annotation and stamps
+`softFail` on the record — `activation` is behaviour-shaped and indicative on non-Anthropic models,
+see the caveats above).
+
+Local equivalent of a CI job, for debugging:
+
+```bash
+pnpm proxy:up
+EVAL_BACKEND=openrouter OPENROUTER_BASE_URL=http://localhost:4000 \
+EVAL_MODEL=deepseek/deepseek-v4.1-flash EVAL_JUDGE_MODEL=deepseek/deepseek-v4.1-flash \
+EVAL_SEQUENTIAL=1 EVAL_SOFT_KINDS=activation pnpm eval:workflow
+pnpm ci:summary "local"          # the same table CI puts in the job summary
+pnpm ci:plan --base origin/main  # what CI would run for your branch
 ```
-
-Notes:
-- ubuntu runners ship Docker + `docker compose`, so no extra setup is needed.
-- The proxy container reads `OPENROUTER_API_KEY` straight from the job `env` (which is fed by the
-  secret) — you don't pass it to `docker compose` explicitly.
-- Because tool tiers cost real tokens, gate on `paths:` (only when the harness/artifacts change) and
-  keep the case count small. For a stricter gate, split into a required `eval:agents`/`eval:skills`
-  job and a non-blocking `eval:workflow` job (activation flakiness, above).
 
 ## Module layout — `src/` (the engine)
 
@@ -259,6 +265,7 @@ src/
     env.ts              # subscriptionEnv() — strips ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN
     run-claude.ts       # runClaude() — the headless turn-loop; Result / RunOptions / Metrics types
   artifacts/
+    inventory.ts        # listSkills/listAgents/listEvals — which artifacts exist and which have evals
     paths.ts            # REPO_ROOT / SKILLS_DIR / AGENTS_DIR / RESULTS_DIR anchors
     load.ts             # skillContent() (SKILL.md + references/*.md), agentContent()
     fixture.ts          # fixtureReader(import.meta.url) — inline a case's fixtures into a prompt
@@ -278,6 +285,9 @@ src/
   compare.ts            # eval:compare — run-flip view over history.jsonl
   repeat.ts             # eval:repeat — N runs of one pattern → stability stats (reads records.jsonl)
   delta.ts              # eval:delta — diff two labeled repeat runs
+  ci/
+    plan.ts             # ci:plan — changed paths → eval matrix (+ unit test); --all / --only <tier>
+    summary.ts          # ci:summary — results table for the GitHub job summary
   scaffold.ts           # eval:scaffold — list skills/agents, generate template eval files
   skill-quality.ts      # eval:quality — static SKILL.md gate (no model)
   dsl/

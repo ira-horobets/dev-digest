@@ -9,6 +9,8 @@
  * only the model inference is redirected. Select with EVAL_BACKEND=openrouter.
  */
 
+import { EVAL_MODEL } from "../config.js";
+
 const BACKEND = process.env.EVAL_BACKEND ?? "subscription";
 
 /**
@@ -32,6 +34,18 @@ export function subscriptionEnv(): Record<string, string> {
     env.ANTHROPIC_BASE_URL = (process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api").replace(/\/$/, "");
     env.ANTHROPIC_AUTH_TOKEN = key;
     env.ANTHROPIC_API_KEY = ""; // blank, not deleted — stops the SDK falling back to Anthropic auth
+    // Subagents declare `model: sonnet` (etc.) in their frontmatter. Claude Code resolves such an
+    // alias to an Anthropic model ID, which does not exist on OpenRouter — so a dispatched agent
+    // would error even though the dispatch itself was traced. Pin every alias and the subagent
+    // default to the model under test, unless the caller already chose something.
+    for (const k of [
+      "CLAUDE_CODE_SUBAGENT_MODEL",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    ]) {
+      if (!env[k]) env[k] = EVAL_MODEL;
+    }
     return env;
   }
 

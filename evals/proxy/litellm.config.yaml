@@ -26,7 +26,10 @@ litellm_settings:
   drop_params: true
 
 general_settings:
-  # No master_key on purpose: this is an ephemeral local/CI gateway. It runs in "no-auth" mode,
-  # so the bearer token the SDK forwards (ANTHROPIC_AUTH_TOKEN=OPENROUTER_API_KEY) is ignored and
-  # the proxy authenticates to OpenRouter with OPENROUTER_API_KEY from its own environment.
-  # Do NOT expose this port publicly.
+  # The proxy's own auth. LiteLLM (since the Oct-2026 builds) refuses to boot without a master
+  # key, so the OpenRouter key doubles as it: both callers already send that key as their bearer
+  # token — the Agent SDK via ANTHROPIC_AUTH_TOKEN, the content tier as the OpenAI client's apiKey
+  # — so nothing extra is configured and only a caller holding the key gets through. The proxy
+  # then authenticates to OpenRouter with the same key from its environment.
+  # Still an ephemeral local/CI gateway: do NOT expose this port publicly.
+  master_key: os.environ/OPENROUTER_API_KEY

@@ -9,28 +9,11 @@
  * Refuses to overwrite existing files.
  */
 
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { GREEN, DIM, YELLOW, RESET } from "./ansi.js";
 import { SKILLS_DIR, AGENTS_DIR, EVALS_DIR } from "./artifacts/paths.js";
-
-function listSkills(): string[] {
-  if (!existsSync(SKILLS_DIR)) return [];
-  return readdirSync(SKILLS_DIR)
-    .filter((d) => statSync(join(SKILLS_DIR, d)).isDirectory() && existsSync(join(SKILLS_DIR, d, "SKILL.md")))
-    .sort();
-}
-
-function listAgents(): string[] {
-  if (!existsSync(AGENTS_DIR)) return [];
-  return readdirSync(AGENTS_DIR)
-    .filter((f) => f.endsWith(".md") && f !== "README.md")
-    .map((f) => f.replace(/\.md$/, ""))
-    .sort();
-}
-
-const evalPath = (tier: "skills" | "agents", name: string) => join(EVALS_DIR, tier, name, `${name}.eval.ts`);
-const hasEval = (tier: "skills" | "agents", name: string) => existsSync(evalPath(tier, name));
+import { listSkills, listAgents, hasEval } from "./artifacts/inventory.js";
 
 function list(): void {
   console.log(`\n${"=".repeat(56)}\nSkills (${SKILLS_DIR})\n${"=".repeat(56)}`);

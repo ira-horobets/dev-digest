@@ -1,0 +1,4 @@
+{
+  "_comment": "Evals the CI planner never puts in the matrix (also under scope=all). Key = <tier>/<name>, value = why. Run them by hand: pnpm exec vitest run agents/<name>/",
+  "agents/architecture-reviewer-lite": "A/B control for architecture-reviewer: the 'cite the documented rule per finding' hard rule is removed on purpose, so its citation practices fail by design. Compare it with eval:repeat + eval:delta, do not gate on it."
+}

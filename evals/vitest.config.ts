@@ -9,7 +9,11 @@ export default defineConfig({
     testTimeout: 240_000,
     hookTimeout: 240_000,
     // One session per test; a few files can run concurrently. Keep it modest to stay cheap.
-    fileParallelism: true,
-    reporters: ["default", new TrendReporter()],
+    // EVAL_SEQUENTIAL=1 (CI tool tiers) runs files one at a time — OpenRouter throttles bursts
+    // and a throttled session degrades to a single turn, which reads as a false dispatch miss.
+    fileParallelism: !process.env.EVAL_SEQUENTIAL,
+    // EVAL_RETRY=n re-runs a failed case n times (CI tool tiers use 1). Every attempt is recorded.
+    retry: Number(process.env.EVAL_RETRY ?? "0"),
+    reporters: ["default", new TrendReporter(), ...(process.env.GITHUB_ACTIONS ? ["github-actions" as const] : [])],
   },
 });
