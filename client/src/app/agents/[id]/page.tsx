@@ -17,7 +17,7 @@ import { TEMPLATES } from "../constants";
 import { filterAgents } from "../helpers";
 import { s } from "./styles";
 
-const VALID_TABS = ["config", "skills", "context"];
+const VALID_TABS = ["config", "skills", "context", "evals"];
 
 export default function AgentEditorPage() {
   const t = useTranslations("agents");

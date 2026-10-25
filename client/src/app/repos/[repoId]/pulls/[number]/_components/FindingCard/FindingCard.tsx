@@ -23,6 +23,14 @@ import { lineLabel } from "./helpers";
 import { githubBlobUrl } from "../../../../../../../lib/github-urls";
 import { s } from "./styles";
 
+/**
+ * "Turn into eval case" is a third action threaded through the same
+ * `onAction` chain accept/dismiss use. It is deliberately NOT part of the
+ * shared `FindingActionKind` (that enum backs `POST /findings/:id/:action`);
+ * the caller branches on it and calls the eval-case mutation instead.
+ */
+export type FindingCardAction = FindingActionKind | "turnIntoEvalCase";
+
 export function FindingCard({
   f,
   focused,
@@ -35,7 +43,7 @@ export function FindingCard({
   f: FindingRecord;
   focused?: boolean;
   defaultExpanded?: boolean;
-  onAction?: (action: FindingActionKind, reply?: string) => void;
+  onAction?: (action: FindingCardAction, reply?: string) => void;
   pending?: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
@@ -109,6 +117,20 @@ export function FindingCard({
             >
               {t("finding.dismiss")}
             </Button>
+            {/* Only once triaged: accepted → must_find, dismissed → must_not_flag.
+                The server refuses an untriaged finding too; hiding it here saves
+                the round trip and a confusing 422. */}
+            {muted && (
+              <Button
+                kind="ghost"
+                size="sm"
+                icon="FlaskConical"
+                disabled={pending}
+                onClick={() => onAction?.("turnIntoEvalCase")}
+              >
+                {t("finding.turnIntoEvalCase")}
+              </Button>
+            )}
           </div>
         </div>
       )}

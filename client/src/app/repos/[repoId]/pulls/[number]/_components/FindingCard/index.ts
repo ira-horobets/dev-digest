@@ -1,1 +1,1 @@
-export { FindingCard, FindingCard as default } from "./FindingCard";
+export { FindingCard, type FindingCardAction } from "./FindingCard";

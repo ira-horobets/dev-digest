@@ -14,6 +14,7 @@ import blast from './blast/routes.js';
 import projectContext from './project-context/routes.js';
 import onboarding from './onboarding/routes.js';
 import prBrief from './pr-brief/routes.js';
+import evalRoutes from './eval/routes.js';
 
 /**
  * Module registry. Each feature module is a Fastify plugin in
@@ -44,4 +45,5 @@ export const modules: Record<string, FastifyPluginAsync> = {
   projectContext,
   onboarding,
   prBrief,
+  eval: evalRoutes,
 };

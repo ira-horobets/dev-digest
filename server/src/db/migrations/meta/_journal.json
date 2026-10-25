@@ -127,6 +127,20 @@
       "when": 1792609885106,
       "tag": "0017_heavy_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792953885213,
+      "tag": "0018_eval_suite_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792953886188,
+      "tag": "0019_eval_drop_per_case_columns",
+      "breakpoints": true
     }
   ]
 }

@@ -8,8 +8,11 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Toggle, EmptyState, Chip, SeverityBadge, SEV } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
-import { FindingCard } from "../FindingCard";
+import { FindingCard, type FindingCardAction } from "../FindingCard";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
+import { useCreateEvalCaseFromFinding } from "../../../../../../../lib/hooks/eval";
+import { ApiError } from "../../../../../../../lib/api";
+import { notify } from "../../../../../../../lib/toast";
 import { FILTERABLE_SEVERITIES, KEY_TO_ACTION, type FilterableSeverity } from "./constants";
 import { countBySeverity, visibleFindings } from "./helpers";
 import { s } from "./styles";
@@ -27,6 +30,7 @@ export function FindingsPanel({
 }) {
   const t = useTranslations("prReview");
   const action = useFindingAction();
+  const createEvalCase = useCreateEvalCaseFromFinding();
   const [hideLow, setHideLow] = React.useState(false);
   const [severity, setSeverity] = React.useState<FilterableSeverity | null>(null);
   const [focusIdx, setFocusIdx] = React.useState(0);
@@ -54,6 +58,22 @@ export function FindingsPanel({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [shown, focusIdx, action, prId]);
+
+  const onCardAction = (findingId: string, act: FindingCardAction) => {
+    if (act === "turnIntoEvalCase") {
+      createEvalCase.mutate(findingId, {
+        onSuccess: (res) => {
+          const vars = { name: res.case.name, agent: res.agent_name ?? "" };
+          if (res.created) notify.success(t("finding.evalCaseCreated", vars));
+          else notify.info(t("finding.evalCaseExists", vars));
+        },
+        onError: (err) =>
+          notify.error(err instanceof ApiError ? err.message : t("finding.evalCaseFailed")),
+      });
+      return;
+    }
+    action.mutate({ findingId, action: act, prId });
+  };
 
   return (
     <div>
@@ -98,10 +118,10 @@ export function FindingsPanel({
               f={f}
               focused={i === focusIdx}
               defaultExpanded={i === 0}
-              pending={action.isPending}
+              pending={action.isPending || createEvalCase.isPending}
               repoFullName={repoFullName}
               headSha={headSha}
-              onAction={(act) => action.mutate({ findingId: f.id, action: act, prId })}
+              onAction={(act) => onCardAction(f.id, act)}
             />
           ))
         )}

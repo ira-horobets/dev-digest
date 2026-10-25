@@ -301,6 +301,25 @@ show a map instead), the Overview tab stops being the default, or the empty
 state copy changes.
 
 
+## 17-eval-dashboard
+
+Journey: `/eval` (Eval Dashboard) → `/agents` → click «Security Reviewer» →
+agent editor → click the «Evals» tab (`?tab=evals`).
+
+Precondition: the seeded agents only. No eval case or run is seeded, so the
+dashboard rows read «No eval cases yet · never run» and the Evals tab shows its
+empty state; nothing is started, so no model call is made and nothing is
+written.
+
+Locators: `wait --text` on «Eval Dashboard», «Security Reviewer», «Run all
+agents», «Eval cases», «New eval case»; `wait --url` on `/eval`, `/agents/` and
+`tab=evals`. The tab is clicked through `find role button --name Evals --exact`
+(the `text=` prefix is not an agent-browser selector).
+
+Breaks if: a seeded agent is renamed, the Evals tab label changes, or the copy in
+`messages/en/eval.json` (`dashboard.*`, `evalsTab.*`) changes.
+
+
 ## 16-pr-brief
 
 Journey: root → PR list → click the PR #482 row → `/pulls/482` (Overview) →

@@ -391,11 +391,30 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     },
   ];
   for (const a of seedAgents) {
-    const [existing] = await db
+    let [existing] = await db
       .select()
       .from(t.agents)
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.name, a.name)));
-    if (!existing) await db.insert(t.agents).values(a);
+    if (!existing) [existing] = await db.insert(t.agents).values(a).returning();
+    // Version-1 snapshot, as AgentsRepository.insert would record it — the
+    // eval compare view (SPEC-04) diffs system prompts between snapshots.
+    await db
+      .insert(t.agentVersions)
+      .values({
+        agentId: existing!.id,
+        version: 1,
+        configJson: {
+          provider: existing!.provider,
+          model: existing!.model,
+          system_prompt: existing!.systemPrompt,
+          output_schema: existing!.outputSchema,
+          strategy: existing!.strategy,
+          ci_fail_on: existing!.ciFailOn,
+          repo_intel: existing!.repoIntel,
+          skills: [],
+        },
+      })
+      .onConflictDoNothing();
   }
 
   // ---- skills (L02): text-only rules, linked per agent (AGENT_SKILL_LINKS) ----

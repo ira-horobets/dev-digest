@@ -95,6 +95,7 @@ Never edit these by hand. Change them only through the tool that owns them, or n
 
 - **Modifying the review pipeline** → read `reviewer-core/docs/pipeline.md`
 - **Adding or changing an API route** → read `server/docs/api-contracts.md`
+- **Working on eval cases, runs or the Eval Dashboard** → read `specs/eval-pipeline.md`, then `server/specs/eval-pipeline.md` / `client/specs/eval-pipeline.md`
 - **Changing DI wiring, adapters, or secrets** → read `server/docs/architecture.md`
 - **Working on any server module** → read `server/CLAUDE.md`
 - **Working on the UI** → read `client/CLAUDE.md`
