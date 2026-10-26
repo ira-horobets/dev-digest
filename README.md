@@ -146,6 +146,7 @@ path filter — full strategy in **[`TESTING.md`](TESTING.md)**.
 | server integration (real Postgres) | `server-integration.yml` | yes |
 | reviewer-core (engine) | `reviewer-core.yml` | no |
 | web e2e (agent-browser, real stack) | `e2e-web.yml` | yes |
+| harness evals (skills · agents · workflow, on OpenRouter) | `evals.yml` | yes (agents + workflow tiers) |
 
 Server tests split by filename: `*.it.test.ts` are DB-backed (testcontainers
 Postgres); everything else is hermetic. The browser e2e flows live in
