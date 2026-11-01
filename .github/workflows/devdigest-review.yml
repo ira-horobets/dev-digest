@@ -24,7 +24,7 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEVDIGEST_AGENT: .devdigest/agents/performance-reviewer.yaml
+          DEVDIGEST_AGENT: .devdigest/agents/general-reviewer.yaml
           DEVDIGEST_POST_AS: pr_comment
       - uses: actions/upload-artifact@v4
         if: always()
