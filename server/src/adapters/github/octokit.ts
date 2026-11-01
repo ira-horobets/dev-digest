@@ -12,6 +12,8 @@ import type {
   OpenPrPayload,
   CommitFilesPayload,
   IssueMeta,
+  GitHubApiError,
+  WorkflowRunInfo,
 } from '@devdigest/shared';
 import { withRetry, withTimeout } from '../../platform/resilience.js';
 
@@ -40,6 +42,81 @@ const FileContentResponse = z.object({
   content: z.string(),
 });
 
+/** Error thrown by the CI-related GitHub calls. Never carries the token or request headers. */
+export class GitHubRequestError extends Error implements GitHubApiError {
+  status: number;
+  tokenKind: GitHubApiError['tokenKind'];
+  acceptedPermissions?: string[][];
+  oauthScopes?: string[];
+  acceptedOauthScopes?: string[];
+  retryAfterMs?: number;
+  constructor(info: GitHubApiError) {
+    super(info.message);
+    this.name = 'GitHubRequestError';
+    this.status = info.status;
+    this.tokenKind = info.tokenKind;
+    this.acceptedPermissions = info.acceptedPermissions;
+    this.oauthScopes = info.oauthScopes;
+    this.acceptedOauthScopes = info.acceptedOauthScopes;
+    this.retryAfterMs = info.retryAfterMs;
+  }
+}
+
+const splitList = (v: string | undefined): string[] =>
+  (v ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+/** Strip markup and cap length: GitHub messages are shown to the user as text. */
+function plainText(v: unknown): string {
+  const t = typeof v === 'string' ? v : 'GitHub request failed';
+  return t.replace(/<[^>]*>/g, '').slice(0, 500);
+}
+
+/**
+ * Map an Octokit `RequestError` (or any error) to `GitHubRequestError`.
+ * Fine-grained PATs / Apps get `x-accepted-github-permissions`; classic PATs get
+ * the `x-oauth-scopes` pair. Rate limits come from `retry-after` or
+ * `x-ratelimit-remaining: 0` + `x-ratelimit-reset`.
+ */
+export function toGitHubRequestError(err: unknown, now: number = Date.now()): unknown {
+  if (err instanceof GitHubRequestError) return err;
+  const e = err as {
+    status?: number;
+    message?: string;
+    response?: { headers?: Record<string, string | undefined>; data?: { message?: unknown } };
+  };
+  if (typeof e?.status !== 'number') return err;
+  const h = e.response?.headers ?? {};
+  const accepted = h['x-accepted-github-permissions'];
+  const info: GitHubApiError = {
+    status: e.status,
+    message: plainText(e.response?.data?.message ?? e.message),
+    tokenKind: 'unknown',
+  };
+  if (accepted) {
+    info.tokenKind = 'fine_grained';
+    info.acceptedPermissions = accepted
+      .split(';')
+      .map((alt) => alt.split(',').map((x) => x.trim()).filter(Boolean))
+      .filter((alt) => alt.length > 0);
+  } else if (h['x-oauth-scopes'] !== undefined || h['x-accepted-oauth-scopes'] !== undefined) {
+    info.tokenKind = 'classic';
+    info.oauthScopes = splitList(h['x-oauth-scopes']);
+    info.acceptedOauthScopes = splitList(h['x-accepted-oauth-scopes']);
+  }
+  if (e.status === 429 || e.status === 403) {
+    const ra = h['retry-after'];
+    if (ra && /^\d+$/.test(ra.trim())) info.retryAfterMs = Number(ra.trim()) * 1000;
+    else if (h['x-ratelimit-remaining'] === '0' && h['x-ratelimit-reset']) {
+      const at = Number(h['x-ratelimit-reset']) * 1000;
+      if (Number.isFinite(at)) info.retryAfterMs = Math.max(0, at - now);
+    }
+  }
+  return new GitHubRequestError(info);
+}
+
 function mapStatus(state: string, merged: boolean | undefined): PrStatus {
   if (merged) return 'merged';
   if (state === 'closed') return 'closed';
@@ -52,9 +129,20 @@ function mapStatus(state: string, merged: boolean | undefined): PrStatus {
  */
 export class OctokitGitHubClient implements GitHubClient {
   private octokit: Octokit;
+  private fetchImpl: typeof fetch;
 
-  constructor(token: string) {
-    this.octokit = new Octokit({ auth: token });
+  constructor(token: string, opts: { octokit?: Octokit; fetchImpl?: typeof fetch } = {}) {
+    this.octokit = opts.octokit ?? new Octokit({ auth: token });
+    this.fetchImpl = opts.fetchImpl ?? fetch;
+  }
+
+  /** Run a GitHub call with timeout + retry, mapping failures to `GitHubRequestError`. */
+  private async call<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await withRetry(() => withTimeout(fn(), TIMEOUT));
+    } catch (err) {
+      throw toGitHubRequestError(err);
+    }
   }
 
   async listPullRequests(repo: RepoRef): Promise<PrMeta[]> {
@@ -266,10 +354,12 @@ export class OctokitGitHubClient implements GitHubClient {
     );
   }
 
-  async openPullRequest(repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string }> {
-    return withRetry(() =>
-      withTimeout(
-        (async () => {
+  async openPullRequest(
+    repo: RepoRef,
+    payload: OpenPrPayload,
+  ): Promise<{ url: string; number: number }> {
+    return this.call(
+        async () => {
           const res = await this.octokit.rest.pulls.create({
             owner: repo.owner,
             repo: repo.name,
@@ -278,10 +368,8 @@ export class OctokitGitHubClient implements GitHubClient {
             base: payload.base,
             body: payload.body,
           });
-          return { url: res.data.html_url };
-        })(),
-        TIMEOUT,
-      ),
+          return { url: res.data.html_url, number: res.data.number };
+        },
     );
   }
 
@@ -289,9 +377,8 @@ export class OctokitGitHubClient implements GitHubClient {
     repo: RepoRef,
     payload: CommitFilesPayload,
   ): Promise<{ branch: string }> {
-    return withRetry(() =>
-      withTimeout(
-        (async () => {
+    return this.call(
+        async () => {
           const owner = repo.owner;
           const name = repo.name;
           const g = this.octokit.rest.git;
@@ -347,16 +434,16 @@ export class OctokitGitHubClient implements GitHubClient {
             });
           }
           return { branch: payload.branch };
-        })(),
-        TIMEOUT,
-      ),
+        },
     );
   }
 
-  async findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string } | null> {
-    return withRetry(() =>
-      withTimeout(
-        (async () => {
+  async findOpenPr(
+    repo: RepoRef,
+    branch: string,
+  ): Promise<{ url: string; number: number } | null> {
+    return this.call(
+        async () => {
           const res = await this.octokit.rest.pulls.list({
             owner: repo.owner,
             repo: repo.name,
@@ -365,11 +452,185 @@ export class OctokitGitHubClient implements GitHubClient {
             per_page: 1,
           });
           const pr = res.data[0];
-          return pr ? { url: pr.html_url } : null;
-        })(),
-        TIMEOUT,
-      ),
+          return pr ? { url: pr.html_url, number: pr.number } : null;
+        },
     );
+  }
+
+  async getRepoInfo(repo: RepoRef): Promise<{ default_branch: string; private?: boolean }> {
+    return this.call(async () => {
+      const res = await this.octokit.rest.repos.get({ owner: repo.owner, repo: repo.name });
+      return {
+        default_branch: z.string().min(1).parse(res.data.default_branch),
+        private: typeof res.data.private === 'boolean' ? res.data.private : undefined,
+      };
+    });
+  }
+
+  async getOptionalFileContent(repo: RepoRef, path: string, ref: string): Promise<string | null> {
+    try {
+      const res = await this.call(() =>
+        this.octokit.rest.repos.getContent({ owner: repo.owner, repo: repo.name, path, ref }),
+      );
+      const file = FileContentResponse.parse(res.data);
+      if (file.size > MAX_FILE_BYTES) throw new Error('file too large');
+      if (file.encoding !== 'base64') throw new Error('unsupported file encoding');
+      return Buffer.from(file.content, 'base64').toString('utf8');
+    } catch (err) {
+      if ((err as { status?: number })?.status === 404) return null;
+      throw err;
+    }
+  }
+
+  async listActionsSecretNames(repo: RepoRef): Promise<{
+    repo: string[];
+    org: string[] | null;
+    org_unreadable?: boolean;
+    has_environments: boolean;
+  }> {
+    const names = (data: unknown): string[] =>
+      z
+        .object({ secrets: z.array(z.object({ name: z.string() })) })
+        .parse(data)
+        .secrets.map((x) => x.name);
+    const repoSecrets = await this.call(() =>
+      this.octokit.rest.actions.listRepoSecrets({ owner: repo.owner, repo: repo.name, per_page: 100 }),
+    );
+    let org: string[] | null = null;
+    let orgUnreadable = false;
+    try {
+      const res = await this.call(() =>
+        this.octokit.request('GET /repos/{owner}/{repo}/actions/organization-secrets', {
+          owner: repo.owner,
+          repo: repo.name,
+          per_page: 100,
+        }),
+      );
+      org = names(res.data);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status !== 403 && status !== 404) throw err;
+      orgUnreadable = status === 403;
+    }
+    let hasEnvironments: boolean;
+    try {
+      const envs = await this.call(() =>
+        this.octokit.rest.repos.getAllEnvironments({ owner: repo.owner, repo: repo.name, per_page: 1 }),
+      );
+      hasEnvironments = (envs.data.total_count ?? 0) > 0;
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status !== 403 && status !== 404) throw err;
+      // Unreadable environments: be conservative, they might hold the secret.
+      hasEnvironments = status === 403;
+    }
+    return {
+      repo: names(repoSecrets.data),
+      org,
+      org_unreadable: orgUnreadable,
+      has_environments: hasEnvironments,
+    };
+  }
+
+  async listWorkflowRuns(
+    repo: RepoRef,
+    workflowFile: string,
+    perPage: number,
+  ): Promise<WorkflowRunInfo[]> {
+    const res = await this.call(() =>
+      this.octokit.rest.actions.listWorkflowRuns({
+        owner: repo.owner,
+        repo: repo.name,
+        workflow_id: workflowFile,
+        per_page: perPage,
+        event: 'pull_request',
+      }),
+    );
+    return res.data.workflow_runs.map((r) => ({
+      id: r.id,
+      run_attempt: r.run_attempt ?? 1,
+      status: r.status ?? null,
+      conclusion: r.conclusion ?? null,
+      html_url: r.html_url,
+      pr_numbers: (r.pull_requests ?? []).map((p) => p.number),
+      created_at: r.created_at,
+      run_started_at: r.run_started_at ?? null,
+      updated_at: r.updated_at,
+    }));
+  }
+
+  async downloadArtifact(
+    repo: RepoRef,
+    runId: number,
+    name: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null | 'too_large'> {
+    const list = await this.call(() =>
+      this.octokit.rest.actions.listWorkflowRunArtifacts({
+        owner: repo.owner,
+        repo: repo.name,
+        run_id: runId,
+        per_page: 100,
+      }),
+    );
+    const art = list.data.artifacts.find((a) => a.name === name && !a.expired);
+    if (!art) return null;
+    // Size is known from the list: refuse before downloading anything.
+    if (art.size_in_bytes > maxBytes) return 'too_large';
+    const res = await this.call(() =>
+      this.octokit.request('GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}', {
+        owner: repo.owner,
+        repo: repo.name,
+        artifact_id: art.id,
+        archive_format: 'zip',
+        request: { redirect: 'manual' },
+      }),
+    );
+    const location = (res.headers as Record<string, string | undefined>).location;
+    if (!location) return null;
+    const url = new URL(location);
+    if (url.protocol !== 'https:') return null;
+    // The redirect target is on another origin and expires in a minute: follow
+    // it at once, with NO Authorization header, and cap the bytes read.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT);
+    try {
+      const dl = await this.fetchImpl(url.toString(), {
+        headers: { Accept: 'application/zip' },
+        redirect: 'follow',
+        signal: controller.signal,
+      });
+      if (!dl.ok || !dl.body) return null;
+      const reader = dl.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > maxBytes) {
+          controller.abort();
+          return 'too_large';
+        }
+        chunks.push(value);
+      }
+      const out = new Uint8Array(total);
+      let off = 0;
+      for (const c of chunks) {
+        out.set(c, off);
+        off += c.byteLength;
+      }
+      return out;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async getPullState(repo: RepoRef, n: number): Promise<'open' | 'merged' | 'closed'> {
+    const res = await this.call(() =>
+      this.octokit.rest.pulls.get({ owner: repo.owner, repo: repo.name, pull_number: n }),
+    );
+    return mapStatus(res.data.state, Boolean(res.data.merged_at)) as 'open' | 'merged' | 'closed';
   }
 
   async getIssue(repo: RepoRef, n: number): Promise<IssueMeta> {

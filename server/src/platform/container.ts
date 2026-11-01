@@ -36,6 +36,8 @@ import type { MultiAgentRepositoryPort } from '../modules/multi-agent/ports.js';
 import { MultiAgentRepository } from '../modules/multi-agent/repository.js';
 import { ReviewRunExecutor } from '../modules/reviews/run-executor.js';
 import { IntentService } from '../modules/reviews/intent-service.js';
+import type { CiRepositoryPort } from '../modules/ci/ports.js';
+import { CiRepository } from '../modules/ci/repository.js';
 import { SmartDiffService } from '../modules/smart-diff/service.js';
 import { BlastService } from '../modules/blast/service.js';
 import { RepoRepository } from '../modules/repos/repository.js';
@@ -89,6 +91,7 @@ export interface ContainerOverrides {
   prBriefRepo?: PrBriefRepositoryPort;
   /** multi-agent module port — route/service tests inject an in-memory fake. */
   multiAgentRepo?: MultiAgentRepositoryPort;
+  ciRepo?: CiRepositoryPort;
   /** reviews intent persistence port — same idea. */
   intentRepo?: IntentRepositoryPort;
   /** smart-diff module port — route tests inject an in-memory fake. */
@@ -128,6 +131,7 @@ export class Container {
   private _multiAgentRepo?: MultiAgentRepositoryPort;
   private _intentService?: IntentService;
   private _reviewRunner?: ReviewRunExecutor;
+  private _ciRepo?: CiRepositoryPort;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
   private _projectContextRepo?: ProjectContextRepositoryPort;
@@ -172,6 +176,10 @@ export class Container {
 
   get onboardingRepo(): OnboardingRepositoryPort {
     return (this._onboardingRepo ??= this.overrides.onboardingRepo ?? new OnboardingRepository(this.db));
+  }
+
+  get ciRepo(): CiRepositoryPort {
+    return (this._ciRepo ??= this.overrides.ciRepo ?? new CiRepository(this.db));
   }
 
   get prBriefRepo(): PrBriefRepositoryPort {
