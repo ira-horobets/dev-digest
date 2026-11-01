@@ -44,6 +44,8 @@ import {
   AutoTriggerStatus,
 } from "@devdigest/ui";
 import { RunCostBadge } from "@/components/run-cost-badge";
+import { EstimateLabel } from "@/components/estimate-label";
+import { FindingCard } from "@/components/finding-card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ContextDocumentRow } from "@/components/context-document-row";
 import { TokenBadge } from "@/components/token-badge";
@@ -54,7 +56,7 @@ import { TourCommandRow } from "@/components/tour-command-row";
 import { TourReadingStep } from "@/components/tour-reading-step";
 import { ModifiedLocallyBadge } from "@/components/modified-locally-badge";
 import { s } from "./styles";
-import { SEVERITIES, CATEGORIES, MODEL_OPTIONS } from "./constants";
+import { SEVERITIES, CATEGORIES, MODEL_OPTIONS, SAMPLE_FINDING } from "./constants";
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -116,6 +118,28 @@ export function Gallery() {
         <RunCostBadge variant="full" costUsd={0.0013} tokensIn={8190} tokensOut={929} />
         <RunCostBadge variant="full" costUsd={null} tokensIn={100} tokensOut={50} />
         <RunCostBadge variant="compact" costUsd={0} />
+      </Group>
+
+      <Group title="Estimate label (value · partial · no estimate yet)">
+        <EstimateLabel durationMs={80_000} costUsd={0.012} />
+        <EstimateLabel durationMs={80_000} costUsd={0.012} partial />
+        <EstimateLabel durationMs={null} costUsd={null} />
+      </Group>
+
+      <Group title="Finding card (with extra actions: planned, disabled)">
+        <div style={{ width: 560 }}>
+          <FindingCard
+            f={SAMPLE_FINDING}
+            defaultExpanded
+            extraActions={
+              <span title="Coming soon">
+                <Button kind="ghost" size="sm" disabled>
+                  Learn
+                </Button>
+              </span>
+            }
+          />
+        </div>
       </Group>
 
       <Group title="Project context (document rows: attached · missing · too large · modified locally · read-only · token badge)">

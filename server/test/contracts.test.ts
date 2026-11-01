@@ -26,6 +26,10 @@ import {
   ContextFileContent,
   ContextFileUpdate,
   PromptAssembly,
+  MultiAgentRun,
+  MultiAgentRunRequest,
+  MultiAgentRunStarted,
+  AgentEstimates,
 } from '@devdigest/shared';
 
 /**
@@ -391,5 +395,63 @@ describe('PR intent contracts', () => {
     expect(() =>
       PromptAssembly.parse({ system: 's', user: 'u', context_blocks: [{ ...block, source: 'other' }] }),
     ).toThrow();
+  });
+});
+
+describe('multi-agent contracts', () => {
+  it('parses a run request, a started response and estimates', () => {
+    expect(MultiAgentRunRequest.parse({ agent_ids: ['a', 'b'] }).agent_ids).toHaveLength(2);
+    expect(() => MultiAgentRunRequest.parse({ agent_ids: 'a' })).toThrow();
+    const started = MultiAgentRunStarted.parse({
+      multi_run_id: 'm',
+      pr_id: 'p',
+      runs: [{ run_id: 'r', agent_id: 'a', agent_name: 'A' }],
+    });
+    expect(started.runs[0]!.run_id).toBe('r');
+    const est = AgentEstimates.parse({
+      concurrency: 3,
+      agents: [{ agent_id: 'a', duration_ms: null, cost_usd: null, samples: 0 }],
+    });
+    expect(est.agents[0]!.samples).toBe(0);
+  });
+
+  it('parses a run with a cancelled column, no_result take and a conflict flag', () => {
+    const run = MultiAgentRun.parse({
+      id: 'm',
+      pr_id: 'p',
+      ran_at: '2026-10-31T00:00:00.000Z',
+      status: 'running',
+      agent_count: 1,
+      total_duration_ms: 0,
+      total_cost_usd: null,
+      columns: [
+        {
+          run_id: 'r',
+          agent_id: null,
+          agent_name: 'Gone',
+          provider: null,
+          model: null,
+          status: 'cancelled',
+          error: 'Cancelled by user',
+          verdict: null,
+          score: null,
+          summary: null,
+          duration_ms: null,
+          cost_usd: null,
+          findings: [],
+        },
+      ],
+      conflicts: [
+        {
+          file: 'a.ts',
+          line: 1,
+          end_line: 3,
+          title: 't',
+          conflict: false,
+          takes: [{ agent_id: 'a', run_id: 'r', persona: 'A', verdict: 'no_result', note: '' }],
+        },
+      ],
+    });
+    expect(run.columns[0]!.status).toBe('cancelled');
   });
 });

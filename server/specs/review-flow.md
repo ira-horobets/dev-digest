@@ -6,7 +6,9 @@ start with `reviewer-core/`. This is not a feature spec; it is the set of
 invariants any change to `modules/reviews/` must keep true. The plumbing
 (container, bus, jobs) is described in [`../docs/architecture.md`](../docs/architecture.md).
 
-Status: describes the code as of 2026-09-25 (after the L01 run cost work).
+Status: describes the code as of 2026-09-25 (after the L01 run cost work);
+invariants 11, 12 and 21 revised 2026-10-31 for Multi-Agent Review (worker pool,
+cancel fix).
 
 ## Lifecycle at a glance
 
@@ -74,14 +76,18 @@ POST /pulls/:id/review ──► agent_runs rows (status=running) ──► HTTP
     run's persisted trace includes the diff-load lines even though they ran
     once. Enforced by constructing `RunLogger` with all `runIds` and narrowing
     with `forRun` per agent.
-11. Agents in one request execute sequentially, in target order.
-    Enforced by the `for … await this.runOneAgent(...)` loop in `executeRuns`.
+11. Agents in one `POST /pulls/:id/review` request execute sequentially, in target
+    order. `executeRuns` takes `opts.concurrency`, default 1, and runs the jobs
+    through `runPool`; only multi-agent runs pass a larger value (3), see
+    [`multi-agent-review.md`](multi-agent-review.md). A job whose run was cancelled
+    while queued is skipped. Enforced by `runPool` and `executeRuns` in
+    `modules/reviews/run-executor.ts`.
 
 ### Per-agent execution
 
 12. A failure in one agent never aborts the others: `runOneAgent` persists its
-    own failure and rethrows; the loop's `catch` only logs.
-    Enforced by `executeRuns`.
+    own failure and rethrows; the per-job `catch` only logs, and `runPool` never
+    rejects. Enforced by `executeRuns`.
 13. The provider is resolved through `container.llm(agent.provider)`. A missing
     key throws `ConfigError`, which lands in the failure branch (invariant 18)
     with the config message as `error`. Enforced by `runOneAgent`.
@@ -141,11 +147,15 @@ POST /pulls/:id/review ──► agent_runs rows (status=running) ──► HTTP
     (`cancelRunIfRunning`), and completes the bus immediately so SSE clients
     end and orphaned runs (no live runner) can be cancelled too. Enforced by
     `ReviewService.cancelRun`.
-21. The only place a live runner can observe cancellation is the engine's
-    checkpoint before each chunk's LLM call (`input.checkCancelled?.()` in
-    `reviewer-core/src/review/run.ts`, wired to `runBus.isCancelled` in
-    `runOneAgent`). Enforced by `reviewPullRequest`; see the caveat below on
-    how narrow that window is.
+21. A live runner observes cancellation at the engine's checkpoint before each
+    chunk's LLM call (`input.checkCancelled?.()` in
+    `reviewer-core/src/review/run.ts`) and once more right before `insertReview`.
+    Both read `runBus.isCancelled(runId) || runBus.isComplete(runId)` in
+    `runOneAgent`, because `cancelRun` completes the bus right after flagging and
+    that clears the flag. A cancel therefore ends the run `cancelled` with no
+    review, also when it lands during a single-pass model call. A run cancelled
+    while still queued never starts (invariant 11). Enforced by
+    `reviewPullRequest` and `runOneAgent`.
 22. On boot, every `agent_runs` row still `running` is set to `failed` with no
     `error` text and no trace written. Enforced by `reapStaleRunningRuns`,
     called from `buildApp`.
@@ -197,13 +207,9 @@ POST /pulls/:id/review ──► agent_runs rows (status=running) ──► HTTP
 - Atomicity across the success path. Steps in invariant 17 are separate
   statements, not a transaction; a throw after `insertReview` leaves the review
   row in place while the run is marked `failed`.
-- That a live runner actually stops on cancel. `RunBus.complete`, called at the
-  end of `cancelRun`, deletes the run from the `cancelled` set, so the flag is
-  visible only between `runBus.cancel` and that `complete` (the span of one
-  `cancelRunIfRunning` update). A checkpoint outside that window sees no
-  cancellation, the run finishes, and `completeAgentRun` overwrites the
-  route's `cancelled` status with `done` and a persisted review. A single-pass
-  run mid-call has no later checkpoint at all. No server test covers cancel.
+- That a live model call stops on cancel. A single-pass run mid-call is not
+  interrupted; it is discarded when the call returns (invariant 21), so the
+  tokens are still spent.
 - Workspace scoping of `/runs/:id/events`, `/runs/:id/cancel` and
   `/runs/:id/trace`. They call `getContext` but do not check that the run
   belongs to the workspace; `getRunTrace` and `cancelRunIfRunning` take no

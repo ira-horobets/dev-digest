@@ -27,6 +27,7 @@ flowchart TD
   ONB["/onboarding<br/>add repo"] -->|"POST /repos"| API[("Fastify API")]
   PULLS --> PR["/pulls/:number<br/>review detail<br/>(overview · diff · findings)"]
 
+  MULTI["/repos/:repoId/multi-agent<br/>Configure run (?pr=)"] --> MULTIRUN["/repos/:repoId/multi-agent/:multiRunId<br/>results (?view=)"]
   AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills)"]
   SKILLS["/skills<br/>grid + side panel (?skill=)"] --> SKILL["/skills/:id<br/>Config · Preview · Versioning"]
   CONV["/conventions<br/>extractor for the active repo"]
@@ -35,6 +36,8 @@ flowchart TD
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
   PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/brief<br/>POST /pulls/:id/review · /pulls/:id/brief/generate · /findings/:id/(accept|dismiss)"| API
+  MULTI -->|"GET /multi-agent/estimates · POST /pulls/:id/multi-agent-run"| API
+  MULTIRUN -->|"GET /multi-agent-runs/:id · /runs/:id/events · /runs/:id/findings · /runs/:id/trace"| API
   AGENTS -->|"/agents · /agents/:id"| API
   SKILLS -->|"/skills · /skills/:id · /skills/:id/versions · /skills/import/preview · /agents/:id/skills"| API
   CONV -->|"/repos/:id/conventions · /extract · /skill-draft · /skill · /conventions/:id"| API

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord } from "@devdigest/shared";
-import messages from "../../../../../../../../messages/en/prReview.json";
+import messages from "../../../messages/en/prReview.json";
 import { FindingCard } from "./FindingCard";
 
 afterEach(cleanup);
@@ -56,5 +56,12 @@ describe("FindingCard (smoke, both themes)", () => {
     expect(onAction).toHaveBeenCalledWith("accept");
     fireEvent.click(screen.getByText("Reject"));
     expect(onAction).toHaveBeenCalledWith("dismiss");
+  });
+
+  it("renders extraActions after Accept and Dismiss when expanded", () => {
+    renderWithIntl(
+      <FindingCard f={FINDING} defaultExpanded extraActions={<button disabled>Learn</button>} />,
+    );
+    expect(screen.getByRole("button", { name: "Learn" })).toBeDisabled();
   });
 });

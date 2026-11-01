@@ -30,6 +30,23 @@ export type Logger = {
   debug: (obj: unknown, msg?: string) => void;
 };
 
+/**
+ * Runs `fn` over `items` with at most `limit` in flight (limit < 1 counts as 1).
+ * Items start in order; `fn` rejections are the caller's to handle (the pool
+ * never rejects), so one failing item does not stop the others.
+ */
+export async function runPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  const size = Math.max(1, Math.floor(limit));
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const item = items[next++]!;
+      await fn(item).catch(() => undefined);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker));
+}
+
 // A reduced "Review per file" — same schema as Review (the model returns a small
 // Review per file; we merge findings + take the worst verdict / mean score).
 export type RunOutcome = {
@@ -65,7 +82,9 @@ export class ReviewRunExecutor {
     repo: typeof schema.repos.$inferSelect,
     jobs: { agent: AgentRow; runId: string }[],
     logger?: Logger,
+    opts: { concurrency?: number } = {},
   ): Promise<void> {
+    const concurrency = Math.max(1, opts.concurrency ?? 1);
     // ONE logger fanned out over every queued run: shared pre-work (diff +
     // intent) is streamed into each target agent's Live Log and persisted into
     // each run's trace. Per-agent work below narrows it to a single run.
@@ -122,7 +141,14 @@ export class ReviewRunExecutor {
         })
       : undefined;
 
-    for (const { agent, runId } of jobs) {
+    jobs.slice(concurrency).forEach(({ runId, agent }) =>
+      runLog.forRun(runId, { agent: agent.name }).info('Queued — waiting for a free slot'),
+    );
+
+    await runPool(jobs, concurrency, async ({ agent, runId }) => {
+      // Cancelled while queued: the row is already `cancelled` and the bus
+      // completed, so the run never starts.
+      if (this.container.runBus.isComplete(runId)) return;
       const agentStart = Date.now();
       logger?.info(
         { runId, agent: agent.name, provider: agent.provider, model: agent.model, prId: pull.id },
@@ -149,7 +175,49 @@ export class ReviewRunExecutor {
           `review: agent "${agent.name}" ${cancelled ? 'cancelled' : 'failed'}`,
         );
       }
+    });
+  }
+
+  /**
+   * Background entry for runs whose `agent_runs` rows already exist (multi-agent
+   * runs): loads the pull, repo and agents, fails the affected runs when one is
+   * missing, then executes them with the given concurrency.
+   */
+  async executeQueued(
+    workspaceId: string,
+    prId: string,
+    queued: { agentId: string; runId: string }[],
+    opts: { concurrency: number; logger?: Logger },
+  ): Promise<void> {
+    const failRuns = async (msg: string, runIds: string[]) => {
+      for (const runId of runIds) {
+        await this.repo
+          .completeAgentRun(runId, {
+            status: 'failed',
+            durationMs: 0,
+            tokensIn: 0,
+            tokensOut: 0,
+            costUsd: null,
+            findingsCount: 0,
+            grounding: '0/0 passed',
+            error: msg,
+          })
+          .catch(() => undefined);
+        this.container.runBus.complete(runId);
+      }
+    };
+    const all = queued.map((q) => q.runId);
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) return failRuns('Pull request not found', all);
+    const repo = await this.repo.getRepo(pull.repoId);
+    if (!repo) return failRuns('Repo not found', all);
+    const jobs: { agent: AgentRow; runId: string }[] = [];
+    for (const q of queued) {
+      const agent = await this.agents.getById(workspaceId, q.agentId);
+      if (!agent) await failRuns('Agent not found', [q.runId]);
+      else jobs.push({ agent, runId: q.runId });
     }
+    await this.executeRuns(workspaceId, pull, repo, jobs, opts.logger, { concurrency: opts.concurrency });
   }
 
   /** Execute a single agent's review against a PR, streaming progress. */
@@ -277,10 +345,18 @@ export class ReviewRunExecutor {
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
         checkCancelled: () => {
-          if (this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
+          // `cancelRun` completes the bus right after flagging, which clears the flag.
+          if (this.container.runBus.isCancelled(runId) || this.container.runBus.isComplete(runId)) {
+            throw new RunCancelledError();
+          }
         },
       });
       const { tokensIn, tokensOut, costUsd, grounding } = outcome;
+
+      // A cancel that landed during the model call must not be overwritten by `done`.
+      if (this.container.runBus.isCancelled(runId) || this.container.runBus.isComplete(runId)) {
+        throw new RunCancelledError();
+      }
 
       const keptFindings = outcome.review.findings;
 

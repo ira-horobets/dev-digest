@@ -45,5 +45,6 @@ pnpm test        # vitest + jsdom, fetch mocked; no API or browser needed
 - `specs/conventions.md` when touching `/conventions`, `hooks/conventions.ts` or the Create-skill modal.
 - `specs/project-context.md` when touching `/context`, the Edit pane and the repo-change guard in `repo-context.tsx`, the Context tab panel, `hooks/project-context.ts` or the run drawer's project-context blocks.
 - `specs/pr-brief.md` when touching the Overview brief card, `RiskAreas`, `ReviewFocusCard`, `hooks/brief.ts`, or the `?file=&line=` deep link in `DiffTab` and `components/diff-viewer`.
+- `specs/multi-agent-review.md` when touching the Run Review picker (`RunReviewDropdown`), `/repos/[repoId]/multi-agent` and its results page, `hooks/multi-agent.ts`, `multi-agent-estimate.ts`, or the promoted `components/finding-card` / `run-trace-drawer`.
 - `INSIGHTS.md` before the first change in this package (toast policy, contract drift, cost threshold, test setup gotchas).
 - `../e2e/` for the browser journeys that exercise this UI.

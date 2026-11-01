@@ -32,6 +32,10 @@ import type { OnboardingRepositoryPort } from '../modules/onboarding/ports.js';
 import { OnboardingRepository } from '../modules/onboarding/repository.js';
 import type { PrBriefRepositoryPort } from '../modules/pr-brief/ports.js';
 import { PrBriefRepository } from '../modules/pr-brief/repository.js';
+import type { MultiAgentRepositoryPort } from '../modules/multi-agent/ports.js';
+import { MultiAgentRepository } from '../modules/multi-agent/repository.js';
+import { ReviewRunExecutor } from '../modules/reviews/run-executor.js';
+import { IntentService } from '../modules/reviews/intent-service.js';
 import { SmartDiffService } from '../modules/smart-diff/service.js';
 import { BlastService } from '../modules/blast/service.js';
 import { RepoRepository } from '../modules/repos/repository.js';
@@ -83,6 +87,8 @@ export interface ContainerOverrides {
   onboardingRepo?: OnboardingRepositoryPort;
   /** pr-brief module port — route/service tests inject an in-memory fake. */
   prBriefRepo?: PrBriefRepositoryPort;
+  /** multi-agent module port — route/service tests inject an in-memory fake. */
+  multiAgentRepo?: MultiAgentRepositoryPort;
   /** reviews intent persistence port — same idea. */
   intentRepo?: IntentRepositoryPort;
   /** smart-diff module port — route tests inject an in-memory fake. */
@@ -119,6 +125,9 @@ export class Container {
   private _onboardingRepo?: OnboardingRepositoryPort;
   private _intentRepo?: IntentRepositoryPort;
   private _prBriefRepo?: PrBriefRepositoryPort;
+  private _multiAgentRepo?: MultiAgentRepositoryPort;
+  private _intentService?: IntentService;
+  private _reviewRunner?: ReviewRunExecutor;
   private _smartDiffRepo?: SmartDiffRepositoryPort;
   private _blastRepo?: BlastRepositoryPort;
   private _projectContextRepo?: ProjectContextRepositoryPort;
@@ -167,6 +176,32 @@ export class Container {
 
   get prBriefRepo(): PrBriefRepositoryPort {
     return (this._prBriefRepo ??= this.overrides.prBriefRepo ?? new PrBriefRepository(this.db));
+  }
+
+  get multiAgentRepo(): MultiAgentRepositoryPort {
+    return (this._multiAgentRepo ??= this.overrides.multiAgentRepo ?? new MultiAgentRepository(this.db));
+  }
+
+  /** Singleton: the PR intent derivation shared by the reviews and multi-agent runs. */
+  get intentService(): IntentService {
+    return (this._intentService ??= new IntentService({
+      repo: this.intentRepo,
+      github: () => this.github(),
+      git: this.git,
+      llm: (provider) => this.llm(provider),
+      featureModel: (workspaceId) => this.featureModel(workspaceId, 'review_intent'),
+    }));
+  }
+
+  /** Review executor for runs whose rows already exist (multi-agent). Stateless: no per-request state here. */
+  get reviewRunner(): ReviewRunExecutor {
+    return (this._reviewRunner ??= new ReviewRunExecutor(
+      this,
+      this.reviewRepo,
+      this.agentsRepo,
+      this.intentService,
+      this.projectContext,
+    ));
   }
 
   get intentRepo(): IntentRepositoryPort {

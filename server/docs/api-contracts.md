@@ -33,6 +33,18 @@ Rate limit: `POST /pulls/:id/review` — 120/min globally.
 | `GET` | `/reviews/:id` | Get review with findings |
 | `GET` | `/runs/:id/events` | SSE stream of `RunEvent` objects |
 
+### Multi-agent review
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/pulls/:id/multi-agent-run` | Body `{ agent_ids }` (2 to 8, unique). Creates one parent run and one run per agent, returns `MultiAgentRunStarted { multi_run_id, pr_id, runs[] }` before any model call finishes. 400 bad count or duplicates, 404 unknown PR or agent, 422 bad body |
+| `GET` | `/pulls/:id/multi-agent` | Latest `MultiAgentRun` of the PR (404 when none) |
+| `GET` | `/multi-agent-runs/:id` | One `MultiAgentRun` with `columns` and `conflicts` (404 when absent or in another workspace) |
+| `GET` | `/multi-agent/estimates` | `AgentEstimates { concurrency, agents[] }`: average duration and cost over each agent's last 10 done review runs |
+
+Rate limit: `POST /pulls/:id/multi-agent-run` — 10/min. Contracts are in
+`contracts/observability.ts`; behaviour in `specs/multi-agent-review.md`.
+
 ### Agents
 
 | Method | Path | Description |

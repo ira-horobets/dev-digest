@@ -1,15 +1,22 @@
-/* RunReviewDropdown — ported from components2.jsx.
-   "Run all enabled agents" / a specific agent → kicks off POST /pulls/:id/review
-   and hands the resulting runIds up so the parent can stream SSE live status. */
+/* RunReviewDropdown — the PR page's Run Review menu. A popover with one
+   checkbox per agent (model + estimate), preselecting the enabled ones. Exactly
+   one agent runs through POST /pulls/:id/review; two or more start a
+   multi-agent run and open its results page. */
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button, Dropdown, type DropdownItemDef } from "@devdigest/ui";
-import { useAgents } from "../../../../../../../lib/hooks/agents";
-import { useRunReview } from "../../../../../../../lib/hooks/reviews";
-import { DROPDOWN_WIDTH } from "./constants";
+import { Button, Icon } from "@devdigest/ui";
+import { EstimateLabel } from "@/components/estimate-label";
+import { useAgents } from "@/lib/hooks/agents";
+import { useAgentEstimates, useLatestMultiAgentRun, useStartMultiAgentRun } from "@/lib/hooks/multi-agent";
+import { useRunReview } from "@/lib/hooks/reviews";
+import { totalEstimate } from "@/lib/multi-agent-estimate";
+import { FALLBACK_CAP } from "./constants";
+import { defaultSelection, toggleId } from "./helpers";
+import { s } from "./styles";
+import { AgentPickRow } from "./_components/AgentPickRow";
 
 export function RunReviewDropdown({
   prId,
@@ -25,77 +32,153 @@ export function RunReviewDropdown({
   kind?: "primary" | "secondary";
   /** PR is already merged/closed — dim the trigger and warn, but still allow. */
   warnMerged?: boolean;
-  /** Fired the moment a run is kicked off (before it completes). */
+  /** Fired the moment a single-agent run is kicked off (before it completes). */
   onRunStart?: () => void;
   onRunsStarted?: (runIds: string[]) => void;
-  /** Fired when the run request settles (success or error). */
+  /** Fired when the single-agent run request settles (success or error). */
   onRunSettled?: () => void;
 }) {
   const t = useTranslations("prReview");
   const router = useRouter();
+  const { repoId, number } = useParams<{ repoId: string; number: string }>();
   const { data: agents } = useAgents();
+  const { data: estimates } = useAgentEstimates();
   const run = useRunReview();
-  const all = agents ?? [];
-  const hasEnabled = all.some((a) => a.enabled);
+  const startMulti = useStartMultiAgentRun();
+  const [open, setOpen] = React.useState(false);
+  // null = "the enabled agents" (derived, so it is re-applied every time the menu opens).
+  const [picked, setPicked] = React.useState<string[] | null>(null);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const { data: latest } = useLatestMultiAgentRun(open ? prId : null);
 
-  const kick = async (opts: { all?: boolean; agentId?: string }) => {
+  const all = agents ?? [];
+  const selected = picked ?? defaultSelection(all);
+  const total = totalEstimate(selected, estimates?.agents, estimates?.concurrency ?? FALLBACK_CAP);
+  const busy = run.isPending || startMulti.isPending;
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    listRef.current?.querySelector<HTMLElement>("[role=checkbox]")?.focus();
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const toggleOpen = () => {
+    if (!open) setPicked(null);
+    setOpen((o) => !o);
+  };
+
+  const runSingle = async () => {
+    const agentId = selected[0];
+    if (!agentId) return;
+    setOpen(false);
     onRunStart?.();
     try {
-      const res = await run.mutateAsync({ prId, ...opts });
+      const res = await run.mutateAsync({ prId, agentId });
       onRunsStarted?.(res.runs.map((r) => r.run_id));
     } finally {
       onRunSettled?.();
     }
   };
 
-  // List EVERY agent (not just enabled) so they're always visible; a specific
-  // agent can be run regardless of its enabled flag. "Run all" still targets
-  // only enabled agents.
-  const agentItems: DropdownItemDef[] = all.length
-    ? all.map((a) => ({
-        label: a.name,
-        icon: "Cpu" as const,
-        hint: a.enabled ? a.model : `${a.model} · disabled`,
-        onClick: () => kick({ agentId: a.id }),
-      }))
-    : [{ label: "No agents yet — create one", icon: "Plus", muted: true, onClick: () => router.push("/agents") }];
-
-  const items: DropdownItemDef[] = [
-    // Merged/closed PRs can still be reviewed (informational only); lead with a
-    // muted, non-actionable warning so the intent is clear.
-    ...(warnMerged
-      ? [
-          { label: t("runReview.mergedWarning"), icon: "AlertTriangle" as const, muted: true },
-          { divider: true } as DropdownItemDef,
-        ]
-      : []),
-    {
-      label: t("runReview.runAll"),
-      icon: "Play",
-      ...(hasEnabled ? {} : { muted: true }),
-      onClick: () => kick({ all: true }),
-    },
-    { divider: true },
-    ...agentItems,
-    { divider: true },
-    { label: t("runReview.configureAgents"), icon: "Settings", muted: true, onClick: () => router.push("/agents") },
-  ];
+  const runMulti = async () => {
+    const res = await startMulti.mutateAsync({ prId, agentIds: selected });
+    setOpen(false);
+    router.push(`/repos/${repoId}/multi-agent/${res.multi_run_id}`);
+  };
 
   return (
-    <Dropdown
-      width={DROPDOWN_WIDTH}
-      align="right"
-      items={items}
-      trigger={
-        <span
-          title={warnMerged ? t("runReview.mergedTooltip") : undefined}
-          style={warnMerged ? { opacity: 0.6 } : undefined}
+    <div ref={rootRef} style={s.root}>
+      <span
+        title={warnMerged ? t("runReview.mergedTooltip") : undefined}
+        style={warnMerged ? { opacity: 0.6 } : undefined}
+      >
+        <Button
+          kind={kind}
+          size={size}
+          iconRight="ChevronDown"
+          icon="Sparkles"
+          loading={busy}
+          onClick={toggleOpen}
+          aria-haspopup="true"
+          aria-expanded={open}
         >
-          <Button kind={kind} size={size} iconRight="ChevronDown" icon="Sparkles" loading={run.isPending}>
-            {run.isPending ? t("runReview.running") : t("runReview.runReview")}
-          </Button>
-        </span>
-      }
-    />
+          {busy ? t("runReview.running") : t("runReview.runReview")}
+        </Button>
+      </span>
+      {open && (
+        <div role="group" aria-label={t("runReview.pickerLabel")} style={s.popover}>
+          {warnMerged && (
+            <div style={s.warning}>
+              <Icon.AlertTriangle size={13} />
+              <span>{t("runReview.mergedWarning")}</span>
+            </div>
+          )}
+          <div style={s.header}>
+            <span>{t("runReview.pickerLabel")}</span>
+            <button type="button" style={s.link} onClick={() => setPicked([])}>
+              {t("runReview.clear")}
+            </button>
+          </div>
+          <div ref={listRef} style={s.list}>
+            {all.length === 0 && <div style={s.empty}>{t("runReview.configureAgents")}</div>}
+            {all.map((a) => (
+              <AgentPickRow
+                key={a.id}
+                name={a.name}
+                model={a.model}
+                enabled={a.enabled}
+                checked={selected.includes(a.id)}
+                estimate={estimates?.agents.find((e) => e.agent_id === a.id)}
+                onToggle={() => setPicked(toggleId(selected, a.id))}
+              />
+            ))}
+          </div>
+          <div style={s.footer}>
+            <div style={s.total}>
+              <span>{t("runReview.total")}</span>
+              <EstimateLabel durationMs={total.durationMs} costUsd={total.costUsd} partial={total.partial} />
+            </div>
+            {selected.length === 1 && (
+              <Button kind="secondary" size="sm" full disabled={busy} onClick={runSingle}>
+                {t("runReview.runSingle")}
+              </Button>
+            )}
+            <Button kind="primary" size="sm" full disabled={selected.length < 2 || busy} onClick={runMulti}>
+              {t("runReview.runMulti", { count: selected.length })}
+            </Button>
+            <div style={s.footerLinks}>
+              <button
+                type="button"
+                style={s.link}
+                onClick={() => router.push(`/repos/${repoId}/multi-agent?pr=${number}`)}
+              >
+                {t("runReview.configureAgents")}
+              </button>
+              {latest && (
+                <button
+                  type="button"
+                  style={s.link}
+                  onClick={() => router.push(`/repos/${repoId}/multi-agent/${latest.id}`)}
+                >
+                  {t("runReview.latestRun")}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

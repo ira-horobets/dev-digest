@@ -6,7 +6,6 @@ import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { NotFoundError } from '../../platform/errors.js';
 import { ReviewService } from './service.js';
-import { IntentService } from './intent-service.js';
 
 /**
  * reviews module.
@@ -24,13 +23,7 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
   const app = appBase.withTypeProvider<ZodTypeProvider>();
   const { container } = app;
   // Composition: explicit deps from the container (the service never sees it).
-  const intentService = new IntentService({
-    repo: container.intentRepo,
-    github: () => container.github(),
-    git: container.git,
-    llm: (provider) => container.llm(provider),
-    featureModel: (workspaceId) => container.featureModel(workspaceId, 'review_intent'),
-  });
+  const intentService = container.intentService;
   const service = new ReviewService(container, intentService, container.projectContext);
 
   // ---- Run a review (manual trigger) -------------------------------

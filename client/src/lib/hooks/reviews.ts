@@ -14,6 +14,7 @@ import type {
   ReviewRecord,
   ReviewRunResponse,
   RunEvent,
+  RunFindings,
   RunSummary,
   SmartDiffResponse,
 } from "@devdigest/shared";
@@ -56,6 +57,15 @@ export function usePrReviews(prId: string | null | undefined) {
     queryKey: ["reviews", prId],
     queryFn: () => api.get<ReviewRecord[]>(`/pulls/${prId}/reviews`),
     enabled: !!prId,
+  });
+}
+
+// ---- One run's review verdict + findings (GET /runs/:id/findings) ----
+export function useRunFindings(runId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["run-findings", runId],
+    queryFn: () => api.get<RunFindings>(`/runs/${runId}/findings`),
+    enabled: !!runId,
   });
 }
 
@@ -206,6 +216,8 @@ export function useFindingAction() {
         reply ? { reply } : undefined,
       ),
     onSuccess: (_d, { prId }) => {
+      // Run-scoped finding lists (multi-agent Tabs view) show the persisted state too.
+      qc.invalidateQueries({ queryKey: ["run-findings"] });
       if (prId) {
         qc.invalidateQueries({ queryKey: ["reviews", prId] });
         qc.invalidateQueries({ queryKey: ["smart-diff", prId] });

@@ -8,7 +8,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Toggle, EmptyState, Chip, SeverityBadge, SEV } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
-import { FindingCard } from "../FindingCard";
+import { FindingCard } from "@/components/finding-card";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
 import { FILTERABLE_SEVERITIES, KEY_TO_ACTION, type FilterableSeverity } from "./constants";
 import { countBySeverity, visibleFindings } from "./helpers";
