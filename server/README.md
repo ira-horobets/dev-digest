@@ -81,6 +81,9 @@ flowchart TB
     conventions["conventions<br/>/repos/:id/conventions · /extract · /skill-draft · /skill<br/>/conventions/:id"]
     projectContext["project-context<br/>/repos/:id/context · /repos/:id/context/file (GET · PUT · DELETE)<br/>/agents/:id/context · /skills/:id/context"]
   end
+  subgraph CI["Export to CI"]
+    ci["ci<br/>/agents/:id/ci/preview · /ci/secrets · /ci/installations<br/>/agents/:id/export-ci · /ci/installations/:installationId/update<br/>/ci/runs · /ci/runs/refresh"]
+  end
   subgraph Intel["Repo intelligence"]
     repoIntel["repo-intel<br/>/repos/:id/index-state · /resync"]
   end
@@ -154,6 +157,17 @@ What the reviewer actually sends to the model is assembled in
   `GET /pulls/:id/brief` reads the database only. Verdict, score and counts come
   from the newest review at read time. Brief runs are hidden from run history,
   active runs and agent stats. Details: `specs/pr-brief.md`, `docs/pr-brief.md`.
+- **Export to CI is pull-based.** `POST /agents/:id/export-ci` makes one commit
+  to `devdigest/ci` from the repo's live default branch and opens (or reuses) a
+  PR with the agent manifest, skills, memory, the bundled runner
+  (`agent-runner/dist/index.js`) and a GitHub Actions workflow. The studio
+  accepts no pushed results: `POST /ci/runs/refresh` reads up to 50 workflow
+  runs per installation and the `devdigest-result` artifact through the GitHub
+  API, and stores each run as `ci_runs` plus an `agent_runs` row with
+  `source = 'ci'`, `pr_id` null. It needs `GITHUB_TOKEN` (write access to
+  contents, workflows and pull requests; read access to Actions and secrets)
+  and makes no model call. Details: `specs/export-to-ci.md`,
+  `docs/export-to-ci.md`, `../agent-runner/`.
 - **Grounding is mandatory.** Every finding must cite a line that exists in the
   diff or it is dropped (`groundFindings`), and the score is recomputed from the
   surviving findings — the model's self-reported score is ignored.

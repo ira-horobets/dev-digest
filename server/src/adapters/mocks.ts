@@ -17,6 +17,7 @@ import type {
   PrReviewComment,
   OpenPrPayload,
   CommitFilesPayload,
+  WorkflowRunInfo,
   IssueMeta,
   GitClient,
   CloneOptions,
@@ -134,6 +135,29 @@ export interface MockGitHubOptions {
   fileContents?: Record<string, string>;
   /** Make getIssue / getClosingIssues / getFileContent throw (GitHub down). */
   failReads?: boolean;
+  /** Live default branch returned by getRepoInfo (default `main`). */
+  defaultBranch?: string;
+  /** Visibility returned by getRepoInfo (default: private). */
+  repoPrivate?: boolean;
+  /** getOptionalFileContent results by path (missing path → null). */
+  optionalFiles?: Record<string, string | null>;
+  /** listActionsSecretNames result. */
+  actionSecrets?: {
+    repo: string[];
+    org: string[] | null;
+    org_unreadable?: boolean;
+    has_environments: boolean;
+  };
+  /** listWorkflowRuns result. */
+  workflowRuns?: WorkflowRunInfo[];
+  /** downloadArtifact result by run id (missing → null). */
+  artifacts?: Record<number, Uint8Array | null | 'too_large'>;
+  /** getPullState by PR number (default `open`). */
+  pullStates?: Record<number, 'open' | 'merged' | 'closed'>;
+  /** An already-open PR from the CI branch (findOpenPr returns it). */
+  existingPr?: { url: string; number: number } | null;
+  /** Errors thrown (always) by the named method, e.g. a `GitHubApiError`-shaped error. */
+  failures?: Partial<Record<string, unknown>>;
 }
 
 export class MockGitHubClient implements GitHubClient {
@@ -141,8 +165,15 @@ export class MockGitHubClient implements GitHubClient {
   public openedPrs: OpenPrPayload[] = [];
   public committed: CommitFilesPayload[] = [];
   public createdComments: CreateReviewCommentInput[] = [];
+  /** Recorded CI-relevant calls (method + branch + base) for write-path assertions. */
+  public calls: { method: string; branch?: string; base?: string }[] = [];
 
   constructor(private opts: MockGitHubOptions = {}) {}
+
+  private maybeFail(method: string): void {
+    const err = this.opts.failures?.[method];
+    if (err) throw err;
+  }
 
   async listPullRequests(_repo: RepoRef): Promise<PrMeta[]> {
     return (
@@ -224,19 +255,82 @@ export class MockGitHubClient implements GitHubClient {
     };
   }
 
-  async openPullRequest(_repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string }> {
+  async openPullRequest(
+    _repo: RepoRef,
+    payload: OpenPrPayload,
+  ): Promise<{ url: string; number: number }> {
+    this.calls.push({ method: 'openPullRequest', branch: payload.head, base: payload.base });
+    this.maybeFail('openPullRequest');
     this.openedPrs.push(payload);
-    return { url: 'https://github.com/mock/mock/pull/1' };
+    return { url: 'https://github.com/mock/mock/pull/1', number: 1 };
   }
 
   async commitFiles(_repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }> {
+    this.calls.push({ method: 'commitFiles', branch: payload.branch, base: payload.base });
+    this.maybeFail('commitFiles');
     this.committed.push(payload);
     return { branch: payload.branch };
   }
 
-  async findOpenPr(_repo: RepoRef, branch: string): Promise<{ url: string } | null> {
+  async findOpenPr(
+    _repo: RepoRef,
+    branch: string,
+  ): Promise<{ url: string; number: number } | null> {
+    this.calls.push({ method: 'findOpenPr', branch });
+    this.maybeFail('findOpenPr');
+    if (this.opts.existingPr) return this.opts.existingPr;
     const pr = this.openedPrs.find((p) => p.head === branch);
-    return pr ? { url: 'https://github.com/mock/mock/pull/1' } : null;
+    return pr ? { url: 'https://github.com/mock/mock/pull/1', number: 1 } : null;
+  }
+
+  async getRepoInfo(_repo: RepoRef): Promise<{ default_branch: string; private?: boolean }> {
+    this.calls.push({ method: 'getRepoInfo' });
+    this.maybeFail('getRepoInfo');
+    return { default_branch: this.opts.defaultBranch ?? 'main', private: this.opts.repoPrivate ?? true };
+  }
+
+  async getOptionalFileContent(_repo: RepoRef, path: string, _ref: string): Promise<string | null> {
+    this.calls.push({ method: 'getOptionalFileContent' });
+    this.maybeFail('getOptionalFileContent');
+    return this.opts.optionalFiles?.[path] ?? null;
+  }
+
+  async listActionsSecretNames(_repo: RepoRef): Promise<{
+    repo: string[];
+    org: string[] | null;
+    org_unreadable?: boolean;
+    has_environments: boolean;
+  }> {
+    this.calls.push({ method: 'listActionsSecretNames' });
+    this.maybeFail('listActionsSecretNames');
+    return this.opts.actionSecrets ?? { repo: [], org: [], has_environments: false };
+  }
+
+  async listWorkflowRuns(
+    _repo: RepoRef,
+    _workflowFile: string,
+    _perPage: number,
+  ): Promise<WorkflowRunInfo[]> {
+    this.calls.push({ method: 'listWorkflowRuns' });
+    this.maybeFail('listWorkflowRuns');
+    return this.opts.workflowRuns ?? [];
+  }
+
+  async downloadArtifact(
+    _repo: RepoRef,
+    runId: number,
+    _name: string,
+    _maxBytes: number,
+  ): Promise<Uint8Array | null | 'too_large'> {
+    this.calls.push({ method: 'downloadArtifact' });
+    this.maybeFail('downloadArtifact');
+    return this.opts.artifacts?.[runId] ?? null;
+  }
+
+  async getPullState(_repo: RepoRef, n: number): Promise<'open' | 'merged' | 'closed'> {
+    this.calls.push({ method: 'getPullState' });
+    this.maybeFail('getPullState');
+    return this.opts.pullStates?.[n] ?? 'open';
   }
 
   async getIssue(_repo: RepoRef, n: number): Promise<IssueMeta> {

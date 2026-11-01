@@ -30,6 +30,10 @@ import {
   MultiAgentRunRequest,
   MultiAgentRunStarted,
   AgentEstimates,
+  CiExportInput,
+  CiResultArtifact,
+  CiPreviewInput,
+  CiRunsQuery,
 } from '@devdigest/shared';
 
 /**
@@ -453,5 +457,45 @@ describe('multi-agent contracts', () => {
       ],
     });
     expect(run.columns[0]!.status).toBe('cancelled');
+  });
+});
+
+describe('CI contracts (SPEC-05)', () => {
+  it('trigger defaults are opened + synchronize and at least one is required (AC-17)', () => {
+    expect(CiExportInput.parse({ repo: 'a/b' }).triggers).toEqual(['opened', 'synchronize']);
+    expect(CiPreviewInput.parse({ repo: 'a/b' }).triggers).toEqual(['opened', 'synchronize']);
+    expect(CiExportInput.safeParse({ repo: 'a/b', triggers: [] }).success).toBe(false);
+    expect(CiExportInput.safeParse({ repo: 'a/b', triggers: ['push'] }).success).toBe(false);
+    expect(CiExportInput.parse({ repo: 'a/b' })).toMatchObject({ action: 'open_pr', post_as: 'github_review', confirm_overwrite: false });
+    expect(CiExportInput.safeParse({ repo: 'a/b', action: 'files' }).success).toBe(false);
+  });
+
+  it('the runs query defaults to the last 7 days', () => {
+    expect(CiRunsQuery.parse({}).range).toBe('7d');
+  });
+
+  const artifact = {
+    findings_count: 1,
+    cost_usd: 0.1,
+    agent: 'A',
+    verdict: 'comment',
+    blockers: 0,
+    model: 'm',
+  };
+  it('the result artifact is bounded (EC-14)', () => {
+    expect(CiResultArtifact.safeParse(artifact).success).toBe(true);
+    for (const forged of [
+      { findings_count: 10_001 },
+      { critical: -1 },
+      { cost_usd: 1001 },
+      { cost_usd: Number.POSITIVE_INFINITY },
+      { duration_ms: 86_400_001 },
+      { agent: 'x'.repeat(201) },
+      { model: '' },
+      { verdict: 'maybe' },
+    ]) {
+      expect(CiResultArtifact.safeParse({ ...artifact, ...forged }).success).toBe(false);
+    }
+    expect(CiResultArtifact.safeParse({ ...artifact, verdict: undefined }).success).toBe(false);
   });
 });

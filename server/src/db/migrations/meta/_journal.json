@@ -134,6 +134,13 @@
       "when": 1793451971977,
       "tag": "0018_aberrant_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793553061634,
+      "tag": "0019_bright_jetstream",
+      "breakpoints": true
     }
   ]
 }

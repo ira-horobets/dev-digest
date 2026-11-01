@@ -140,6 +140,30 @@ export interface CommitFilesPayload {
   files: CommitFile[];
 }
 
+export interface WorkflowRunInfo {
+  id: number;
+  run_attempt: number;
+  status: string | null;
+  conclusion: string | null;
+  html_url: string;
+  pr_numbers: number[];
+  created_at: string;
+  run_started_at: string | null;
+  updated_at: string;
+}
+
+/** Shape the GitHub adapter attaches to the errors it throws (token never included). */
+export interface GitHubApiError {
+  status: number;
+  message: string;
+  tokenKind: 'fine_grained' | 'classic' | 'unknown';
+  /** Alternatives of `name=level` sets, from X-Accepted-GitHub-Permissions. */
+  acceptedPermissions?: string[][];
+  oauthScopes?: string[];
+  acceptedOauthScopes?: string[];
+  retryAfterMs?: number;
+}
+
 export interface GitHubClient {
   listPullRequests(repo: RepoRef): Promise<PrMeta[]>;
   getPullRequest(repo: RepoRef, n: number): Promise<PrDetail>;
@@ -152,7 +176,7 @@ export interface GitHubClient {
     n: number,
     input: CreateReviewCommentInput,
   ): Promise<PrReviewComment>;
-  openPullRequest(repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string }>;
+  openPullRequest(repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string; number: number }>;
   /**
    * Commit `files` onto `branch` as ONE atomic commit (Git Data API: blobs →
    * tree → commit → ref). Creates the branch from `base` if missing, else
@@ -160,7 +184,35 @@ export interface GitHubClient {
    */
   commitFiles(repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }>;
   /** The open PR whose head is `branch`, if any (so re-publish reuses it). */
-  findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string } | null>;
+  findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string; number: number } | null>;
+  /** Repository facts the CI export needs (live default branch). */
+  getRepoInfo(repo: RepoRef): Promise<{ default_branch: string; private?: boolean }>;
+  /** Like `getFileContent` but a missing file resolves to null (404 only). */
+  getOptionalFileContent(repo: RepoRef, path: string, ref: string): Promise<string | null>;
+  /**
+   * Names (never values) of Actions secrets visible to the repo. `org` is null
+   * when the repo has no org (404); `org_unreadable` is true when the org list
+   * answered 403 (the token cannot read it, so "not set" cannot be concluded).
+   */
+  listActionsSecretNames(repo: RepoRef): Promise<{
+    repo: string[];
+    org: string[] | null;
+    org_unreadable?: boolean;
+    has_environments: boolean;
+  }>;
+  /** Most recent runs of one workflow file. */
+  listWorkflowRuns(repo: RepoRef, workflowFile: string, perPage: number): Promise<WorkflowRunInfo[]>;
+  /**
+   * Bytes of the named artifact of a run (zip). `null` when absent, `'too_large'`
+   * when it exceeds `maxBytes` (checked before and during download).
+   */
+  downloadArtifact(
+    repo: RepoRef,
+    runId: number,
+    name: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null | 'too_large'>;
+  getPullState(repo: RepoRef, n: number): Promise<'open' | 'merged' | 'closed'>;
   getIssue(repo: RepoRef, n: number): Promise<IssueMeta>;
   /** Numbers of the issues GitHub links to PR `n` as closing references (GraphQL, max 5). */
   getClosingIssues(repo: RepoRef, n: number): Promise<number[]>;

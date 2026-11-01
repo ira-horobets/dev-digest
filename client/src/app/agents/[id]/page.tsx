@@ -13,11 +13,13 @@ import { ApiError } from "@/lib/api";
 import { AgentCard } from "../_components/AgentCard";
 import { CreateAgentModal } from "../_components/CreateAgentModal";
 import { AgentEditor } from "./_components/AgentEditor";
+import { TABS } from "./_components/AgentEditor/constants";
 import { TEMPLATES } from "../constants";
 import { filterAgents } from "../helpers";
 import { s } from "./styles";
 
-const VALID_TABS = ["config", "skills", "context"];
+/** Every editor tab is addressable via ?tab=; derived from TABS so a new tab cannot be forgotten here. */
+const VALID_TABS = TABS.map((tb) => tb.key);
 
 export default function AgentEditorPage() {
   const t = useTranslations("agents");

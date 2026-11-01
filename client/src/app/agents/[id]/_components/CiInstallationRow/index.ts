@@ -1,0 +1,1 @@
+export { CiInstallationRow } from "./CiInstallationRow";
