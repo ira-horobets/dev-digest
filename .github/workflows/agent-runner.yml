@@ -1,0 +1,61 @@
+# agent-runner suite — the CI runner bundled into target repos (SPEC-05).
+# The committed agent-runner/dist/index.js must equal a fresh build: the
+# stale-bundle test (test/bundle.test.ts) fails when reviewer-core/src, the
+# shared contracts or the runner sources change without `npm run build`.
+# Uses npm (package-lock.json). reviewer-core is installed first because the
+# runner bundles its raw TypeScript source and resolves `openai` from there.
+name: agent-runner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agent-runner/**'
+      - 'reviewer-core/**'
+      - 'server/src/vendor/shared/**'
+      - 'server/src/adapters/git/diff-parser.ts'
+      - '.github/workflows/agent-runner.yml'
+  pull_request:
+    paths:
+      - 'agent-runner/**'
+      - 'reviewer-core/**'
+      - 'server/src/vendor/shared/**'
+      - 'server/src/adapters/git/diff-parser.ts'
+      - '.github/workflows/agent-runner.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-runner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            reviewer-core/package-lock.json
+            agent-runner/package-lock.json
+
+      - run: npm ci
+        working-directory: reviewer-core
+
+      - run: npm ci
+        working-directory: agent-runner
+
+      - run: npm run typecheck
+        working-directory: agent-runner
+
+      - run: npm run lint
+        working-directory: agent-runner
+
+      - run: npm test
+        working-directory: agent-runner

@@ -1,0 +1,28 @@
+{
+  "name": "@devdigest/agent-runner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DevDigest CI runner (SPEC-05). Bundled to dist/index.js and committed; the Export-to-CI wizard writes it to .devdigest/runner/index.js in the target repo.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.0",
+    "esbuild": "0.25.12",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^2.1.8"
+  }
+}
