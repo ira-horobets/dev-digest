@@ -73,6 +73,7 @@ flowchart TB
   end
   subgraph Review["Review & runs"]
     reviews["reviews<br/>/pulls/:id/review · /reviews · /findings/:id/(accept|dismiss)<br/>/runs/:id/(events|trace)"]
+    multiAgent["multi-agent<br/>/pulls/:id/multi-agent-run · /pulls/:id/multi-agent<br/>/multi-agent-runs/:id · /multi-agent/estimates"]
   end
   subgraph Agents["Agents & skills"]
     agents["agents<br/>/agents · /agents/:id · /agents/:id/skills (skill_ids)"]
@@ -113,7 +114,8 @@ through `SecretsProvider` (`~/.devdigest/secrets.json`, mode `0600`, with
 
 Migrations are **not** applied on boot — run `pnpm db:migrate` (pgvector is
 enabled by migration `0000`). `pnpm db:seed` is idempotent demo data
-(`acme/payments-api`, PR #482, five built-in agents, thirteen skills linked to
+(`acme/payments-api`, PR #482, PR #483 with defects planted for every reviewer
+lane to demo Multi-Agent Review (`src/db/seed-demo-pr.ts`), five built-in agents, thirteen skills linked to
 three of them — see `specs/skills.md`).
 
 ## Review context (non-obvious)

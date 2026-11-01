@@ -5,16 +5,31 @@
   },
   "column": {
     "noFindings": "No findings.",
-    "findingsCount": "{count, plural, one {# finding} other {# findings}}"
+    "findingsCount": "{count, plural, one {# finding} other {# findings}}",
+    "score": "Score",
+    "duration": "Duration",
+    "cost": "Cost"
   },
   "conflicts": {
     "title": "Where agents disagree",
     "onlyConflicts": "Show only conflicts",
-    "empty": "No conflicts — the agents agree on every flagged location.",
-    "didNotFlag": "did not flag"
+    "empty": "Agents agree on every location",
+    "onlyEmpty": "No conflicts to show.",
+    "didNotFlag": "did not flag",
+    "noResult": "no result",
+    "showMore": "Show more ({count})",
+    "location": "Location"
   },
   "tabs": {
-    "noSummary": "No summary."
+    "noSummary": "No summary.",
+    "learn": "Learn",
+    "evalCase": "Turn into eval case",
+    "comingSoon": "Coming soon",
+    "label": "Agents",
+    "findings": "Findings",
+    "noFindings": "No findings.",
+    "loadingFindings": "Loading findings…",
+    "verdict": "Verdict"
   },
   "trace": {
     "configuration": "Configuration",
@@ -119,27 +134,58 @@
   },
   "page": {
     "title": "Multi-Agent Review",
-    "subtitle": "this PR through every enabled agent in parallel",
-    "selectPr": "Select PR",
-    "prItem": "#{number} · {title}",
-    "view": {
-      "columns": "columns",
-      "tabs": "tabs"
-    },
-    "runAll": "Run all agents",
-    "running": "Running…",
-    "meta": "{count} agents · fan-out via p-queue · {duration}s total · {cost}",
-    "noAgents": {
-      "title": "Enable agents to run reviews",
-      "body": "Multi-agent review runs the PR through every enabled agent in parallel. You have no agents enabled yet.",
-      "cta": "Go to Agents"
-    },
-    "noRun": {
-      "title": "No multi-agent run yet",
-      "bodyReady": "Run all enabled agents on this PR to see N columns + conflicts.",
-      "bodySelect": "Select a PR to begin.",
-      "cta": "Run all agents"
-    },
+    "subtitle": "run several agents on one pull request and compare their results",
     "crumb": "Multi-Agent Review"
+  },
+  "status": {
+    "running": "running",
+    "done": "done",
+    "failed": "failed",
+    "cancelled": "cancelled"
+  },
+  "estimate": {
+    "none": "no estimate yet",
+    "partial": "(partial)",
+    "partialTitle": "Some selected agents have no estimate yet"
+  },
+  "configure": {
+    "crumb": "Configure run",
+    "title": "Run a Multi-Agent Review",
+    "subtitle": "Pick a pull request and choose which agents to fan out — they run in parallel and you compare their findings side by side.",
+    "step1": "Pull request",
+    "step2": "Agents to run",
+    "prPlaceholder": "Select a pull request",
+    "prItem": "#{number} · {title}",
+    "noPrs": "This repository has no pull requests yet.",
+    "pickPrFirst": "Pick a pull request first",
+    "pickPrFirstBody": "Choose which PR to review above, then select the agents to run on it.",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "disabled": "disabled",
+    "runMulti": "Run multi-agent review ({count})",
+    "starting": "Starting…",
+    "fanOut": "parallel fan-out",
+    "mergedWarning": "Already merged — review is informational",
+    "tooMany": "Select at most {max} agents.",
+    "noAgents": {
+      "title": "No agents yet",
+      "body": "Create at least two agents to compare their reviews.",
+      "cta": "Go to Agents"
+    }
+  },
+  "results": {
+    "configureRun": "Configure run",
+    "agents": "{count, plural, one {# agent} other {# agents}}",
+    "selectedAgents": "{count, plural, one {# selected agent} other {# selected agents}}",
+    "parallel": "parallel",
+    "totalSuffix": "{duration} total",
+    "progress": "{done}/{total} done",
+    "viewLabel": "View",
+    "viewColumns": "Columns",
+    "viewTabs": "Tabs",
+    "loadError": "Could not load this multi-agent run.",
+    "notFoundTitle": "Multi-agent run not found",
+    "notFoundBody": "It may belong to another workspace or have been removed.",
+    "noError": "No error message recorded."
   }
 }

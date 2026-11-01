@@ -35,9 +35,12 @@ export const agentRuns = pgTable(
   blockers: integer('blockers'),
   /** What the run produced. `brief` rows are PR brief generations: no agent, not a review. */
   kind: text('kind', { enum: ['review', 'brief'] }).notNull().default('review'),
+  /** The multi-agent run this review belongs to; null for single runs. */
+  multiRunId: uuid('multi_run_id').references(() => multiAgentRuns.id, { onDelete: 'set null' }),
   },
   (t) => ({
     prKindRanAtIdx: index('agent_runs_pr_kind_ran_at_idx').on(t.prId, t.kind, t.ranAt),
+    multiRunIdx: index('agent_runs_multi_run_id_idx').on(t.multiRunId),
     // One running brief per PR: a concurrent POST hits 23505 and gets the running run back.
     oneRunningBrief: uniqueIndex('agent_runs_one_running_brief_uidx')
       .on(t.prId)

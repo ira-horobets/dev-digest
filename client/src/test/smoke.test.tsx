@@ -6,6 +6,8 @@ import { DiffViewer } from "../components/diff-viewer";
 import type { PrFile } from "../lib/types";
 import shellMessages from "../../messages/en/shell.json";
 import contextMessages from "../../messages/en/context.json";
+import runsMessages from "../../messages/en/runs.json";
+import prReviewMessages from "../../messages/en/prReview.json";
 
 afterEach(cleanup);
 
@@ -15,7 +17,7 @@ describe("web smoke (both themes)", () => {
   themes.forEach((theme) => {
     it(`component gallery renders in ${theme}`, () => {
       render(
-        <NextIntlClientProvider locale="en" messages={{ context: contextMessages }}>
+        <NextIntlClientProvider locale="en" messages={{ context: contextMessages, runs: runsMessages, prReview: prReviewMessages }}>
           <div data-theme={theme}>
             <Gallery />
           </div>
@@ -28,6 +30,9 @@ describe("web smoke (both themes)", () => {
       expect(screen.getAllByText("missing").length).toBeGreaterThan(0);
       expect(screen.getAllByText("too large").length).toBeGreaterThan(0);
       expect(screen.getAllByText("≈ 24000 tokens").length).toBeGreaterThan(0);
+      // estimate label and the promoted finding card
+      expect(screen.getAllByText("no estimate yet").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Hardcoded Stripe secret key").length).toBeGreaterThan(0);
       // modified locally: the badge and the row marker with its text alternative
       expect(screen.getAllByText("Modified locally").length).toBeGreaterThan(0);
       expect(screen.getAllByRole("img", { name: "Modified locally" }).length).toBeGreaterThan(0);

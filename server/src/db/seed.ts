@@ -11,6 +11,7 @@ import {
 } from './seed-prompts.js';
 import { SEED_SKILLS, AGENT_SKILL_LINKS } from './seed-skills.js';
 import { sourceHash } from '../platform/intent-hash.js';
+import { seedDemoPr } from './seed-demo-pr.js';
 
 /** Prompt version the seeded intent claims; a unit test pins it to reviewer-core's INTENT_PROMPT_VERSION. */
 export const SEEDED_INTENT_PROMPT_VERSION = 1;
@@ -26,7 +27,8 @@ const DEFAULT_MODEL = 'deepseek/deepseek-v4-flash';
  * Seeds: default workspace + system user + membership, default settings,
  * demo repo (acme/payments-api), PR #482 with files/commits, a sample review
  * (+ one completed, priced agent run behind it)
- * with a few findings, and the five built-in agents (General + Security +
+ * with a few findings, demo PR #483 (`seed-demo-pr.ts`, defects planted for
+ * every reviewer lane, no runs), and the five built-in agents (General + Security +
  * Performance + Test Quality + API Contract), all on the default openrouter/deepseek-v4-flash provider+model.
  *
  * L02 adds the skills in `seed-skills.ts`, linked to Security, Test Quality and
@@ -207,6 +209,9 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       },
     ]);
   }
+
+  // ---- demo PR #483 for Multi-Agent Review (no runs, so cost totals are unchanged) ----
+  await seedDemoPr(db, workspaceId, repoId);
 
   // ---- PR intent for #482 (what the Intent card shows before the first review) ----
   // Idempotent: never overwrites an intent a real review derived. The hash uses the

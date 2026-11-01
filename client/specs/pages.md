@@ -11,6 +11,8 @@ this file are relative to `client/` unless they start with `../`.
 | `/onboarding` | add a repository by URL | `useAddRepo` | none | `06-onboarding` |
 | `/repos/[repoId]/pulls` | PR list with filters | `usePulls`, `useRefreshRepo` | `?status` | `01`, `02`, `08` |
 | `/repos/[repoId]/pulls/[number]` | PR detail: Overview, Agent runs, Files changed | `usePulls`, `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns`, `usePrIntent`, `useBlastRadius`, `usePrBrief`, `useGenerateBrief` | `?tab`, `?trace`, `?file`, `?line` | `02`, `04`, `05`, `08`, `12`, `13`, `16` |
+| `/repos/[repoId]/multi-agent` | Configure run: pick a PR and the agents, estimate, start a multi-agent run | `usePulls`, `useAgents`, `useAgentEstimates`, `useStartMultiAgentRun` | `?pr` | none |
+| `/repos/[repoId]/multi-agent/[multiRunId]` | multi-agent results: Columns or Tabs, "Where agents disagree", trace drawer | `useMultiAgentRun`, `useRunEvents`, `useRunFindings`, `useFindingAction` | path `multiRunId`, `?view` | none |
 | `/agents` | agent cards, create modal | `useAgents`, `useUpdateAgent`, `useCreateAgent`, `useDeleteAgent` | none | `03-agents` |
 | `/agents/[id]` | agent editor: Config, Skills | `useAgents`, `useAgent`, `useUpdateAgent`, `useProviderModels`, `useSkills`, `useAgentSkills`, `useSetAgentSkills` | `?tab` | `10-skills` |
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
@@ -100,6 +102,12 @@ Clicking a row pushes `/repos/<repoId>/pulls/<number>`.
   `full_name` is known), `RunReviewDropdown`, and a warning banner when the
   PR is merged or closed. Tabs: Overview, Agent runs (count = all findings),
   Files changed (count = `files_count`).
+- `RunReviewDropdown` is an agent picker (checkbox per agent, estimates, "Run
+  review" for one agent, "Run multi-agent review (N)" for two or more,
+  "Configure agents…", "Latest multi-agent run"). It reads `repoId` and `number`
+  from the route params. Contract: [`multi-agent-review.md`](multi-agent-review.md).
+  `FindingCard` and `RunTraceDrawer` now live in `src/components/finding-card/`
+  and `src/components/run-trace-drawer/`; the PR page behaves as before.
 
 ### Tab `overview` (`OverviewTab`)
 
@@ -245,6 +253,26 @@ Project context blocks and the Specs read tokens: `specs/project-context.md`.
 A brief run opens here from the PR Brief card's cost line: the title falls back
 to `config.agent` ("PR Brief"), Findings is empty and the tool call is
 `generate_brief`.
+
+## `/repos/[repoId]/multi-agent` (`.../multi-agent/page.tsx` → `ConfigureRunView`)
+
+- URL `?pr=<number>` (`router.replace`); `Suspense` around the view. Step 1 picks an
+  open or merged PR, step 2 the agents (enabled ones preselected), with a total
+  estimate and "Run multi-agent review (N)", which starts the run and opens
+  `/repos/<repoId>/multi-agent/<multi_run_id>`.
+- States: "Pick a pull request first" without a PR (Run disabled), merged warning
+  for merged or closed PRs, an empty state linking to `/agents` without agents,
+  `RepoNotFound`. Full contract: [`multi-agent-review.md`](multi-agent-review.md).
+
+## `/repos/[repoId]/multi-agent/[multiRunId]` (`.../[multiRunId]/page.tsx` → `MultiRunView`)
+
+- `useMultiAgentRun` (polls 4 s while running). `?view=columns|tabs`, default
+  `columns`, invalid values fall back to `columns`; `Suspense` around the view.
+  The trace drawer opens from "View trace" in component state, not in the URL.
+- Header with "Configure run", agent counts, total duration, total cost and the
+  view toggle; then Columns or Tabs; then "Where agents disagree" (hidden below
+  two completed agents). States: skeleton, 404 empty state, error with retry.
+  Full contract: [`multi-agent-review.md`](multi-agent-review.md).
 
 ## `/agents` (`src/app/agents/page.tsx` → `AgentsListView`)
 
