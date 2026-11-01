@@ -36,6 +36,7 @@ code is shared through tsconfig path aliases, not published modules.
 | `reviewer-core/` | `@devdigest/reviewer-core` | Pure review engine: diff → prompt → LLM → grounded findings | `reviewer-core/AGENTS.md` |
 | `e2e/` | `@devdigest/e2e` | Deterministic browser flows (agent-browser) | `e2e/AGENTS.md` |
 | `mcp/` | `@devdigest/mcp` | Local stdio MCP server, HTTP client of the API (L04) | `mcp/AGENTS.md` |
+| `agent-runner/` | `@devdigest/agent-runner` | CI runner bundled and committed as `dist/index.js`, copied into a repo by Export to CI (SPEC-05) | `agent-runner/AGENTS.md` |
 | `server/src/vendor/shared/` | `@devdigest/shared` | Zod contracts + adapter interfaces (canonical copy) | see `server/AGENTS.md` |
 
 ## Commands
@@ -46,13 +47,13 @@ code is shared through tsconfig path aliases, not published modules.
 ```
 
 Checks, per package (`pnpm` in `server/` and `client/`, `npm run` in
-`reviewer-core/`, `e2e/` and `mcp/`): `typecheck` · `test` · `lint` (ESLint flat
+`reviewer-core/`, `e2e/`, `mcp/` and `agent-runner/`): `typecheck` · `test` · `lint` (ESLint flat
 config, `eslint.config.mjs`). Full per-package script list in each
 package's `AGENTS.md`.
 
 ## Rules that apply everywhere
 
-- Package managers: `pnpm` in `server/` and `client/`; `npm` in `reviewer-core/`, `e2e/` and `mcp/`.
+- Package managers: `pnpm` in `server/` and `client/`; `npm` in `reviewer-core/`, `e2e/`, `mcp/` and `agent-runner/`.
 - Contracts live in `server/src/vendor/shared`. Change them there, then copy to `client/src/vendor/shared`. The two copies must match.
 - Secrets never go in git, the DB, or `AppConfig`. They flow through `SecretsProvider` (`~/.devdigest/secrets.json`, env fallback).
 - Migrations do not run on boot. Run `cd server && pnpm db:migrate`.
@@ -77,12 +78,13 @@ package's `AGENTS.md`.
 
 Never edit these by hand. Change them only through the tool that owns them, or not at all.
 
-- **Lockfiles:** `server/pnpm-lock.yaml`, `client/pnpm-lock.yaml`, `reviewer-core/package-lock.json`, `e2e/package-lock.json`, `mcp/package-lock.json`. Only the package manager writes them.
+- **Lockfiles:** `server/pnpm-lock.yaml`, `client/pnpm-lock.yaml`, `reviewer-core/package-lock.json`, `e2e/package-lock.json`, `mcp/package-lock.json`, `agent-runner/package-lock.json`. Only the package manager writes them.
 - **Vendored skills:** `.claude/skills/` and `skills-lock.json`. They are pinned by hash to upstream sources; re-vendor instead of editing.
 - **Contract copy:** `client/src/vendor/shared/`. Edit `server/src/vendor/shared/` and copy the result over. Never edit the client copy directly.
 - **Design system:** `client/src/vendor/ui/`. Change it only when the task is explicitly about the design system, and add any new component to `/showcase`.
+- **Generated runner bundle:** `agent-runner/dist/index.js`. Produced by `npm run build` in `agent-runner/` and committed (the one `dist/` that is tracked); rebuild it, never edit it.
 - **Generated migration files:** `server/src/db/migrations/*.sql` and `meta/`. Produced by `pnpm db:generate`; edit the schema in `src/db/schema/` instead. Never rewrite a committed migration.
-- **Runtime and local data:** `server/clones/`, `e2e/test-results/`, `.env` files, `.idea/`, `*.log`, `node_modules/`, `.next/`, `dist/`, `~/.devdigest/`. Git-ignored or machine-specific; never commit or clean them up as part of a task.
+- **Runtime and local data:** `server/clones/`, `e2e/test-results/`, `.env` files, `.idea/`, `*.log`, `node_modules/`, `.next/`, `dist/` (except `agent-runner/dist/`), `~/.devdigest/`. Git-ignored or machine-specific; never commit or clean them up as part of a task.
 
 ## Where to read more (on demand)
 
@@ -101,3 +103,4 @@ Never edit these by hand. Change them only through the tool that owns them, or n
 - **Writing or debugging e2e flows** → read `e2e/docs/flows.md`
 - **Hit unexpected behavior** → check `<package>/insights/gotchas.md`
 - **Changing DB schema** → read `server/docs/architecture.md` (Drizzle section)
+- **Changing the CI runner or the exported files** → read `agent-runner/README.md` and `server/specs/export-to-ci.md`
