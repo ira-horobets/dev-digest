@@ -66,4 +66,12 @@ describe("A2 Agent Editor (smoke)", () => {
     expect(screen.getByText("a.md")).toBeInTheDocument();
     expect(screen.getByText("docs/")).toBeInTheDocument();
   });
+
+  it("lists the CI tab after the existing tabs (AC-1)", () => {
+    renderWithIntl(<AgentEditor agent={AGENT} tab="config" onTab={() => {}} />);
+    const labels = screen.getAllByRole("button").map((b) => b.textContent?.trim());
+    const order = ["Config", "Skills", "Context", "CI"].map((l) => labels.indexOf(l));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
 });

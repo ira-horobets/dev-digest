@@ -14,7 +14,8 @@ this file are relative to `client/` unless they start with `../`.
 | `/repos/[repoId]/multi-agent` | Configure run: pick a PR and the agents, estimate, start a multi-agent run | `usePulls`, `useAgents`, `useAgentEstimates`, `useStartMultiAgentRun` | `?pr` | none |
 | `/repos/[repoId]/multi-agent/[multiRunId]` | multi-agent results: Columns or Tabs, "Where agents disagree", trace drawer | `useMultiAgentRun`, `useRunEvents`, `useRunFindings`, `useFindingAction` | path `multiRunId`, `?view` | none |
 | `/agents` | agent cards, create modal | `useAgents`, `useUpdateAgent`, `useCreateAgent`, `useDeleteAgent` | none | `03-agents` |
-| `/agents/[id]` | agent editor: Config, Skills | `useAgents`, `useAgent`, `useUpdateAgent`, `useProviderModels`, `useSkills`, `useAgentSkills`, `useSetAgentSkills` | `?tab` | `10-skills` |
+| `/agents/[id]` | agent editor: Config, Skills, Context, CI | `useAgents`, `useAgent`, `useUpdateAgent`, `useProviderModels`, `useSkills`, `useAgentSkills`, `useSetAgentSkills`, `useCiInstallations`, `useSetCiFailOn`, `useCiPreview`, `useCiSecrets`, `useExportCi`, `useUpdateCiInstallation` | `?tab` | `10-skills` |
+| `/ci-runs` | CI Runs: runs of exported agents ingested from GitHub Actions, filters, Refresh and auto-refresh | `useCiRuns`, `useRefreshCiRuns`, `useAutoRefreshCiRuns`, `useAgents`, `useRepos` | `?range`, `?agent_id`, `?repo`, `?status` | none |
 | `/skills` | skill card grid, side preview panel, create modal, import drawer | `useSkills`, `useUpdateSkill`, `useDeleteSkill`, `useCreateSkill`, `usePreviewSkillImport`, `useSkill` | `?skill` | `10-skills` |
 | `/skills/[id]` | skill editor: Config, Preview, Versioning | `useSkill`, `useUpdateSkill`, `useDeleteSkill`, `useSkillVersions`, `useSkillVersionDiff`, `useRestoreSkillVersion` | path `id`, `?tab` | `10-skills` |
 | `/conventions` | conventions extractor for the active repo | `useConventions`, `useExtractConventions`, `useDecideConvention`, `useDeselectConventions`, `useConventionSkillDraft`, `useCreateConventionSkill`, `useAgents` | none | `11-conventions` |
@@ -300,9 +301,11 @@ to `config.agent` ("PR Brief"), Findings is empty and the tool call is
 - Right side: header (icon chip, name, `provider/model` badge, disabled badge,
   **Run Review** → `/`) over `AgentEditor` for `useAgent(id)`
   (`GET /agents/:id`).
-- URL: `?tab=config|skills|context` (`VALID_TABS`); `config` is the fallback.
-  `AgentEditor` `TABS` has Config, Skills and Context (the Context tab attaches
-  project documents; contract in `specs/project-context.md`).
+- URL: `?tab=config|skills|context|ci` (`VALID_TABS`); `config` is the fallback.
+  `AgentEditor` `TABS` has Config, Skills, Context and CI (the Context tab
+  attaches project documents, contract in `specs/project-context.md`; the CI
+  tab is last: installations, "Fail CI on", "Add to CI" opening the Export to
+  CI wizard, "Update CI config"; contract in `specs/export-to-ci.md`).
 - `ConfigTab`: name, description, provider, model (`SearchableSelect` fed by
   `useProviderModels(provider)`, `GET /providers/:provider/models`; an empty
   list shows a "key missing" hint), strategy, CI fail-on, repo intel toggle,
@@ -408,6 +411,24 @@ to `config.agent` ("PR Brief"), Findings is empty and the tool call is
   with Retry, load error with Retry, empty state naming `specs, docs, insights`,
   «Select a document», a notice for a too-large document. Full contract:
   `specs/project-context.md`.
+
+## `/ci-runs` (`src/app/ci-runs/page.tsx` → `CiRunsView`)
+
+- Sidebar group GLOBAL → "CI Runs" (`src/vendor/ui/nav.ts`). The page passes
+  its own crumb (`ci.page.crumb`) and wraps the view in `Suspense` (reads
+  `useSearchParams`).
+- `useCiRuns` (`GET /ci/runs`) lists stored rows only. Filters (time range
+  default 7 days, agent, repo, status) live in the URL. **Refresh** calls
+  `useRefreshCiRuns` (`POST /ci/runs/refresh`) and shows the returned
+  in-progress runs on top as "Running"; the auto-refresh toggle calls it every
+  60 s while the browser tab is visible (`useAutoRefreshCiRuns`).
+- Rows (`CiRunRow`): repository, PR (link to `/repos/{repo_id}/pulls/{number}`
+  when the PR is imported, else `#n`), agent, verdict, findings, cost,
+  duration, timestamp, status, GitHub job link. Findings and cost are marked
+  "Reported by the CI job, not verified".
+- Rate limited: a banner with the retry time, stored rows stay, Refresh is
+  disabled until then. Empty: "No CI runs yet". Full contract:
+  `specs/export-to-ci.md`.
 
 ## `/settings/[section]` (`src/app/settings/[section]/page.tsx` → `SettingsView`)
 

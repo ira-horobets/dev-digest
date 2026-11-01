@@ -55,6 +55,10 @@ import { TourPathRow } from "@/components/tour-path-row";
 import { TourCommandRow } from "@/components/tour-command-row";
 import { TourReadingStep } from "@/components/tour-reading-step";
 import { ModifiedLocallyBadge } from "@/components/modified-locally-badge";
+import { Stepper } from "@/components/stepper";
+import { OptionCard, OptionGroup } from "@/components/option-card";
+import { FileViewer } from "@/components/file-viewer";
+import { CiStatusBadge } from "@/components/ci-status-badge";
 import { s } from "./styles";
 import { SEVERITIES, CATEGORIES, MODEL_OPTIONS, SAMPLE_FINDING } from "./constants";
 
@@ -366,6 +370,31 @@ export function Gallery() {
         </div>
         <AutoTriggerStatus on />
         <AutoTriggerStatus on={false} />
+      </Group>
+
+      <Group title="CI (Stepper / OptionCard / FileViewer / CiStatusBadge)">
+        <div style={s.w460}>
+          <Stepper label="Export steps" steps={["Target", "Preview", "Configure", "Install"]} current={1} />
+        </div>
+        <div style={s.w460}>
+          <OptionGroup label="Install">
+            <OptionCard title="Open a PR with these files" description="Recommended" tag="recommended" selected onSelect={() => {}} />
+            <OptionCard title="Copy files as a zip" selected={false} onSelect={() => {}} />
+            <OptionCard title="Disabled option" selected={false} onSelect={() => {}} disabled disabledReason="No GitHub token" />
+          </OptionGroup>
+        </div>
+        <div style={s.w460}>
+          <FileViewer path=".github/workflows/devdigest-review.yml" contents={"name: DevDigest review\non: pull_request\n"} editable editableLabel="editable" readOnlyLabel="read-only" />
+        </div>
+        <div style={s.w460}>
+          <FileViewer path=".devdigest/memory.jsonl" contents="" editableLabel="editable" readOnlyLabel="read-only" />
+        </div>
+        <CiStatusBadge kind="ready" label="ready" />
+        <CiStatusBadge kind="not_set" label="not set" />
+        <CiStatusBadge kind="unknown" label="unknown" />
+        <CiStatusBadge kind="running" label="Running" />
+        <CiStatusBadge kind="no_findings" label="No findings" />
+        <CiStatusBadge kind="merged" label="PR merged" />
       </Group>
 
       {drawer && (
