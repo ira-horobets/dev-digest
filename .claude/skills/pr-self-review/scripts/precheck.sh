@@ -110,6 +110,7 @@ while IFS=$'\t' read -r status p; do
       if ! has_path "$pkg/package.json"; then
         finding warning do-not-touch "$p" "" "Lockfile changed without $pkg/package.json" "Only the package manager writes lockfiles; confirm this came from an install, not a hand edit"
       fi ;;
+    agent-runner/dist/index.js) ;;  # generated runner bundle, committed on purpose (SPEC-05)
     server/clones/*|e2e/test-results/*|.idea/*|*/node_modules/*|*/.next/*|*/dist/*|*.log|.env|.env.*|*/.env|*/.env.*)
       case "$p" in *.env.example|*/.env.example) continue ;; esac
       if [[ "$status" == "U" ]]; then
